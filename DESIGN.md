@@ -150,7 +150,24 @@ stays on the race even if she is removed from the roster. A recorded time must
 never lose the name attached to it. That rule lives in `lib/roster.ts` with
 tests, rather than inline in a component, because it fails silently.
 
+### Clear everything
+
+Unrecoverable, on purpose, because nothing is ever sent anywhere and there is no
+copy to restore from. So the button says what it will destroy in counts ("2
+races, 34 crossings and 20 runners"), asks twice like Stop does, disarms itself
+after four seconds, and disables when there is nothing to erase.
+
+It matches on the `ss.` prefix rather than the current schema version, so an
+older build's leftovers go with it, and it leaves keys it does not own alone. It
+lives at the bottom of the setup screen, below a rule, where nothing shares an
+edge with a button used on race day.
+
 ### Projected finish
+
+Every race this team runs is a 5K, so there is no distance picker. The distance
+still travels on the stored race and in the CSV rather than being assumed by
+whatever reads the export, so a file says what it was measured against and a
+future non 5K could not silently reinterpret old data.
 
 The header carries the running clock and, under it, the finish time this pace
 projects to. The projection is linear: `elapsed * (raceMeters / stationMeters)`.

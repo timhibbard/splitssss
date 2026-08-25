@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import './App.css'
 import { SESSION_ID, stamp, todayIsoDate } from './lib/clock'
 import { mergeRoster } from './lib/roster'
@@ -27,6 +27,8 @@ function restore(): { race: Race | null; taps: Tap[]; roster: Athlete[] } {
   }
 }
 
+const EMPTY_COUNTS = { races: 0, taps: 0, roster: 0 }
+
 function lastSeq(taps: Tap[]): number {
   return taps.length > 0 ? taps[taps.length - 1].seq : 0
 }
@@ -39,6 +41,12 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>(restored.race ? 'capture' : 'setup')
   /** Where Back goes from the roster, so it returns you where you came from. */
   const [rosterReturn, setRosterReturn] = useState<Screen>('setup')
+  /**
+   * Forces a render after a wipe. Clearing an empty session changes no other
+   * state, so without this the setup screen could keep showing counts for data
+   * that is already gone. The value itself is never read.
+   */
+  const [, setWiped] = useState(0)
 
   const editRoster = useCallback((from: Screen) => {
     setRosterReturn(from)
@@ -177,6 +185,21 @@ export default function App() {
     setScreen('export')
   }, [race])
 
+  /**
+   * Erases everything this app has stored on the phone. Unrecoverable by design,
+   * since nothing is ever sent anywhere, so the button that calls this asks
+   * twice. Bumping wiped re-reads the counts that the setup screen shows.
+   */
+  const clearAll = useCallback(() => {
+    store.clearAll()
+    setRace(null)
+    setTaps([])
+    setRoster([])
+    seqRef.current = 0
+    setWiped((n) => n + 1)
+    setScreen('setup')
+  }, [])
+
   const newRace = useCallback(() => {
     store.setActiveRaceId(null)
     setRace(null)
@@ -188,11 +211,17 @@ export default function App() {
   const showSetup = !race || screen === 'setup'
   // The race in progress gets its own button at the top, so it is not also
   // listed as something to resume.
-  const todaysRaces = useMemo(() => {
-    if (!showSetup) return []
-    const today = todayIsoDate()
-    return store.loadAllRaces().filter((r) => r.date === today && r.id !== race?.id)
-  }, [showSetup, race?.id])
+  const todaysRaces = showSetup
+    ? store.loadAllRaces().filter((r) => r.date === todayIsoDate() && r.id !== race?.id)
+    : []
+
+  /**
+   * What a wipe would destroy, read straight from storage so it cannot drift
+   * from what is actually on the phone. Not memoized: the read is a handful of
+   * key comparisons, and every input that would invalidate it lives on disk
+   * rather than in the dependency array.
+   */
+  const stored = showSetup ? store.storedCounts() : EMPTY_COUNTS
 
   if (screen === 'roster') {
     return (
@@ -214,6 +243,8 @@ export default function App() {
         onEditRoster={() => editRoster('setup')}
         active={race}
         onBackToTiming={() => setScreen('capture')}
+        stored={stored}
+        onClearAll={clearAll}
       />
     )
   }

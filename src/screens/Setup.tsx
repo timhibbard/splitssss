@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { distanceLabel, toMeters, type Unit } from '../lib/distance'
 import type { Race, RaceDraft, Station } from '../lib/types'
 
@@ -12,17 +12,19 @@ type Props = {
   /** The race being timed right now, if this screen was opened mid race. */
   active: Race | null
   onBackToTiming: () => void
+  stored: { races: number; taps: number; roster: number }
+  onClearAll: () => void
 }
 
 const RACES = ['Varsity Girls', 'JV Girls']
 
-/** Full race distance, used to project a finish time from a split. */
-const RACE_DISTANCES = [
-  { label: '5K', meters: 5000 },
-  { label: '4K', meters: 4000 },
-  { label: '3 mi', meters: 4828 },
-  { label: '2 mi', meters: 3219 },
-]
+/**
+ * Every race this team runs is a 5K, so there is no picker. It stays in the
+ * stored race and in the CSV rather than being assumed downstream, so an export
+ * still says what it was measured against and a future non 5K would not
+ * silently reinterpret old data.
+ */
+const RACE_METERS = 5000
 
 /**
  * Ordered by distance. No finish line: the meet's own timing provides that, so
@@ -39,6 +41,17 @@ const STATIONS: Station[] = [
 
 const UNITS: Unit[] = ['m', 'km', 'mi']
 
+/** Says what a wipe would destroy, so it is a decision and not a surprise. */
+function describe(stored: { races: number; taps: number; roster: number }): string {
+  const parts: string[] = []
+  if (stored.races > 0) parts.push(`${stored.races} race${stored.races === 1 ? '' : 's'}`)
+  if (stored.taps > 0) parts.push(`${stored.taps} crossing${stored.taps === 1 ? '' : 's'}`)
+  if (stored.roster > 0) parts.push(`${stored.roster} runner${stored.roster === 1 ? '' : 's'}`)
+  if (parts.length === 0) return 'nothing'
+  if (parts.length === 1) return parts[0]
+  return `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`
+}
+
 export function Setup({
   onStart,
   existing,
@@ -47,9 +60,14 @@ export function Setup({
   onEditRoster,
   active,
   onBackToTiming,
+  stored,
+  onClearAll,
 }: Props) {
   const [meet, setMeet] = useState('')
-  const [raceMeters, setRaceMeters] = useState(5000)
+  const [confirmClear, setConfirmClear] = useState(false)
+  const clearTimer = useRef<number | undefined>(undefined)
+
+  useEffect(() => () => window.clearTimeout(clearTimer.current), [])
 
   const [racePreset, setRacePreset] = useState<string>(RACES[1])
   const [raceOther, setRaceOther] = useState('')
@@ -84,8 +102,27 @@ export function Setup({
       race: raceName,
       station: resolvedStation(),
       timer: timer.trim(),
-      raceMeters,
+      raceMeters: RACE_METERS,
     })
+  }
+
+  const hasData = stored.races > 0 || stored.taps > 0 || stored.roster > 0
+
+  /**
+   * Two taps, like Stop, and for the same reason: this one is unrecoverable.
+   * The armed state expires so a stray tap cannot leave the button loaded for
+   * whoever picks up the phone next.
+   */
+  function clear() {
+    if (!confirmClear) {
+      setConfirmClear(true)
+      window.clearTimeout(clearTimer.current)
+      clearTimer.current = window.setTimeout(() => setConfirmClear(false), 4000)
+      return
+    }
+    window.clearTimeout(clearTimer.current)
+    setConfirmClear(false)
+    onClearAll()
   }
 
   return (
@@ -173,24 +210,7 @@ export function Setup({
       </fieldset>
 
       <fieldset>
-        <legend>Race distance</legend>
-        <div className="chips">
-          {RACE_DISTANCES.map((d) => (
-            <button
-              key={d.label}
-              type="button"
-              className={d.meters === raceMeters ? 'chip on' : 'chip'}
-              onClick={() => setRaceMeters(d.meters)}
-            >
-              {d.label}
-            </button>
-          ))}
-        </div>
-        <p className="hint">Used to project a finish time from your split.</p>
-      </fieldset>
-
-      <fieldset>
-        <legend>How far into the course are you?</legend>
+        <legend>How far into the 5K are you?</legend>
         <div className="chips">
           {STATIONS.map((s) => (
             <button
@@ -270,6 +290,23 @@ export function Setup({
           ))}
         </section>
       )}
+
+      <section className="danger">
+        <h2>Start over</h2>
+        <p className="hint">
+          {hasData
+            ? `Erases ${describe(stored)} from this phone. Nothing is sent anywhere, so there is no copy to get it back from.`
+            : 'Nothing is stored on this phone yet.'}
+        </p>
+        <button
+          type="button"
+          className={confirmClear ? 'clear confirming' : 'clear'}
+          onClick={clear}
+          disabled={!hasData}
+        >
+          {confirmClear ? 'Tap again to erase everything' : 'Clear everything'}
+        </button>
+      </section>
 
       <p className="build">Build {__BUILD__}</p>
     </div>

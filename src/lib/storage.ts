@@ -109,6 +109,37 @@ export function saveRoster(athletes: Athlete[]): void {
   localStorage.setItem(ROSTER_KEY, JSON.stringify(athletes))
 }
 
+/** Everything this app has ever written, so a wipe cannot miss an old key. */
+const ALL_PREFIX = 'ss.'
+
+export function storedCounts(): { races: number; taps: number; roster: number } {
+  let races = 0
+  let taps = 0
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)
+    if (key?.startsWith(RACE_PREFIX)) races += 1
+    else if (key?.startsWith(TAP_PREFIX)) taps += 1
+  }
+  return { races, taps, roster: loadRoster().length }
+}
+
+/**
+ * Wipes every key this app owns and nothing else, matching on the `ss.` prefix
+ * rather than the current schema version so an older build's leftovers go too.
+ *
+ * Keys are collected before any removal, because removing while walking the
+ * index shifts the keys that have not been visited yet.
+ */
+export function clearAll(): number {
+  const keys: string[] = []
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)
+    if (key?.startsWith(ALL_PREFIX)) keys.push(key)
+  }
+  for (const key of keys) localStorage.removeItem(key)
+  return keys.length
+}
+
 export function newId(): string {
   return Math.random().toString(36).slice(2, 10)
 }

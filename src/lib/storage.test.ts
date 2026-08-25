@@ -181,6 +181,52 @@ test('an absent or corrupt roster reads as empty rather than throwing', () => {
   assert.deepEqual(store.loadRoster(), [], 'valid JSON of the wrong shape is rejected')
 })
 
+test('clear everything wipes races, taps, and the roster', () => {
+  mem.clear()
+  store.saveRace(race('r1'))
+  store.saveRace(race('r2'))
+  store.setActiveRaceId('r1')
+  for (const seq of [1, 2, 3]) store.saveTap('r1', tap(seq))
+  store.saveRoster([{ id: 'a1', name: 'Avery Collins' }])
+
+  const removed = store.clearAll()
+
+  assert.equal(removed, 7, '2 races, 3 taps, the active pointer, and the roster')
+  assert.deepEqual(store.loadAllRaces(), [])
+  assert.deepEqual(store.loadTaps('r1'), [])
+  assert.deepEqual(store.loadRoster(), [])
+  assert.equal(store.getActiveRaceId(), null)
+  assert.equal(mem.length, 0)
+})
+
+test('clear everything takes old schema versions with it', () => {
+  mem.clear()
+  mem.poison('ss.v1.race.old', '{}')
+  mem.poison('ss.something', 'x')
+  store.clearAll()
+  assert.equal(mem.length, 0)
+})
+
+test('clear everything leaves keys that are not ours alone', () => {
+  mem.clear()
+  mem.poison('theme', 'dark')
+  mem.poison('ss.v2.roster', '[]')
+  const removed = store.clearAll()
+  assert.equal(removed, 1)
+  assert.equal(mem.getItem('theme'), 'dark')
+})
+
+test('counts describe what a wipe would destroy', () => {
+  mem.clear()
+  store.saveRace(race('r1'))
+  for (const seq of [1, 2]) store.saveTap('r1', tap(seq))
+  store.saveRoster([
+    { id: 'a1', name: 'Avery Collins' },
+    { id: 'a2', name: 'Rowan Hayes' },
+  ])
+  assert.deepEqual(store.storedCounts(), { races: 1, taps: 2, roster: 2 })
+})
+
 test('clearing the active race leaves the data recoverable', () => {
   mem.clear()
   const r = race()
