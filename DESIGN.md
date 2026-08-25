@@ -424,6 +424,59 @@ passphrase, and it does not unpublish the ciphertext already in git history.
 Rotating means a new passphrase and a new file. Plaintext names still never get
 committed, which is the rule the gitignore enforces.
 
+### The team list that ships with the app
+
+The link works and the vault works, and both still ask something of a human. The
+coach asked for the case where nobody does anything: hand a parent a phone ten
+minutes before the gun, they open the app, and the names are on it.
+
+That request settles the tradeoff by itself. A list the page reads with nothing
+typed is a list anyone can read, because the way to read it has to ship in the
+JavaScript. There is no arrangement of files and keys that changes this. So the
+choice is not how to hide the file, it is what goes in it.
+
+What goes in it is the short label a button already says:
+
+```
+public/team.dat    "Caroline K.", scrambled, committed
+```
+
+First name and an initial, never a surname. That is what a meet program prints
+next to a time anyway, and what a spectator hears called across a field. Full
+names still cost a link or a passphrase, and plaintext still never gets
+committed.
+
+`npm run team-file -- roster.txt` writes it, through the same `shortNames` the
+buttons use, so what it writes is what a volunteer reads. The scramble is a
+deterministic XOR keystream with the key in the source. Naming it honestly
+matters: it is obfuscation. What it buys is real but small. The names are not
+plaintext in a public repo, not indexed by a search engine, and not readable by
+someone glancing at the file listing. What it does not buy is confidentiality
+from anyone who spends a minute on it, and the tool says so on every run.
+
+Because output is deterministic, a rebuild with no roster change is not a diff.
+
+Adopting it is where the care goes, since a file that arrives on its own can
+destroy work nobody asked it to touch:
+
+- **Silent only when there is nothing to lose.** An empty phone, or one still
+  holding exactly the list this build replaces. Automatic is the whole point, and
+  a phone that took the last list clearly wants this one.
+- **Anything else gets the prompt a shared link gets.** A hand edited list, or the
+  coach's phone holding full names, is not the app's to overwrite.
+- **`ss.v2.shipped` records what this phone has seen**, so a rebuild that changes
+  no name never asks twice, and a dismissed list stays dismissed.
+- **A dismissed list is still reachable.** The roster screen keeps a quiet button
+  for it, so "Not now" is not "never".
+- **A pending shared link wins.** That is a decision already in progress.
+- **Never mid race.** A volunteer watching the course does not get pulled off the
+  clock by a roster that can wait.
+- **A header and a footer sentinel**, so a half finished download is rejected
+  rather than read as a short team ending in half a name.
+- **No file means no feature.** A fresh clone has no `team.dat`; the fetch 404s
+  and nothing appears. It is precached like the rest of the build, so it lands
+  with no signal.
+
 ### Storage: synchronous, one key per tap
 
 A tap must never be lost, including when iOS discards the page one frame after
@@ -441,6 +494,8 @@ ss.v2.race.<raceId>          race metadata
 ss.v2.tap.<raceId>.<seq>     one tap, seq zero padded so keys sort in order
 ss.v2.active                 id of the race being timed
 ss.v2.roster                 the team, per device, not per race
+ss.v2.lineup.<raceName>      who ran a race by that name last time
+ss.v2.shipped                the shipped list this phone has already been offered
 ```
 
 Reads are defensive per key: an unreadable tap is skipped and logged rather
@@ -453,7 +508,7 @@ IndexedDB is the migration path if the data model ever outgrows this.
 `npm test` runs Node's built in test runner directly against the TypeScript,
 no build step and no test framework. Coverage is deliberately narrow: the clock,
 the storage layer, the distance math, the naming rules behind the running list,
-the short labels, the lineup defaults, and the two ways a roster arrives, which
+the short labels, the lineup defaults, and the three ways a roster arrives, which
 are the places a bug is silent and unrecoverable. A wrong pixel is visible on
 race day. A wrong split is not.
 
@@ -482,6 +537,13 @@ The vault tests assert the claim the whole feature rests on: that no name appear
 anywhere in the published file, that a wrong passphrase and a tampered file both
 yield nothing rather than a plausible wrong list, and that a missing or malformed
 file reads as no prompt rather than as an error.
+
+The team file tests hold it to the one thing it does claim, that no name is
+readable in it, including with the spaces taken out, and to the failure that
+would be worst: every truncation point of a good file is rejected, so a partial
+download cannot become a short list ending in half a name. They also pin the
+determinism a clean rebuild depends on, and that a missing file, a tampered file
+and garbage all read as no shipped team.
 
 ### Install to the home screen
 

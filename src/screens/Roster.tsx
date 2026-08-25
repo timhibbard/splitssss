@@ -7,14 +7,17 @@ type Props = {
   athletes: Athlete[]
   onSave: (athletes: Athlete[]) => void
   onBack: () => void
-  /** Runners waiting on a decision, from a link or from the published roster. */
+  /** Runners waiting on a decision, from a link, the published roster, or the build. */
   incoming: Athlete[] | null
-  incomingSource: 'link' | 'published'
+  incomingSource: 'link' | 'published' | 'shipped'
   onImport: (mode: 'replace' | 'add') => void
   onDismissImport: () => void
   /** This build ships an encrypted roster, so a passphrase can load it. */
   hasPublished: boolean
   onUnlock: (passphrase: string) => Promise<boolean>
+  /** The build came with a team list and this phone is not using it. */
+  canLoadShipped: boolean
+  onLoadShipped: () => void
 }
 
 export function Roster({
@@ -27,6 +30,8 @@ export function Roster({
   onDismissImport,
   hasPublished,
   onUnlock,
+  canLoadShipped,
+  onLoadShipped,
 }: Props) {
   const [paste, setPaste] = useState('')
   const [single, setSingle] = useState('')
@@ -121,7 +126,11 @@ export function Roster({
       {incoming && incoming.length > 0 && (
         <section className="incoming">
           <p>
-            {incomingSource === 'link' ? 'This link has ' : 'The team roster has '}
+            {incomingSource === 'link'
+              ? 'This link has '
+              : incomingSource === 'shipped'
+                ? 'The list that came with the app has '
+                : 'The team roster has '}
             <strong>{incoming.length} runners</strong>.
             {athletes.length > 0 ? ` You already have ${athletes.length} on this phone.` : ''}
           </p>
@@ -141,9 +150,20 @@ export function Roster({
         </section>
       )}
 
+      {/*
+        Normally the shipped list is already loaded, silently, at startup. This is
+        here for the phone that dismissed it, edited the list by hand, or is
+        holding full names and wants the short ones back.
+      */}
+      {canLoadShipped && !incoming && (
+        <button type="button" className="vault-toggle" onClick={onLoadShipped}>
+          Load the team list that came with the app
+        </button>
+      )}
+
       {hasPublished && !incoming && !unlockOpen && (
         <button type="button" className="vault-toggle" onClick={() => setShowUnlock(true)}>
-          Load the published team roster
+          Load the published team roster, with full names
         </button>
       )}
 

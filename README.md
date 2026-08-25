@@ -20,6 +20,10 @@ Live at **https://timhibbard.github.io/splitssss/**
 - **The gun time is optional.** Every tap stores an absolute time of day, so
   elapsed times are computed later by subtracting the gun time. A volunteer at
   Mile 2 who cannot hear the start does not need to know when the race began.
+- **The team is already on the phone.** The build ships the team list, as the
+  short labels the buttons say, so a parent handed a phone ten minutes before the
+  gun opens the app and finds the names on it. Nothing to open, nothing to type.
+  A list somebody edited by hand is never overwritten: that gets asked about.
 - **The roster travels by link.** The coach taps "Send this list to a volunteer"
   and texts a link that loads all the names in one tap. The names ride in the URL
   fragment, which browsers never send to a server, so they reach no log or cache.
@@ -83,6 +87,13 @@ ways, and neither one puts a name on a server:
   is public either way, so a committed roster is only as private as the
   passphrase over it. See DESIGN.md for what that does and does not protect.
 
+`public/team.dat` is committed too, and it is the one file that carries anything
+about a runner without a passphrase over it. It holds first names and an initial,
+"Caroline K.", scrambled. Scrambled is not encrypted: the app reads it with
+nothing typed, so the way to read it ships in the JavaScript and anyone who wants
+the list can have it. That is the trade for the names being there automatically,
+and it is why the file holds no surnames. See DESIGN.md.
+
 The school's logo file is also not committed. This app uses the school colors
 and the Patriots name and ships its own stopwatch mark rather than
 redistributing school artwork from a public repo.
@@ -97,9 +108,20 @@ npm run dev
 ```sh
 npm run build    # type check and build
 npm run lint
-npm test         # clock, storage, roster, link, vault, distance, split, gesture, name, and lineup logic, via node --test
+npm test         # clock, storage, roster, link, vault, team file, distance, split, gesture, name, and lineup logic, via node --test
 npm run preview  # serve the production build at /splitssss/
 ```
+
+Ship the team with the app, so every phone opens with the names on it:
+
+```sh
+npm run team-file -- roster.txt     # writes public/team.dat, prints the list in order
+git add public/team.dat             # short labels only, scrambled, meant to be committed
+```
+
+Re-run it after adding a runner. Output is deterministic, so a rebuild with no
+name change is not a diff. A phone that already took the last list takes the new
+one on its own; a phone with a hand edited list gets asked.
 
 Generate a roster link from a file of names, without the names touching git:
 

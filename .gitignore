@@ -1,6 +1,8 @@
 # Plaintext athlete data never belongs in this repo. These are minors and the
-# published site is public regardless of repo visibility. The one roster file that
-# does get committed is public/roster.enc, which is ciphertext. See DESIGN.md.
+# published site is public regardless of repo visibility. Two roster files do get
+# committed: public/roster.enc, which is ciphertext, and public/team.dat, which is
+# scrambled first names and an initial. Neither is a full name in the clear. See
+# DESIGN.md.
 roster*.csv
 roster*.txt
 roster*.json

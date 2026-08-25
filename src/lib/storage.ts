@@ -15,6 +15,7 @@ const TAP_PREFIX = 'ss.v2.tap.'
 const ACTIVE_KEY = 'ss.v2.active'
 const ROSTER_KEY = 'ss.v2.roster'
 const LINEUP_PREFIX = 'ss.v2.lineup.'
+const SHIPPED_KEY = 'ss.v2.shipped'
 
 function tapKey(raceId: string, seq: number): string {
   // Zero padded so the natural key sort matches crossing order.
@@ -135,6 +136,20 @@ export function loadLineup(raceName: string): string[] | null {
 
 export function saveLineup(raceName: string, ids: string[]): void {
   localStorage.setItem(lineupKey(raceName), JSON.stringify(ids))
+}
+
+/**
+ * The shipped team list this phone has already seen, as its own names joined by
+ * newlines. Not the roster: this is only how the app tells "the build brought a
+ * new list" from "the build brought the same list again", so a rebuild does not
+ * pester somebody who has already loaded it or edited it by hand.
+ */
+export function loadShippedSeen(): string | null {
+  return localStorage.getItem(SHIPPED_KEY)
+}
+
+export function saveShippedSeen(text: string): void {
+  localStorage.setItem(SHIPPED_KEY, text)
 }
 
 /** Everything this app has ever written, so a wipe cannot miss an old key. */

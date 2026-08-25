@@ -208,6 +208,15 @@ test('a corrupt lineup reads as never chosen', () => {
   assert.equal(store.loadLineup('Varsity Girls'), null)
 })
 
+test('the shipped list this phone has seen is remembered, and forgotten by a wipe', () => {
+  mem.clear()
+  assert.equal(store.loadShippedSeen(), null, 'a fresh phone has seen nothing')
+  store.saveShippedSeen('Avery C.\nRowan H.')
+  assert.equal(store.loadShippedSeen(), 'Avery C.\nRowan H.')
+  store.clearAll()
+  assert.equal(store.loadShippedSeen(), null)
+})
+
 test('clear everything wipes races, taps, the roster, and the lineups', () => {
   mem.clear()
   store.saveRace(race('r1'))

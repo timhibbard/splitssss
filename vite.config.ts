@@ -42,9 +42,10 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // `enc` is the published roster: precached like everything else, so a
-        // volunteer can unlock it with no signal at the two mile mark.
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest,enc}'],
+        // `dat` is the team list that ships with the build and `enc` the encrypted
+        // roster. Both are precached like everything else, so a phone loads its
+        // names with no signal at the two mile mark.
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest,enc,dat}'],
         // Everything is precached and there are no network calls, so the app is
         // fully functional with no signal at the two mile mark.
         navigateFallback: `${BASE}index.html`,

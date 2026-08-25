@@ -5,6 +5,7 @@ import { rosterFromHash } from './lib/link'
 import { mergeLineup } from './lib/roster'
 import { assignAthlete, clearName } from './lib/splits'
 import * as store from './lib/storage'
+import { fetchTeam, TEAM_FILE, teamText } from './lib/teamfile'
 import type { Athlete, Race, RaceDraft, Stamp, Tap } from './lib/types'
 import { fetchVault, openRoster, VAULT_FILE, type Vault } from './lib/vault'
 import { Capture } from './screens/Capture'
@@ -61,7 +62,9 @@ export default function App() {
   const [roster, setRoster] = useState<Athlete[]>(restored.roster)
   const [incoming, setIncoming] = useState<Athlete[] | null>(LINKED_ROSTER)
   /** Which channel the pending list arrived through, so the prompt can say so. */
-  const [incomingSource, setIncomingSource] = useState<'link' | 'published'>('link')
+  const [incomingSource, setIncomingSource] = useState<'link' | 'published' | 'shipped'>('link')
+  /** The team list that came with this build, if it has one. */
+  const [shipped, setShipped] = useState<Athlete[] | null>(null)
   /** The published roster, if this build has one. Absent is normal. */
   const [vault, setVault] = useState<Vault | null>(null)
   // A shared link opens on the roster, because deciding about it comes first.
@@ -131,6 +134,64 @@ export default function App() {
     },
     [race, roster, taps],
   )
+
+  /**
+   * The team list that ships with the build, looked for once at startup. One
+   * request to a precached file, so it resolves with no signal at the course, and
+   * absent is normal: a fresh clone of this repo has no team file.
+   *
+   * It is taken up without asking when there is nothing to lose: an empty phone,
+   * or one still holding exactly the list this build replaces. Automatic is the
+   * whole point. A parent handed the phone ten minutes before the gun should find
+   * the names already on it, with no link to open and no passphrase to type.
+   *
+   * Anything else is not the app's decision to make, so a hand edited list, or the
+   * coach's phone holding full names, gets the same prompt a shared link gets.
+   * Either way this build's list is recorded as seen, so a rebuild that changes
+   * nothing never asks twice, and the roster screen can ask for it by hand.
+   *
+   * The decision happens here rather than in an effect on the result because it
+   * runs exactly once, against the state the page was restored with, and adopting
+   * has to go through saveRoster to reach a race already in progress.
+   */
+  useEffect(() => {
+    let live = true
+    void fetchTeam(`${import.meta.env.BASE_URL}${TEAM_FILE}`).then((found) => {
+      if (!live || !found) return
+      setShipped(found)
+      // A shared link is a decision already in progress, so leave it alone. The
+      // quiet button on the roster screen offers this list afterwards.
+      if (LINKED_ROSTER) return
+      const text = teamText(found)
+      const seen = store.loadShippedSeen()
+      if (seen === text) return
+      const current = store.loadRoster()
+      store.saveShippedSeen(text)
+      if (current.length === 0 || teamText(current) === seen) {
+        saveRoster(found)
+        return
+      }
+      setIncomingSource('shipped')
+      setIncoming(found)
+      // Nothing else on screen would mention a pending list, so go where the
+      // question is. Never mid race: a volunteer watching the course must not be
+      // pulled off the clock by a roster that can wait.
+      if (!store.getActiveRaceId()) setScreen('roster')
+    })
+    return () => {
+      live = false
+    }
+    // Once, at startup, against the restored state. saveRoster is stable enough
+    // for that: what it closes over here is what a fresh page has.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  /** Asking for the shipped list by hand, from the roster screen. */
+  const loadShipped = useCallback(() => {
+    if (!shipped) return
+    setIncomingSource('shipped')
+    setIncoming(shipped)
+  }, [shipped])
 
   /**
    * Who is running the race in progress. Saved under the race's name as well as
@@ -394,6 +455,8 @@ export default function App() {
         onDismissImport={() => setIncoming(null)}
         hasPublished={vault !== null}
         onUnlock={unlockRoster}
+        canLoadShipped={shipped !== null && teamText(roster) !== teamText(shipped)}
+        onLoadShipped={loadShipped}
       />
     )
   }
