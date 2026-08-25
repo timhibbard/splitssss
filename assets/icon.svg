@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="112" fill="#ff4d17"/>
+  <g fill="none" stroke="#ffffff" stroke-width="38" stroke-linecap="round">
+    <!-- stopwatch crown -->
+    <path d="M256 62 V128" stroke-width="52"/>
+    <!-- case -->
+    <circle cx="256" cy="304" r="146"/>
+    <!-- hand, pointing where a split gets taken -->
+    <path d="M256 304 L352 216"/>
+  </g>
+  <circle cx="256" cy="304" r="20" fill="#ffffff"/>
+</svg>

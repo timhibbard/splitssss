@@ -1,0 +1,309 @@
+.screen {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  gap: 12px;
+}
+
+/* ---------- setup ---------- */
+
+.setup {
+  overflow-y: auto;
+}
+
+.brand h1 {
+  margin: 8px 0 0;
+  font-size: 34px;
+  letter-spacing: -0.02em;
+}
+
+.tagline {
+  margin: 2px 0 0;
+  color: var(--ink-soft);
+  font-size: 15px;
+}
+
+.instructions {
+  margin: 4px 0 8px;
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.setup label {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.setup fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.setup legend {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  padding: 0 0 6px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  padding: 12px 16px;
+  font-weight: 600;
+}
+
+.chip.on {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+
+.primary {
+  background: var(--hot);
+  border-color: var(--hot);
+  color: #fff;
+  font-size: 19px;
+  font-weight: 700;
+  padding: 18px;
+}
+
+.primary:active {
+  background: var(--hot-press);
+}
+
+.prior {
+  margin-top: 8px;
+}
+
+.prior h2 {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+
+.prior-race {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin-bottom: 8px;
+}
+
+.prior-meta {
+  display: block;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.build {
+  margin: 16px 0 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+/* ---------- capture ---------- */
+
+.capture {
+  transition: background-color 60ms linear;
+}
+
+/* Confirms a tap landed for someone watching the course, not the screen. */
+.capture.flash {
+  background: var(--hot);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+}
+
+.bar-where {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  flex: 1;
+  min-width: 0;
+}
+
+.bar-where strong {
+  font-size: 19px;
+}
+
+.bar-where span {
+  font-size: 13px;
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar-clock {
+  font-size: 30px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.gun {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+  font-weight: 700;
+  padding: 14px 24px;
+}
+
+.tap {
+  flex: 1;
+  min-height: 45vh;
+  background: var(--hot);
+  border: none;
+  border-radius: 20px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.tap:active {
+  background: var(--hot-press);
+}
+
+.tap-count {
+  font-size: 28vh;
+  line-height: 0.9;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
+
+.tap-word {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  opacity: 0.75;
+}
+
+.recent {
+  min-height: 92px;
+}
+
+.recent-empty {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+
+.recent-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 2px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.recent-place {
+  width: 2.2em;
+  text-align: right;
+  color: var(--ink-soft);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.recent-time {
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.actions button {
+  flex: 1;
+  padding: 18px 12px;
+  font-weight: 600;
+}
+
+/* ---------- export ---------- */
+
+.export {
+  overflow-y: auto;
+}
+
+.back {
+  padding: 10px 16px;
+}
+
+.warn {
+  margin: 0;
+  background: var(--warn-bg);
+  color: var(--warn);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.export-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.export-actions button {
+  flex: 1;
+}
+
+.status {
+  margin: 0;
+  font-size: 15px
+}
+
+.export h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  margin: 8px 0 0;
+}
+
+.preview {
+  margin: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 14px;
+  line-height: 1.4;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.preview.small {
+  font-size: 11px;
+  white-space: pre;
+  word-break: normal;
+}

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      viewport-fit=cover so the layout can use env(safe-area-inset-*).
+      user-scalable=no because a pinch on a big tap target is always an accident.
+    -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#ff4d17" />
+    <meta name="description" content="Hand timed cross country splits. Tap now, add names later." />
+
+    <!-- iOS home screen install. This is what protects data from 7 day storage eviction. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Splitssss" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <title>Splitssss</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

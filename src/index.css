@@ -1,0 +1,82 @@
+/*
+  Light, high contrast, big type. Tuned for direct sun on a course at 9am with
+  the phone at full brightness, which is the opposite of what looks good in a
+  dark room.
+*/
+:root {
+  --bg: #f7f7f5;
+  --panel: #ffffff;
+  --ink: #0f1012;
+  --ink-soft: #55585e;
+  --line: #d8d8d4;
+  --hot: #ff4d17;
+  --hot-press: #d63a0c;
+  --warn: #8a5a00;
+  --warn-bg: #fff5da;
+
+  color-scheme: light;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-synthesis: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  /* No rubber banding, no pull to refresh next to a big tap target. */
+  overscroll-behavior: none;
+}
+
+body {
+  /* Locks the layout so a stray swipe cannot scroll the capture screen away. */
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 14px 18px;
+  cursor: pointer;
+  /* Kills the tap delay and the flash of grey highlight on iOS. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+button:disabled {
+  opacity: 0.35;
+}
+
+input {
+  font: inherit;
+  color: inherit;
+  /* 16px minimum or iOS zooms the whole page when the field is focused. */
+  font-size: 17px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  width: 100%;
+}
+
+input:focus-visible,
+button:focus-visible {
+  outline: 3px solid var(--hot);
+  outline-offset: 2px;
+}
