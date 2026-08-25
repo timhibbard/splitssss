@@ -175,6 +175,29 @@
   color: var(--ink-soft);
 }
 
+/* A once a season job, so it reads as a link and not as a control on the race
+   day path. Still a real button underneath, and still 44px of height to hit,
+   because looking quiet is not the same as being hard to tap. */
+.setup-link {
+  margin: 4px 0 0;
+  text-align: center;
+}
+
+.link {
+  border: 0;
+  background: none;
+  padding: 12px 8px;
+  min-height: 44px;
+  font-size: 14px;
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link:active {
+  color: var(--navy);
+}
+
 /* Destructive, so it is visually separated from the race setup above it and
    nothing here shares an edge with a button used on race day. */
 .danger {

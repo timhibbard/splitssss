@@ -207,8 +207,8 @@ and the capture screen had no way back at all. Since the app restores the race
 in progress on load, a returning user landed on the clock and could not reach
 setup or the roster from there. Two lessons, both now built in:
 
-- The roster is set up once, so it belongs above the per race fields, not below
-  them. It is a bordered panel with a count, not a button in a stack of buttons.
+- The roster has to be reachable from wherever you are, not only from the screen
+  that happens to be first.
 - The capture screen carries quiet Setup and "Who is running" links under the
   race actions. Leaving is free, because taps are already on disk and the race stays
   the active one, so these are safe to hit by accident. That is why they are
@@ -217,6 +217,29 @@ setup or the roster from there. Two lessons, both now built in:
 Opening setup mid race puts "Back to timing" at the top, and the race in
 progress is left out of the "Earlier today" list so it appears in exactly one
 place.
+
+### Editing the team list is a link, not a panel
+
+For a while the roster was a bordered panel above the race fields, on the theory
+that it is the one thing a new user has to find. Shipping the team with the app
+retired that theory. The names are already there, so on a normal phone editing
+the list is a once a season job sitting on top of the screen a volunteer uses
+every race.
+
+So it is a plain underlined link at the bottom, below Start timing and above Start
+over, and it says what it would open: "Edit the 28 runners on this phone". That
+label is also the answer to the only question the old panel really answered, which
+is whether the names made it onto this phone. The lineup panel still sits with the
+race, because who is running changes every race and that is the opposite kind of
+setting.
+
+The loud panel is not gone, it is conditional. A phone with nobody on it, meaning
+a wipe, a browser that dropped its storage, or a clone with no team file, still
+gets the bordered panel with "Add runners" or "Load them", because then it is the
+only thing on the screen worth doing. Quiet by default, loud when it is the task.
+
+Underlined and grey, but still a real button with 44px of height. Looking
+secondary is not a reason to be hard to hit.
 
 ### A button says a first name and an initial
 

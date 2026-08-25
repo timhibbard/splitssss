@@ -183,27 +183,28 @@ export function Setup({
       </p>
 
       {/*
-        The roster is the one thing a new user has to find, and it used to be a
-        plain button below the fold. It sits above the race details now, because
-        it is set up once and everything below it is set up per race.
+        Only when there is nobody on the phone, which is now the rare case: the
+        team ships with the app. An empty phone means a wipe, a fresh clone with
+        no team file, or a browser that dropped its storage, and then this is the
+        only thing worth doing on this screen. Once names are here the entry point
+        moves to a quiet link at the bottom, because the list is set up once a
+        season and everything else here is set up per race.
       */}
-      <section className="team">
-        <div className="team-count">
-          <strong>
-            {team.length === 0 ? 'No runners yet' : `${team.length} runners on this phone`}
-          </strong>
-          <span>
-            {team.length > 0
-              ? 'Paste or edit the list any time, even mid race.'
-              : hasPublished
+      {team.length === 0 && (
+        <section className="team">
+          <div className="team-count">
+            <strong>No runners yet</strong>
+            <span>
+              {hasPublished
                 ? 'The team roster is published with this app. Loading it takes the season passphrase.'
                 : 'Add them once and tap names instead of just times.'}
-          </span>
-        </div>
-        <button type="button" className="team-edit" onClick={onEditRoster}>
-          {team.length > 0 ? 'Edit' : hasPublished ? 'Load them' : 'Add runners'}
-        </button>
-      </section>
+            </span>
+          </div>
+          <button type="button" className="team-edit" onClick={onEditRoster}>
+            {hasPublished ? 'Load them' : 'Add runners'}
+          </button>
+        </section>
+      )}
 
       <label>
         Meet
@@ -352,6 +353,20 @@ export function Setup({
             </button>
           ))}
         </section>
+      )}
+
+      {/*
+        Down here on purpose. Editing the team list is a once a season job now
+        that the names arrive with the app, so it gets a link at the bottom rather
+        than a panel at the top. The count is in the label so the link doubles as
+        the answer to "are the names on this phone?".
+      */}
+      {team.length > 0 && (
+        <p className="setup-link">
+          <button type="button" className="link" onClick={onEditRoster}>
+            Edit the {team.length} runner{team.length === 1 ? '' : 's'} on this phone
+          </button>
+        </p>
       )}
 
       <section className="danger">

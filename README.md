@@ -33,9 +33,9 @@ Live at **https://timhibbard.github.io/splitssss/**
   passphrase once per phone, decrypts in the browser, and keeps the names
   locally. The passphrase is never in the repo, never in the URL, and never sent
   anywhere. Plaintext names are still never committed.
-- **Names go on during the race or after.** Add the team list from the panel at
-  the top of the setup screen, or from "Who is running" on the capture screen mid
-  race. Then tapping a name records that runner's crossing at that moment, and the
+- **Names go on during the race or after.** The team list is already on the
+  phone, editable from the link at the bottom of the home screen or from "Who is
+  running" mid race. Tapping a name records that runner's crossing at that moment, and the
   big button records anyone you cannot name. A name tap never fills in an older
   crossing, because that would put a stale time on a runner standing in front of
   you.
