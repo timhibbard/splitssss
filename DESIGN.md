@@ -297,6 +297,24 @@ copy to restore from. So the button says what it will destroy in counts ("2
 races, 34 crossings and 20 runners"), asks twice like Stop does, disarms itself
 after four seconds, and disables when there is nothing to erase.
 
+Shipping the team with the app took away one of the three reasons this button
+existed and made another one a half truth, so both are worth stating.
+
+It is still the only way to delete a race, a crossing, or a lineup this phone
+remembers. There is no per race delete, on purpose: a screen that can erase a
+morning's crossings one tap at a time is worse than one that cannot erase them at
+all. And it is still the only way to hand a phone on without last week's meet on
+it.
+
+What it no longer does is keep the names off. A wipe clears the roster and the
+record of which shipped list this phone has seen, so the next open finds an empty
+phone and silently takes the shipped list again. That is correct, since a wiped
+phone is exactly the case automatic adoption is for, but it means the old sentence
+"there is no copy to get it back from" was true of the times and false of the
+names. The panel now says so, and says the only real answer for a phone that
+should hold no names, which is to take the app off the home screen. The names are
+in the app, not in the storage a button can clear.
+
 It matches on the `ss.` prefix rather than the current schema version, so an
 older build's leftovers go with it, and it leaves keys it does not own alone. It
 lives at the bottom of the setup screen, below a rule, where nothing shares an

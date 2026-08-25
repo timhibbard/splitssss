@@ -16,6 +16,8 @@ type Props = {
   rememberedLineup: (raceName: string) => string[] | null
   /** This build ships an encrypted roster, so loading it takes a passphrase. */
   hasPublished: boolean
+  /** This build ships a team list, so a wipe does not keep the names off. */
+  hasShipped: boolean
   onEditRoster: () => void
   /** The race being timed right now, if this screen was opened mid race. */
   active: Race | null
@@ -67,6 +69,7 @@ export function Setup({
   team,
   rememberedLineup,
   hasPublished,
+  hasShipped,
   onEditRoster,
   active,
   onBackToTiming,
@@ -373,9 +376,22 @@ export function Setup({
         <h2>Start over</h2>
         <p className="hint">
           {hasData
-            ? `Erases ${describe(stored)} from this phone. Nothing is sent anywhere, so there is no copy to get it back from.`
+            ? `Erases ${describe(stored)} from this phone. The times are gone for good, since nothing is sent anywhere and there is no copy to get them back from.`
             : 'Nothing is stored on this phone yet.'}
         </p>
+        {/*
+          The names are the one thing a wipe does not keep off, now that they
+          ship with the app, and a coach handing a phone back deserves to know
+          that before tapping rather than after.
+        */}
+        {hasData && hasShipped && stored.roster > 0 && (
+          <p className="hint">
+            The team list comes back the next time you open the app, as first names
+            and an initial, because it ships with the app. Only the races and times
+            are gone for good. A phone that should hold no names at all is one that
+            takes the app off the home screen.
+          </p>
+        )}
         <button
           type="button"
           className={confirmClear ? 'clear confirming' : 'clear'}

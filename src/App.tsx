@@ -470,6 +470,7 @@ export default function App() {
         team={roster}
         rememberedLineup={store.loadLineup}
         hasPublished={vault !== null}
+        hasShipped={shipped !== null}
         onEditRoster={() => editRoster('setup')}
         active={race}
         onBackToTiming={() => setScreen('capture')}
