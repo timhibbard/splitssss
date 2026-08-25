@@ -53,6 +53,12 @@ Live at **https://timhibbard.github.io/splitssss/**
   button holds the time from the moment your finger lands and only records it if
   the finger lifts without dragging. A tap is timed to the instant it landed. A
   scroll is a scroll.
+- **Recorded runners get out of the way.** A name you have tapped is struck
+  through where it stands, then falls to the back of the grid three seconds after
+  the last crossing, so the runners still out on the course stay together at the
+  top. Every crossing restarts those three seconds, because a pack is several taps
+  in a row and nothing should move under your thumb mid burst. An undo brings a
+  name back to its place at once.
 - **A running list of every tap.** Named and unnamed crossings sit together in
   crossing order, newest at the top, each with its split and its projected 5K.
   Tap any row to name it, or to fix a name: the picker offers the runners who

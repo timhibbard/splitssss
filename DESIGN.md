@@ -124,6 +124,35 @@ A named athlete stays visible in the grid, struck through and not tappable,
 rather than being removed. Removing it would reflow the grid under a thumb
 already on its way down to the next name.
 
+### Recorded runners fall to the back, three seconds later
+
+Struck through names still hold the front of the grid, and by the middle of a JV
+race the buttons worth tapping are scattered among a dozen that are spent. So a
+recorded runner moves to the back, which leaves the runners still out on the
+course together at the top, where the thumb already is. They move rather than
+vanish: the strike through is how a volunteer checks that the tap they just made
+landed on the right person, and it is what an undo aims at.
+
+The move waits three seconds after the last crossing, and every crossing restarts
+the wait. Runners arrive in packs, three or four names in as many seconds, and a
+grid that rearranged between two taps of one burst would move the name the second
+thumb was already travelling towards. That is the same hazard that stops a named
+chip from being removed outright, so it gets the same answer: nothing moves while
+the runners are still coming. If they never stop coming, the grid never
+rearranges, which is the behavior this app already had and the safe direction to
+fail in.
+
+Undo and "Remove the name" are the exception and put a chip back at once, with no
+wait. That runner is out on the course again, and their button has to be where a
+volunteer will look for it.
+
+The order within each half is deliberate. Roster order at the front, so the ones
+still running read the way the coach's list reads. Crossing order at the back, so
+the spent half doubles as the order they passed. Where they go is a pure function
+with tests. When they go was checked by driving the built app in Chrome: a burst
+of three taps 400ms apart moves nothing at 1.2s or at 2.2s, and all three are at
+the back by 3.6s, in the order they crossed.
+
 An athlete holds at most one crossing per race, so naming that athlete on a
 second one takes the name off the first and leaves that crossing unnamed and
 waiting. That is what makes a mix up fixable: two names tapped in the wrong order

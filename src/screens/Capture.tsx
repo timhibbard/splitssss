@@ -17,9 +17,20 @@ import { projectedFinish } from '../lib/distance'
 import { buzz, click, undoClick } from '../lib/feedback'
 import { becameScroll, type Point } from '../lib/gesture'
 import { displayNames } from '../lib/names'
-import { splitRows, stillOut } from '../lib/splits'
+import { gridOrder, namedInOrder, splitRows, stillOut } from '../lib/splits'
 import type { Athlete, Race, Stamp, Tap } from '../lib/types'
 import { Lineup } from './Lineup'
+
+/**
+ * How long the name grid waits before moving a recorded runner to the back.
+ *
+ * Runners arrive in packs, so names get tapped in bursts, and the grid must hold
+ * still through all of it: the second thumb of a burst is already on its way to a
+ * name it can see. The wait restarts on every crossing, so the grid only
+ * rearranges once the runners have stopped coming. While they are still coming,
+ * this behaves exactly as it did before, which is the safe direction to fail in.
+ */
+const REORDER_AFTER_MS = 3000
 
 type Props = {
   race: Race
@@ -71,8 +82,19 @@ export function Capture({
   const [namingId, setNamingId] = useState<string | null>(null)
   const [typed, setTyped] = useState('')
   const [showLineup, setShowLineup] = useState(false)
+  /**
+   * The runners whose chip has moved to the back of the grid. Held as state, and
+   * not derived from the crossings, because lagging the crossings is the whole
+   * point of it.
+   *
+   * Seeded from the taps rather than starting empty, so a race that already has
+   * names opens with them at the back instead of shuffling three seconds after a
+   * coach looks at it.
+   */
+  const [moved, setMoved] = useState<string[]>(() => namedInOrder(taps))
   const flashTimer = useRef<number | undefined>(undefined)
   const confirmTimer = useRef<number | undefined>(undefined)
+  const moveTimer = useRef<number | undefined>(undefined)
   /**
    * A press in progress on a name button, with the moment the finger landed. The
    * name grid scrolls, so pointerdown on its own cannot tell a tap from the
@@ -126,6 +148,39 @@ export function Capture({
    */
   const labels = displayNames(race.athletes)
   const labelOf = (a: Athlete) => labels.get(a.id) ?? a.name
+
+  /**
+   * The wait before the grid rearranges, restarted by any crossing at all rather
+   * than only a named one: the big button gets hit in the middle of a burst of
+   * names, and the grid should be as still for that thumb as for the others.
+   *
+   * Keyed on the taps themselves, which only become a new array when something
+   * was actually recorded. The clock ticking ten times a second re-renders this
+   * screen and must not keep pushing the wait back forever.
+   */
+  useEffect(() => {
+    const settle = namedInOrder(taps)
+    moveTimer.current = window.setTimeout(() => {
+      // Same runners in the same order is not worth a render: an unnamed crossing
+      // restarts the wait without moving anybody.
+      setMoved((prev) =>
+        prev.length === settle.length && prev.every((id, i) => id === settle[i]) ? prev : settle,
+      )
+    }, REORDER_AFTER_MS)
+    return () => window.clearTimeout(moveTimer.current)
+  }, [taps])
+
+  /**
+   * Still running first, already recorded behind them.
+   *
+   * A name that came off is dropped here rather than waiting for the next settle,
+   * so an undo puts that chip back at once: the runner is out on the course again
+   * and their button has to be tappable where a volunteer will look for it.
+   */
+  const grid = gridOrder(
+    race.athletes,
+    moved.filter((id) => assigned.has(id)),
+  )
 
   const namingRow = namingId ? rows.find((r) => r.tap.id === namingId) : undefined
   const namingAt =
@@ -325,10 +380,15 @@ export function Capture({
         Move and cancel are on the pane rather than on every button: a touch
         keeps sending its events to the button it started on, and both bubble to
         here, so one pair of handlers covers all twenty eight names.
+
+        The runners still out on the course are first, so the buttons worth
+        tapping are the ones under the thumb rather than scattered among names
+        already struck through. Recorded runners fall to the back, but not until
+        three seconds after the last crossing.
       */}
       {hasRoster && (
         <div className="names names-pane" onPointerMove={namesMove} onPointerCancel={namesCancel}>
-          {race.athletes.map((a) => {
+          {grid.map((a) => {
             const done = assigned.has(a.id)
             return (
               <button

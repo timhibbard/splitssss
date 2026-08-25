@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { assignAthlete, clearName, splitRows, stillOut } from './splits.ts'
+import { assignAthlete, clearName, gridOrder, namedInOrder, splitRows, stillOut } from './splits.ts'
 import type { Race, Tap } from './types.ts'
 
 const SESSION = 'here'
@@ -143,4 +143,46 @@ test('a waiting crossing offers the runners who have none here yet', () => {
   // Roster order is kept, because it is the order the coach expects them to pass.
   assert.deepEqual(stillOut(athletes, []), athletes)
   assert.deepEqual(stillOut([], taps), [])
+})
+
+test('the name grid puts the runners still out on the course first', () => {
+  const athletes = [
+    { id: 'a1', name: 'Wilma Rudolph' },
+    { id: 'a2', name: 'Grete Waitz' },
+    { id: 'a3', name: 'Joan Benoit' },
+    { id: 'a4', name: 'Lynn Jennings' },
+  ]
+  // Second and fourth have crossed, in that order.
+  assert.deepEqual(
+    gridOrder(athletes, ['a2', 'a4']).map((a) => a.id),
+    ['a1', 'a3', 'a2', 'a4'],
+  )
+  // Roster order for the ones still running, crossing order behind them.
+  assert.deepEqual(
+    gridOrder(athletes, ['a4', 'a1']).map((a) => a.id),
+    ['a2', 'a3', 'a4', 'a1'],
+  )
+  // Nobody moved yet is the roster untouched, which is what the first three
+  // seconds of a race look like.
+  assert.deepEqual(gridOrder(athletes, []), athletes)
+})
+
+test('the name grid never repeats or invents a runner', () => {
+  const athletes = [
+    { id: 'a1', name: 'Wilma Rudolph' },
+    { id: 'a2', name: 'Grete Waitz' },
+  ]
+  // An id twice is still one button, and an id for somebody taken out of the
+  // lineup is dropped rather than rendered as a hole.
+  assert.deepEqual(
+    gridOrder(athletes, ['a2', 'a2', 'gone']).map((a) => a.id),
+    ['a1', 'a2'],
+  )
+  assert.deepEqual(gridOrder([], ['a1']), [])
+})
+
+test('who has crossed comes back in the order they passed', () => {
+  const taps = [tap(1, 400, 'a3'), tap(2, 410), tap(3, 420, 'a1')]
+  assert.deepEqual(namedInOrder(taps), ['a3', 'a1'])
+  assert.deepEqual(namedInOrder([]), [])
 })

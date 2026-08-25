@@ -88,6 +88,33 @@ export function clearName(taps: Tap[], tapId: string): Tap[] {
   return [bare]
 }
 
+/** Who has a crossing here, in the order they passed. */
+export function namedInOrder(taps: Tap[]): string[] {
+  return taps.map((tap) => tap.athleteId).filter((id): id is string => !!id)
+}
+
+/**
+ * The name grid's order: the runners still out on the course first, in roster
+ * order, and the ones already recorded behind them in the order they passed.
+ *
+ * Which runners have moved is passed in rather than read off the taps, because
+ * the grid is deliberately behind the data. A chip that moved the instant its
+ * name was tapped would rearrange the grid under a thumb already travelling
+ * towards the next runner, which is the same reason a recorded name is struck
+ * through rather than removed. The screen decides when they move. This decides
+ * where they go.
+ */
+export function gridOrder(athletes: Athlete[], moved: string[]): Athlete[] {
+  // A Set keeps insertion order and drops any id given twice, so the same runner
+  // can never come back as two buttons.
+  const back = new Set(moved)
+  const byId = new Map(athletes.map((a) => [a.id, a]))
+  return [
+    ...athletes.filter((a) => !back.has(a.id)),
+    ...[...back].map((id) => byId.get(id)).filter((a): a is Athlete => a != null),
+  ]
+}
+
 /** Runners with no crossing here yet, which is who a waiting crossing can be. */
 export function stillOut(athletes: Athlete[], taps: Tap[]): Athlete[] {
   const taken = new Set(taps.map((tap) => tap.athleteId).filter(Boolean))
