@@ -1,13 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import { distanceLabel, toMeters, type Unit } from '../lib/distance'
-import type { Race, RaceDraft, Station } from '../lib/types'
+import { defaultLineup, lineupOf } from '../lib/lineup'
+import { displayNames, summarize } from '../lib/names'
+import type { Athlete, Race, RaceDraft, Station } from '../lib/types'
+import { Lineup } from './Lineup'
 
 type Props = {
   /** Emits form values only. Identity and timestamps belong to whoever persists them. */
   onStart: (draft: RaceDraft) => void
   existing: Race[]
   onResume: (raceId: string) => void
-  rosterCount: number
+  /** Everyone on the phone. A race takes its lineup out of this. */
+  team: Athlete[]
+  /** Who ran the last race by this name, if anyone did. */
+  rememberedLineup: (raceName: string) => string[] | null
   /** This build ships an encrypted roster, so loading it takes a passphrase. */
   hasPublished: boolean
   onEditRoster: () => void
@@ -58,7 +64,8 @@ export function Setup({
   onStart,
   existing,
   onResume,
-  rosterCount,
+  team,
+  rememberedLineup,
   hasPublished,
   onEditRoster,
   active,
@@ -74,6 +81,19 @@ export function Setup({
 
   const [racePreset, setRacePreset] = useState<string>(RACES[1])
   const [raceOther, setRaceOther] = useState('')
+  /**
+   * The lineup, once it has been touched for this race. Null means follow the
+   * race: what ran last time under this name, or the usual split if this is the
+   * first time. Picking a different race clears it, since the answer for the JV
+   * race is not the answer for the varsity race.
+   */
+  const [chosen, setChosen] = useState<string[] | null>(null)
+  const [showLineup, setShowLineup] = useState(false)
+
+  function pickRace(name: string) {
+    setRacePreset(name)
+    setChosen(null)
+  }
 
   const [stationLabel, setStationLabel] = useState<string>('Mile 1')
   const [customValue, setCustomValue] = useState('')
@@ -98,6 +118,19 @@ export function Setup({
   const raceName = racePreset === 'other' ? raceOther.trim() : racePreset
   const canStart = raceName.length > 0 && (!customActive || customValid)
 
+  /**
+   * Who is running, as it stands. An untouched lineup follows the race name, so
+   * switching from JV to varsity swaps the seven without a trip to the picker.
+   * Ids that have since left the team list are dropped rather than trusted.
+   */
+  const onTeam = new Set(team.map((a) => a.id))
+  const remembered = rememberedLineup(raceName)?.filter((id) => onTeam.has(id))
+  const selected =
+    chosen ??
+    (remembered && remembered.length > 0 ? remembered : defaultLineup(team, raceName))
+  const labels = displayNames(team)
+  const running = lineupOf(team, selected)
+
   function start() {
     if (!canStart) return
     onStart({
@@ -106,6 +139,7 @@ export function Setup({
       station: resolvedStation(),
       timer: timer.trim(),
       raceMeters: RACE_METERS,
+      athletes: running,
     })
   }
 
@@ -144,8 +178,8 @@ export function Setup({
       )}
 
       <p className="instructions">
-        Tap a runner's name as she passes you, or tap the big button and add
-        names after. You do not need to know when the race started.
+        Tap a name as each runner passes you, or tap the big button and add names
+        after. You do not need to know when the race started.
       </p>
 
       {/*
@@ -156,10 +190,10 @@ export function Setup({
       <section className="team">
         <div className="team-count">
           <strong>
-            {rosterCount === 0 ? 'No runners yet' : `${rosterCount} runners on this phone`}
+            {team.length === 0 ? 'No runners yet' : `${team.length} runners on this phone`}
           </strong>
           <span>
-            {rosterCount > 0
+            {team.length > 0
               ? 'Paste or edit the list any time, even mid race.'
               : hasPublished
                 ? 'The team roster is published with this app. Loading it takes the season passphrase.'
@@ -167,7 +201,7 @@ export function Setup({
           </span>
         </div>
         <button type="button" className="team-edit" onClick={onEditRoster}>
-          {rosterCount > 0 ? 'Edit' : hasPublished ? 'Load them' : 'Add runners'}
+          {team.length > 0 ? 'Edit' : hasPublished ? 'Load them' : 'Add runners'}
         </button>
       </section>
 
@@ -189,7 +223,7 @@ export function Setup({
               key={r}
               type="button"
               className={r === racePreset ? 'chip on' : 'chip'}
-              onClick={() => setRacePreset(r)}
+              onClick={() => pickRace(r)}
             >
               {r}
             </button>
@@ -197,7 +231,7 @@ export function Setup({
           <button
             type="button"
             className={racePreset === 'other' ? 'chip on' : 'chip'}
-            onClick={() => setRacePreset('other')}
+            onClick={() => pickRace('other')}
           >
             Other
           </button>
@@ -206,13 +240,37 @@ export function Setup({
           <input
             className="reveal"
             value={raceOther}
-            onChange={(e) => setRaceOther(e.target.value)}
+            onChange={(e) => {
+              setRaceOther(e.target.value)
+              setChosen(null)
+            }}
             placeholder="Race name"
             autoComplete="off"
             aria-label="Race name"
           />
         )}
       </fieldset>
+
+      {/*
+        The lineup, right under the race it belongs to. Varsity is the top seven
+        of the team list and JV is the rest, which this fills in without being
+        asked, so the common case needs no taps and the exception needs one.
+      */}
+      {team.length > 0 && (
+        <section className="team lineup-panel">
+          <div className="team-count">
+            <strong>
+              {selected.length === 0
+                ? 'Nobody in this race yet'
+                : `${selected.length} of ${team.length} in this race`}
+            </strong>
+            <span>{summarize(running.map((a) => labels.get(a.id) ?? a.name))}</span>
+          </div>
+          <button type="button" className="team-edit" onClick={() => setShowLineup(true)}>
+            Choose
+          </button>
+        </section>
+      )}
 
       <fieldset>
         <legend>How far into the 5K are you?</legend>
@@ -314,6 +372,17 @@ export function Setup({
       </section>
 
       <p className="build">Build {__BUILD__}</p>
+
+      {showLineup && (
+        <Lineup
+          team={team}
+          selected={selected}
+          onChange={setChosen}
+          onDone={() => setShowLineup(false)}
+          onEditTeam={onEditRoster}
+          raceName={raceName || 'this race'}
+        />
+      )}
     </div>
   )
 }

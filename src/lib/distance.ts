@@ -31,8 +31,8 @@ export function distanceLabel(value: number, unit: Unit): string {
 }
 
 /**
- * Even pace projection: the finish time a runner is on for if she holds the pace
- * she has run so far.
+ * Even pace projection: the finish time a runner is on for at the pace run so
+ * far.
  *
  * Deliberately linear rather than Riegel's endurance formula. Riegel would
  * predict a slower finish, and probably a more accurate one, but this number is

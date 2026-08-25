@@ -16,12 +16,17 @@ import {
 import { projectedFinish } from '../lib/distance'
 import { buzz, click, undoClick } from '../lib/feedback'
 import { becameScroll, type Point } from '../lib/gesture'
+import { displayNames } from '../lib/names'
 import { splitRows, stillOut } from '../lib/splits'
-import type { Race, Stamp, Tap } from '../lib/types'
+import type { Athlete, Race, Stamp, Tap } from '../lib/types'
+import { Lineup } from './Lineup'
 
 type Props = {
   race: Race
   taps: Tap[]
+  /** Everyone on the phone, so the lineup can be changed at the starting line. */
+  team: Athlete[]
+  onLineup: (ids: string[]) => void
   /** Records a crossing, named when an athlete is given, at `at` if one is held. */
   onTap: (athleteId?: string, at?: Stamp) => void
   /** Names a crossing that is already recorded. */
@@ -39,6 +44,8 @@ type Props = {
 export function Capture({
   race,
   taps,
+  team,
+  onLineup,
   onTap,
   onName,
   onNameFree,
@@ -60,12 +67,13 @@ export function Capture({
    */
   const [namingId, setNamingId] = useState<string | null>(null)
   const [typed, setTyped] = useState('')
+  const [showLineup, setShowLineup] = useState(false)
   const flashTimer = useRef<number | undefined>(undefined)
   const confirmTimer = useRef<number | undefined>(undefined)
   /**
    * A press in progress on a name button, with the moment the finger landed. The
    * name grid scrolls, so pointerdown on its own cannot tell a tap from the
-   * first instant of a scroll: it recorded a crossing for whichever girl the
+   * first instant of a scroll: it recorded a crossing for whichever runner the
    * thumb happened to touch on the way past. The time is taken on the way down
    * and used only if the finger lifts without dragging, so a tap keeps the
    * accuracy of pointerdown and a scroll records nothing.
@@ -104,10 +112,17 @@ export function Capture({
   const projected = projectedFinish(race.station.meters, race.raceMeters, running ?? 0)
 
   const rows = splitRows(race, taps, SESSION_ID)
-  const assigned = new Set(taps.map((t) => t.athleteId).filter(Boolean))
+  const assigned = new Set(taps.map((t) => t.athleteId).filter((id): id is string => !!id))
   const unnamed = taps.filter((t) => !t.athleteId).length
   const hasRoster = race.athletes.length > 0
   const paceLabel = race.raceMeters === 5000 ? '5K' : `${race.raceMeters}m`
+  /**
+   * First name and an initial. A button has room for "Caroline K." and a
+   * volunteer does not read a surname to know who is coming. Full names are what
+   * the export carries, and what a screen reader is given here.
+   */
+  const labels = displayNames(race.athletes)
+  const labelOf = (a: Athlete) => labels.get(a.id) ?? a.name
 
   const namingRow = namingId ? rows.find((r) => r.tap.id === namingId) : undefined
   const namingAt =
@@ -133,7 +148,7 @@ export function Capture({
     confirmFeedback()
   }
 
-  /** A name in the grid means she is passing now, so this records her crossing. */
+  /** A name in the grid means that runner is passing now, so this records it. */
   function recordName(athleteId: string, at: Stamp) {
     if (stopped) return
     onTap(athleteId, at)
@@ -155,7 +170,7 @@ export function Capture({
     press.current = null
     if (!held || held.pointerId !== e.pointerId || held.athleteId !== athleteId) return
     pressRecorded.current = true
-    // The moment her finger landed, not the moment it lifted.
+    // The moment the finger landed, not the moment it lifted.
     recordName(athleteId, held.at)
   }
 
@@ -174,7 +189,7 @@ export function Capture({
   /**
    * Keyboard and assistive activation, which arrive as a click with no pointer
    * events behind them. A click that follows a press is ignored, since the press
-   * already recorded her, and so is a mouse drag, whose click has a detail count.
+   * already recorded it, and so is a mouse drag, whose click has a detail count.
    */
   function nameClick(e: ReactMouseEvent<HTMLButtonElement>, athleteId: string) {
     if (pressRecorded.current) {
@@ -299,7 +314,7 @@ export function Capture({
           : stopped
             ? 'Every crossing has a name.'
             : hasRoster
-              ? 'Tap her name as she passes. The big button is for anyone you cannot name.'
+              ? 'Tap a name as that runner passes. The big button is for anyone you cannot name.'
               : 'Tap as each runner passes. Names can wait until after the race.'}
       </p>
 
@@ -320,11 +335,12 @@ export function Capture({
                 onPointerDown={(e) => nameDown(e, a.id)}
                 onPointerUp={(e) => nameUp(e, a.id)}
                 onClick={(e) => nameClick(e, a.id)}
-                // Struck through once she has a crossing here, and not tappable,
-                // because a runner passes one point once.
+                // Struck through once this runner has a crossing here, and not
+                // tappable, because a runner passes one point once.
                 disabled={done || stopped}
+                aria-label={done ? `${a.name}, already recorded` : a.name}
               >
-                {a.name}
+                {labelOf(a)}
               </button>
             )
           })}
@@ -348,7 +364,7 @@ export function Capture({
           {rows.length === 0 ? (
             <p className="splits-empty">
               Nothing recorded yet. {hasRoster
-                ? 'Tap her name as she passes, or the big button when you cannot tell who it is.'
+                ? 'Tap a name as that runner passes, or the big button when you cannot tell who it is.'
                 : 'Tap the big button as each runner passes.'}
               {race.gun ? '' : ' A gun time is optional: every tap keeps the time of day.'}
             </p>
@@ -357,7 +373,7 @@ export function Capture({
               .slice()
               .reverse()
               .map((row) => {
-                const name = row.athlete?.name
+                const name = row.athlete ? labelOf(row.athlete) : undefined
                 const at = row.elapsed == null ? formatWallClock(row.tap.wallMs) : formatElapsed(row.elapsed)
                 return (
                   <button
@@ -373,7 +389,7 @@ export function Capture({
                     onClick={() => openNaming(row.tap)}
                     aria-label={
                       `Crossing ${row.place} at ${at}, ` +
-                      `${name ? name : 'not named yet'}. ` +
+                      `${row.athlete ? row.athlete.name : 'not named yet'}. ` +
                       `${row.projected != null ? `On pace for ${formatMinSec(row.projected)}. ` : ''}` +
                       `${name ? 'Tap to change the name.' : 'Tap to name it.'}`
                     }
@@ -421,8 +437,8 @@ export function Capture({
         <button type="button" className="nav" onClick={onSetup}>
           Setup
         </button>
-        <button type="button" className="nav" onClick={onEditRoster}>
-          {hasRoster ? 'Edit names' : 'Add names'}
+        <button type="button" className="nav" onClick={() => setShowLineup(true)}>
+          {hasRoster ? `Who is running: ${race.athletes.length}` : 'Add names'}
         </button>
       </nav>
 
@@ -445,15 +461,21 @@ export function Capture({
               <strong>#{namingRow.place}</strong>
               <span className="sheet-time">{namingAt}</span>
               {namingRow.athlete && (
-                <span className="sheet-now">Now {namingRow.athlete.name}</span>
+                <span className="sheet-now">Now {labelOf(namingRow.athlete)}</span>
               )}
             </div>
 
             {choices.length > 0 ? (
               <div className="names sheet-names">
                 {choices.map((a) => (
-                  <button key={a.id} type="button" className="name-chip" onClick={() => pick(a.id)}>
-                    {a.name}
+                  <button
+                    key={a.id}
+                    type="button"
+                    className="name-chip"
+                    onClick={() => pick(a.id)}
+                    aria-label={a.name}
+                  >
+                    {labelOf(a)}
                   </button>
                 ))}
               </div>
@@ -501,6 +523,24 @@ export function Capture({
             </div>
           </div>
         </div>
+      )}
+
+      {/*
+        The lineup, changeable at the starting line. A late scratch or a runner
+        moved up to varsity is a fact of a meet morning, and it should not cost a
+        restart. Anyone already holding a crossing cannot be taken out, since the
+        time would lose its name.
+      */}
+      {showLineup && (
+        <Lineup
+          team={team}
+          selected={race.athletes.map((a) => a.id)}
+          onChange={onLineup}
+          onDone={() => setShowLineup(false)}
+          onEditTeam={onEditRoster}
+          raceName={race.race}
+          locked={assigned}
+        />
       )}
     </div>
   )

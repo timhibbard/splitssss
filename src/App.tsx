@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import './App.css'
 import { SESSION_ID, stamp, todayIsoDate } from './lib/clock'
 import { rosterFromHash } from './lib/link'
-import { mergeRoster } from './lib/roster'
+import { mergeLineup } from './lib/roster'
 import { assignAthlete, clearName } from './lib/splits'
 import * as store from './lib/storage'
 import type { Athlete, Race, RaceDraft, Stamp, Tap } from './lib/types'
@@ -105,13 +105,13 @@ export default function App() {
   const seqRef = useRef(lastSeq(restored.taps))
 
   /**
-   * The roster lives on the device, and the race holds a snapshot of it, so a
-   * roster edited weeks later cannot rewrite a race already run. The race being
-   * timed right now is the exception: a girl added at the starting line has to
-   * appear on the grid without restarting anything.
+   * The team list lives on the device, and a race holds the lineup that ran it,
+   * so a list edited weeks later cannot rewrite a race already run. The race
+   * being timed right now is the exception: a runner added at the starting line
+   * has to appear on the grid without restarting anything.
    *
-   * Anyone already holding a crossing stays on the race even if she is removed
-   * from the roster, so a recorded time never loses its name.
+   * The lineup is respected, so an edit to the team list cannot put back somebody
+   * left out of this race. See mergeLineup for the rest of the rules.
    */
   const saveRoster = useCallback(
     (next: Athlete[]) => {
@@ -119,11 +119,42 @@ export default function App() {
       setRoster(next)
       if (!race) return
       const named = new Set(taps.map((t) => t.athleteId).filter((id): id is string => !!id))
-      const updated: Race = { ...race, athletes: mergeRoster(race.athletes, next, named) }
+      const updated: Race = {
+        ...race,
+        athletes: mergeLineup(race.athletes, roster, next, named),
+      }
       store.saveRace(updated)
       setRace(updated)
+      // Kept in step with the race, so what is remembered under this race name is
+      // who actually ran it, including anyone added at the starting line.
+      store.saveLineup(race.race, updated.athletes.map((a) => a.id))
     },
-    [race, taps],
+    [race, roster, taps],
+  )
+
+  /**
+   * Who is running the race in progress. Saved under the race's name as well as
+   * on the race, so next Saturday's varsity race opens with the seven chosen for
+   * this one rather than with the top of the list again.
+   *
+   * Anyone already holding a crossing stays, whatever the picker said, because a
+   * recorded time must never lose its name.
+   */
+  const setLineup = useCallback(
+    (ids: string[]) => {
+      if (!race) return
+      const named = new Set(taps.map((t) => t.athleteId).filter((id): id is string => !!id))
+      const keep = new Set([...ids, ...named])
+      // Team order first, then names this race has of its own: typed in during
+      // the race, or taken off the team list since it started.
+      const onTeam = new Set(roster.map((a) => a.id))
+      const pool = [...roster, ...race.athletes.filter((a) => !onTeam.has(a.id))]
+      const updated: Race = { ...race, athletes: pool.filter((a) => keep.has(a.id)) }
+      store.saveRace(updated)
+      setRace(updated)
+      store.saveLineup(race.race, updated.athletes.map((a) => a.id))
+    },
+    [race, roster, taps],
   )
 
   /**
@@ -166,25 +197,24 @@ export default function App() {
     [vault],
   )
 
-  const startRace = useCallback(
-    (draft: RaceDraft) => {
-      const next: Race = {
-        ...draft,
-        id: store.newId(),
-        date: todayIsoDate(),
-        createdWallMs: Date.now(),
-        // Snapshot. See saveRoster for how the active race is kept in step.
-        athletes: roster,
-      }
-      store.saveRace(next)
-      store.setActiveRaceId(next.id)
-      seqRef.current = 0
-      setRace(next)
-      setTaps([])
-      setScreen('capture')
-    },
-    [roster],
-  )
+  const startRace = useCallback((draft: RaceDraft) => {
+    const next: Race = {
+      ...draft,
+      id: store.newId(),
+      date: todayIsoDate(),
+      createdWallMs: Date.now(),
+      // draft.athletes is the lineup, a snapshot of who was picked. See
+      // saveRoster for how the race being timed is kept in step with edits.
+    }
+    store.saveRace(next)
+    store.setActiveRaceId(next.id)
+    // Remembered by race name, so the next meet opens with this lineup.
+    store.saveLineup(next.race, next.athletes.map((a) => a.id))
+    seqRef.current = 0
+    setRace(next)
+    setTaps([])
+    setScreen('capture')
+  }, [])
 
   const resumeRace = useCallback((raceId: string) => {
     const loaded = store.loadRace(raceId)
@@ -244,9 +274,9 @@ export default function App() {
    *
    * Tapping a name in the grid is the other gesture and it goes to addTap: it
    * records a crossing at that moment. It never fills in a crossing recorded
-   * earlier, because a name tapped as she passes means she is passing now, and
-   * quietly attaching an older time to it would put a wrong split on a real
-   * runner.
+   * earlier, because a name tapped as a runner passes means that runner is going
+   * by now, and quietly attaching an older time to it would put a wrong split
+   * on a real runner.
    */
   const nameTap = useCallback(
     (athleteId: string, tapId: string) => {
@@ -267,11 +297,11 @@ export default function App() {
 
   /**
    * Naming a crossing by typing, for a runner nobody has a button for: another
-   * school's girl, or one whose name never made the list.
+   * school's runner, or one whose name never made the list.
    *
-   * She joins this race only, not the season roster, because the roster is the
+   * The name joins this race only, not the team list, because that list is the
    * coach's list and a course is not where it gets edited. A name that matches
-   * someone already here reuses her rather than making a twin on the grid.
+   * someone already here reuses that runner rather than making a twin on the grid.
    */
   const nameTapFree = useCallback(
     (name: string, tapId: string) => {
@@ -374,7 +404,8 @@ export default function App() {
         onStart={startRace}
         onResume={resumeRace}
         existing={todaysRaces}
-        rosterCount={roster.length}
+        team={roster}
+        rememberedLineup={store.loadLineup}
         hasPublished={vault !== null}
         onEditRoster={() => editRoster('setup')}
         active={race}
@@ -400,6 +431,8 @@ export default function App() {
     <Capture
       race={race}
       taps={taps}
+      team={roster}
+      onLineup={setLineup}
       onTap={addTap}
       onName={nameTap}
       onNameFree={nameTapFree}

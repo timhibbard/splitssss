@@ -111,11 +111,11 @@ one can be mistaken for the other.
 The first version made a name tap fill in the oldest crossing that was still
 waiting, on the reasoning that runners cross in order, so naming them in tap
 order matches the order they passed. That is true, and it was still wrong. The
-two modes mix in practice: a volunteer taps the big button for a girl she cannot
-place, then taps a name for the next girl she can. Under the old rule that second
-tap silently attached a time from thirty seconds ago to a runner who was standing
-in front of her. A wrong split on a real runner is the one failure this app must
-not have, and nothing on screen would have contradicted it.
+two modes mix in practice: a volunteer taps the big button for a runner they
+cannot place, then taps a name for the next runner they can. Under the old rule
+that second tap silently attached a time from thirty seconds ago to a runner who
+was standing right there. A wrong split on a real runner is the one failure this
+app must not have, and nothing on screen would have contradicted it.
 
 So the oldest-first rule is gone. What replaces it costs one extra tap, on the
 crossing itself, and it is the tap that says which crossing you mean.
@@ -124,10 +124,10 @@ A named athlete stays visible in the grid, struck through and not tappable,
 rather than being removed. Removing it would reflow the grid under a thumb
 already on its way down to the next name.
 
-An athlete holds at most one crossing per race, so naming her on a second one
-takes her off the first and leaves that crossing unnamed and waiting. That is
-what makes a mix up fixable: two names tapped in the wrong order are two more
-taps to correct, and no crossing is ever counted twice. The rule lives in
+An athlete holds at most one crossing per race, so naming that athlete on a
+second one takes the name off the first and leaves that crossing unnamed and
+waiting. That is what makes a mix up fixable: two names tapped in the wrong order
+are two more taps to correct, and no crossing is ever counted twice. The rule lives in
 `lib/splits.ts` as a function that returns only the crossings that changed, and
 it is tested, because a misattributed split is a silent failure.
 
@@ -137,7 +137,7 @@ The big button fires on `pointerdown`, because waiting for the finger to lift
 adds real latency to a gesture whose whole purpose is recording a moment. The
 name buttons started out doing the same thing, and it was a bug: twenty eight
 names do not fit on a phone, so the grid scrolls, and dragging it means putting a
-finger on a name first. Every scroll recorded a crossing for whichever girl the
+finger on a name first. Every scroll recorded a crossing for whichever runner the
 thumb happened to land on. Worse than a lost tap, it is a fabricated split with a
 real name on it.
 
@@ -184,16 +184,16 @@ and the finish that split projects to. Decisions inside it:
 - **The crossing being named is held as an id** and looked up again every render,
   so an undo cannot leave the picker pointing at a crossing that no longer
   exists.
-- **A name can also be typed.** Another school's runner, or a girl who never made
-  the list, gets a name rather than a blank row. She joins this race only, not the
-  season roster, because a course is not where the coach's list gets edited. A
-  typed name that matches someone already on the race reuses her instead of
-  making a twin on the grid. The field is in the picker and never focused on its
+- **A name can also be typed.** Another school's runner, or one who never made
+  the list, gets a name rather than a blank row. The name joins this race only,
+  not the team list, because a course is not where the coach's list gets edited. A
+  typed name that matches someone already on the race reuses that runner instead
+  of making a twin on the grid. The field is in the picker and never focused on its
   own, so a keyboard cannot cover the course mid race.
 - **A name can come back off,** keeping the time, because the crossing was real
   even when the name was a guess.
 - **The projection is per row,** not just for the clock in the header, since the
-  number a coach says out loud is that girl's, not the leader's.
+  number a coach says out loud is that runner's, not the leader's.
 - With no gun time the list shows time of day and no projection. The times are
   still real and the gun can be set later.
 
@@ -209,8 +209,8 @@ setup or the roster from there. Two lessons, both now built in:
 
 - The roster is set up once, so it belongs above the per race fields, not below
   them. It is a bordered panel with a count, not a button in a stack of buttons.
-- The capture screen carries quiet Setup and Add names links under the race
-  actions. Leaving is free, because taps are already on disk and the race stays
+- The capture screen carries quiet Setup and "Who is running" links under the
+  race actions. Leaving is free, because taps are already on disk and the race stays
   the active one, so these are safe to hit by accident. That is why they are
   small and grey rather than styled like Stop.
 
@@ -218,16 +218,53 @@ Opening setup mid race puts "Back to timing" at the top, and the race in
 progress is left out of the "Earlier today" list so it appears in exactly one
 place.
 
-### The roster follows the race that is running
+### A button says a first name and an initial
 
-The race stores a snapshot of the roster, so editing the team in November
-cannot rewrite a race run in September. The exception is the race being timed
-right now: adding a girl at the starting line has to put her on the grid without
-restarting anything, so an edit is merged into the active race.
+Twenty eight full names do not fit on a phone, and a volunteer picking a runner
+out of a field of a hundred does not read a surname to know who is coming. So a
+button says "Caroline K." A three word name keeps the first two words as the
+first name, because "Mary Eliza D." is what the team calls out and "Mary E." is
+somebody else.
 
-The merge lets the roster win, except that anyone already holding a crossing
-stays on the race even if she is removed from the roster. A recorded time must
-never lose the name attached to it. That rule lives in `lib/roster.ts` with
+Two buttons that read the same would be a split on the wrong runner, so a clash
+costs letters until it is gone: Emma R. and Emma R. become Emma Ri. and Emma Ro.
+Only the clashing pair grows, and the comparison ignores a trailing dot, so
+"Ella Hu" and "Ella Hu." are treated as the same label rather than as two
+buttons that differ by a speck of punctuation. Twenty letters in, two people
+genuinely share a name and both get it in full.
+
+Short labels are for the grid, the running list and the picker. Full names go to
+storage, to the export, to every `aria-label`, and to the lineup screen, where a
+coach is deciding and a surname is part of deciding. The rules are pure
+functions in `lib/names.ts` with tests, because a wrong label is a wrong split.
+
+### The team list is on the device, the lineup is on the race
+
+Two different lists. The team is everyone on the phone, edited once. A lineup is
+who is in one race, and it is what the grid shows: seven buttons for a varsity
+race, not twenty eight.
+
+Who is running is chosen on its own screen, reachable from setup before the race
+and from the capture screen during it, because a late scratch or a runner moved
+up is a fact of a meet morning and should not cost a restart. Top 7, Everyone
+else, Everyone and Nobody are one tap each, and the list is drawn in team order
+with a rule under the seventh name, so the order the coach typed carries the
+seeding. A race whose name contains "JV" defaults to everyone below the seven,
+one containing "varsity" to the top seven, anything else to everyone. Defaults
+only: the tap wins, and `lib/lineup.ts` holds the rules with tests.
+
+A chosen lineup is remembered under the race name, so next Saturday's varsity
+race opens with the seven picked for this one rather than with the top of the
+list again. The key is a slug of the name, so "Varsity Girls" and " varsity
+girls " are the same lineup. Never chosen reads as `null` rather than as an empty
+list, because picking nobody is a choice and has to survive a reload.
+
+Editing the team mid race merges into the race being timed, so a name added at
+the starting line appears on the grid without restarting anything. The merge
+respects the lineup: a runner deliberately left out of this race does not come
+back because the team list was touched. Anyone holding a crossing stays whatever
+either list says, and cannot be removed by the lineup screen either, because a
+recorded time must never lose its name. That rule lives in `lib/roster.ts` with
 tests, rather than inline in a component, because it fails silently.
 
 ### Clear everything
@@ -416,13 +453,20 @@ IndexedDB is the migration path if the data model ever outgrows this.
 `npm test` runs Node's built in test runner directly against the TypeScript,
 no build step and no test framework. Coverage is deliberately narrow: the clock,
 the storage layer, the distance math, the naming rules behind the running list,
-and the two ways a roster arrives, which are the places a bug is silent and
-unrecoverable. A wrong pixel is visible on race day. A wrong split is not.
+the short labels, the lineup defaults, and the two ways a roster arrives, which
+are the places a bug is silent and unrecoverable. A wrong pixel is visible on
+race day. A wrong split is not.
 
 The split tests cover the pieces of the running list that could lose a name
 without saying so: which clock each row is measured against, a station with no
 distance, a crossing pointing at an athlete who has since been deleted, and
 naming a runner onto a second crossing freeing the first.
+
+The name tests cover what a button says: a three word first name, a surname
+shorter than the letters asked for, and a clash growing only for the pair that
+clashes. The lineup tests cover the defaults and the promise underneath them,
+that a runner left out of a race stays out when the team list is edited and a
+runner holding a time is never dropped.
 
 The gesture tests cover the line between a tap and a scroll: a still finger, a
 wobble, a drag on either axis, and a diagonal that trips the threshold without
@@ -479,7 +523,7 @@ on meet mornings.
 ## Not in scope
 
 - Team scoring.
-- Timing other teams. Roster is our girls only, about 20 in a JV race.
+- Timing other teams. The list is our team only, about 20 in a JV race.
 - Finish line timing, ever. The meet provides it.
 - Central result collection. Volunteers text exports to the coach.
 
@@ -487,7 +531,8 @@ on meet mornings.
 
 1. **Capture** (done). Setup, big tap button, undo, gun time, stop, CSV export.
 2. **Name** (done). Roster on the device, name buttons that record a crossing as
-   she passes, and a running list where any crossing can be named or renamed.
+   each runner passes, and a running list where any crossing can be named or
+   renamed.
 3. **Share** (roster links and the encrypted published roster done). A QR code
    next, and a link that also carries
    the meet and the split point so a volunteer opens straight into position.

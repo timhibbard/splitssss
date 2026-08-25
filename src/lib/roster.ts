@@ -23,19 +23,31 @@ export function parseRoster(text: string): Athlete[] {
 }
 
 /**
- * Reconciles the race's athlete list with an edited roster, mid race.
+ * Reconciles the runners in a race with an edited team list, mid race.
  *
- * The roster wins, so a girl added at the starting line appears on the grid and
- * a scratch disappears from it. The one exception is an athlete who already
- * holds a crossing: she stays, at the end of the list, because a recorded time
- * must never lose the name attached to it.
+ * The race holds a lineup, not the whole team, so an edit to the team list must
+ * not quietly put back somebody who was left out of this race. The rules, in the
+ * order they matter:
+ *
+ * - A runner added to the team joins the race, because adding a name at the
+ *   starting line is how a late entry gets a button.
+ * - A runner taken off the team leaves the race, unless a crossing is already
+ *   recorded under that name, in which case the name stays at the end of the
+ *   list. A recorded time must never lose the name attached to it.
+ * - Everyone else keeps whatever the lineup said, with the team's spelling.
  */
-export function mergeRoster(
+export function mergeLineup(
   raceAthletes: Athlete[],
-  roster: Athlete[],
+  wasOnTeam: Athlete[],
+  team: Athlete[],
   namedIds: Set<string>,
 ): Athlete[] {
-  const inRoster = new Set(roster.map((a) => a.id))
-  const kept = raceAthletes.filter((a) => namedIds.has(a.id) && !inRoster.has(a.id))
-  return [...roster, ...kept]
+  const before = new Set(wasOnTeam.map((a) => a.id))
+  const inRace = new Set(raceAthletes.map((a) => a.id))
+  const onTeam = new Set(team.map((a) => a.id))
+  const fromTeam = team.filter((a) => inRace.has(a.id) || !before.has(a.id))
+  // Names the race has of its own: typed in during the race, or taken off the
+  // team since. Only the ones holding a time are worth a button.
+  const own = raceAthletes.filter((a) => !onTeam.has(a.id) && namedIds.has(a.id))
+  return [...fromTeam, ...own]
 }

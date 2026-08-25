@@ -1,22 +1,32 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { mergeRoster, parseRoster } from './roster.ts'
+import { mergeLineup, parseRoster } from './roster.ts'
 import type { Athlete } from './types.ts'
 
 const avery: Athlete = { id: 'a1', name: 'Avery Collins' }
 const rowan: Athlete = { id: 'a2', name: 'Rowan Hayes' }
 const jordan: Athlete = { id: 'a3', name: 'Jordan Blake' }
 
-test('a runner added mid race joins the grid', () => {
-  const merged = mergeRoster([avery], [avery, rowan], new Set())
+test('a runner added to the team mid race joins the race', () => {
+  const merged = mergeLineup([avery], [avery], [avery, rowan], new Set())
   assert.deepEqual(
     merged.map((a) => a.name),
     ['Avery Collins', 'Rowan Hayes'],
   )
 })
 
-test('a scratch with no crossing leaves the grid', () => {
-  const merged = mergeRoster([avery, rowan], [avery], new Set())
+test('a runner left out of this race stays out when the team list is edited', () => {
+  // Rowan is on the team and was not picked for this race. Adding Jordan to the
+  // team must not put Rowan on the course.
+  const merged = mergeLineup([avery], [avery, rowan], [avery, rowan, jordan], new Set())
+  assert.deepEqual(
+    merged.map((a) => a.id),
+    ['a1', 'a3'],
+  )
+})
+
+test('a scratch with no crossing leaves the race', () => {
+  const merged = mergeLineup([avery, rowan], [avery, rowan], [avery], new Set())
   assert.deepEqual(
     merged.map((a) => a.id),
     ['a1'],
@@ -24,19 +34,24 @@ test('a scratch with no crossing leaves the grid', () => {
 })
 
 test('a runner who already crossed stays even after being removed', () => {
-  // She passed the split point, then got taken off the roster by mistake. Her
-  // time is recorded, so dropping her would orphan it.
-  const merged = mergeRoster([avery, rowan], [avery], new Set(['a2']))
+  // Passed the split point, then got taken off the team list by mistake. The
+  // time is recorded, so dropping the name would orphan it.
+  const merged = mergeLineup([avery, rowan], [avery, rowan], [avery], new Set(['a2']))
   assert.deepEqual(
     merged.map((a) => a.id),
     ['a1', 'a2'],
-    'kept, and after the roster so the grid order still matches the list',
+    'kept, and after the team so the grid order still matches the list',
   )
 })
 
-test('the roster order wins, and nobody is duplicated', () => {
+test('the team order wins, and nobody is duplicated', () => {
   const reordered = [rowan, jordan, avery]
-  const merged = mergeRoster([avery, rowan, jordan], reordered, new Set(['a1', 'a2']))
+  const merged = mergeLineup(
+    [avery, rowan, jordan],
+    [avery, rowan, jordan],
+    reordered,
+    new Set(['a1', 'a2']),
+  )
   assert.deepEqual(
     merged.map((a) => a.id),
     ['a2', 'a3', 'a1'],
@@ -45,16 +60,35 @@ test('the roster order wins, and nobody is duplicated', () => {
 
 test('an edited name reaches a runner who has already crossed', () => {
   const fixed: Athlete = { id: 'a1', name: 'Avery Collins-Reed' }
-  const merged = mergeRoster([avery], [fixed], new Set(['a1']))
+  const merged = mergeLineup([avery], [avery], [fixed], new Set(['a1']))
   assert.equal(merged.length, 1, 'the same id is not kept twice')
   assert.equal(merged[0].name, 'Avery Collins-Reed')
 })
 
-test('clearing the roster keeps only the runners with times', () => {
-  const merged = mergeRoster([avery, rowan, jordan], [], new Set(['a3']))
+test('clearing the team list keeps only the runners with times', () => {
+  const merged = mergeLineup([avery, rowan, jordan], [avery, rowan, jordan], [], new Set(['a3']))
   assert.deepEqual(
     merged.map((a) => a.id),
     ['a3'],
+  )
+})
+
+test('a name typed in during the race survives a team edit', () => {
+  const guest: Athlete = { id: 'g1', name: 'Someone Else' }
+  const merged = mergeLineup([avery, guest], [avery], [avery, rowan], new Set(['g1']))
+  assert.deepEqual(
+    merged.map((a) => a.id),
+    ['a1', 'a2', 'g1'],
+    'the new team name joins, and the typed name keeps its time',
+  )
+})
+
+test('a typed name whose time was taken back off is not kept', () => {
+  const guest: Athlete = { id: 'g1', name: 'Someone Else' }
+  const merged = mergeLineup([avery, guest], [avery], [avery], new Set())
+  assert.deepEqual(
+    merged.map((a) => a.id),
+    ['a1'],
   )
 })
 

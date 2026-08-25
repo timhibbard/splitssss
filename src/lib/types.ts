@@ -42,6 +42,8 @@ export type RaceDraft = {
   timer: string
   /** Full race distance, for projecting a finish time from a split. */
   raceMeters: number
+  /** The lineup: who out of the team list is in this race. */
+  athletes: Athlete[]
 }
 
 export type Race = {

@@ -29,11 +29,22 @@ Live at **https://timhibbard.github.io/splitssss/**
   passphrase once per phone, decrypts in the browser, and keeps the names
   locally. The passphrase is never in the repo, never in the URL, and never sent
   anywhere. Plaintext names are still never committed.
-- **Names go on during the race or after.** Add the roster from the panel at the
-  top of the setup screen, or from Add names on the capture screen mid race. Then
-  tapping her name records her crossing at that moment, and the big button
-  records anyone you cannot name. A name tap never fills in an older crossing,
-  because that would put a stale time on a runner standing in front of you.
+- **Names go on during the race or after.** Add the team list from the panel at
+  the top of the setup screen, or from "Who is running" on the capture screen mid
+  race. Then tapping a name records that runner's crossing at that moment, and the
+  big button records anyone you cannot name. A name tap never fills in an older
+  crossing, because that would put a stale time on a runner standing in front of
+  you.
+- **A button says a first name and an initial.** "Caroline K." fits a phone, and
+  a three word name keeps the first two words, so "Mary Eliza D." is what the
+  team calls out. If two labels would read the same they grow a letter until they
+  do not: Emma Ri. and Emma Ro. Full names go to the export and to screen
+  readers.
+- **Pick who is running.** A varsity race is seven buttons, not twenty eight.
+  Choose the lineup before the race or change it mid race, with Top 7, Everyone
+  else, Everyone and Nobody one tap each. The choice is remembered under the race
+  name, so next week's varsity race opens with the seven you picked. Anyone who
+  already has a time cannot be taken out.
 - **Scrolling the names records nothing.** The grid of names scrolls, so a name
   button holds the time from the moment your finger lands and only records it if
   the finger lifts without dragging. A tap is timed to the instant it landed. A
@@ -43,7 +54,7 @@ Live at **https://timhibbard.github.io/splitssss/**
   Tap any row to name it, or to fix a name: the picker offers the runners who
   have no crossing there yet, or type in a runner nobody has a button for.
 - **Projected finish.** Races are 5K, so the header shows what the current pace
-  projects to at the finish, and every row in the list carries her own. Linear,
+  projects to at the finish, and every row in the list carries its own. Linear,
   to the second, because the number gets said out loud to a runner.
 - **A refresh loses nothing.** Every tap is on disk before the button springs
   back. Reloading restores the race, the roster, and every crossing in order.
@@ -86,7 +97,7 @@ npm run dev
 ```sh
 npm run build    # type check and build
 npm run lint
-npm test         # clock, storage, roster, link, vault, distance, split, and gesture logic, via node --test
+npm test         # clock, storage, roster, link, vault, distance, split, gesture, name, and lineup logic, via node --test
 npm run preview  # serve the production build at /splitssss/
 ```
 

@@ -14,7 +14,7 @@ import type { Athlete, Race, Tap } from './types'
  */
 export type SplitRow = {
   tap: Tap
-  /** Crossing order at this station, which is her place. */
+  /** Crossing order at this station, which is the runner's place. */
   place: number
   /** Absent when the crossing has not been named yet. */
   athlete?: Athlete
@@ -54,12 +54,12 @@ export function splitRows(race: Race, taps: Tap[], sessionId: string): SplitRow[
 }
 
 /**
- * Attaches an athlete to one crossing and takes her off any other, because a
+ * Attaches an athlete to one crossing and off any other, because a
  * runner passes a point once. Returns only the taps that changed, so the caller
  * writes exactly what it has to.
  *
  * That invariant is what makes a mis-tap fixable: naming #12 as Emma when Emma is
- * already on #7 leaves #7 unnamed and waiting, rather than putting her in two
+ * already on #7 leaves #7 unnamed and waiting, rather than counting one runner in two
  * places and quietly breaking the count.
  */
 export function assignAthlete(taps: Tap[], tapId: string, athleteId: string): Tap[] {

@@ -181,17 +181,46 @@ test('an absent or corrupt roster reads as empty rather than throwing', () => {
   assert.deepEqual(store.loadRoster(), [], 'valid JSON of the wrong shape is rejected')
 })
 
-test('clear everything wipes races, taps, and the roster', () => {
+test('a lineup nobody has chosen is not an empty lineup', () => {
+  mem.clear()
+  assert.equal(store.loadLineup('Varsity Girls'), null, 'null, not []')
+  store.saveLineup('Varsity Girls', [])
+  assert.deepEqual(store.loadLineup('Varsity Girls'), [], 'choosing nobody is a choice')
+})
+
+test('a lineup is remembered by race name, not by race', () => {
+  mem.clear()
+  store.saveLineup('Varsity Girls', ['a1', 'a2', 'a3'])
+  store.saveLineup('JV Girls', ['a4', 'a5'])
+  assert.deepEqual(store.loadLineup('Varsity Girls'), ['a1', 'a2', 'a3'])
+  assert.deepEqual(store.loadLineup('JV Girls'), ['a4', 'a5'])
+})
+
+test('a race name typed a little differently finds the same lineup', () => {
+  mem.clear()
+  store.saveLineup('Varsity Girls', ['a1'])
+  assert.deepEqual(store.loadLineup(' varsity girls '), ['a1'])
+})
+
+test('a corrupt lineup reads as never chosen', () => {
+  mem.clear()
+  mem.poison('ss.v2.lineup.varsity-girls', '{ not json')
+  assert.equal(store.loadLineup('Varsity Girls'), null)
+})
+
+test('clear everything wipes races, taps, the roster, and the lineups', () => {
   mem.clear()
   store.saveRace(race('r1'))
   store.saveRace(race('r2'))
   store.setActiveRaceId('r1')
   for (const seq of [1, 2, 3]) store.saveTap('r1', tap(seq))
   store.saveRoster([{ id: 'a1', name: 'Avery Collins' }])
+  store.saveLineup('JV Girls', ['a1'])
 
   const removed = store.clearAll()
 
-  assert.equal(removed, 7, '2 races, 3 taps, the active pointer, and the roster')
+  assert.equal(removed, 8, '2 races, 3 taps, the active pointer, the roster, and a lineup')
+  assert.equal(store.loadLineup('JV Girls'), null)
   assert.deepEqual(store.loadAllRaces(), [])
   assert.deepEqual(store.loadTaps('r1'), [])
   assert.deepEqual(store.loadRoster(), [])

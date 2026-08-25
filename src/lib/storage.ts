@@ -14,6 +14,7 @@ const RACE_PREFIX = 'ss.v2.race.'
 const TAP_PREFIX = 'ss.v2.tap.'
 const ACTIVE_KEY = 'ss.v2.active'
 const ROSTER_KEY = 'ss.v2.roster'
+const LINEUP_PREFIX = 'ss.v2.lineup.'
 
 function tapKey(raceId: string, seq: number): string {
   // Zero padded so the natural key sort matches crossing order.
@@ -90,9 +91,10 @@ export function getActiveRaceId(): string | null {
 }
 
 /**
- * The roster lives on the device, not on a race, because it is the same twenty
- * girls all season. Each race takes a snapshot at start so that editing the
- * roster later cannot rewrite the names on a race already run.
+ * The team list lives on the device, not on a race, because it is the same
+ * twenty eight runners all season. Each race takes a snapshot of its lineup at
+ * start, so editing the list later cannot rewrite the names on a race already
+ * run.
  */
 export function loadRoster(): Athlete[] {
   const raw = localStorage.getItem(ROSTER_KEY)
@@ -107,6 +109,32 @@ export function loadRoster(): Athlete[] {
 
 export function saveRoster(athletes: Athlete[]): void {
   localStorage.setItem(ROSTER_KEY, JSON.stringify(athletes))
+}
+
+function lineupKey(raceName: string): string {
+  const slug = raceName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  return `${LINEUP_PREFIX}${slug || 'race'}`
+}
+
+/**
+ * Who ran the last race by this name, remembered by name rather than by race, so
+ * the varsity seven the coach picked on Tuesday are still the varsity seven at
+ * Saturday's meet. Null means nobody has chosen yet, which is not the same as
+ * choosing nobody.
+ */
+export function loadLineup(raceName: string): string[] | null {
+  const raw = localStorage.getItem(lineupKey(raceName))
+  if (!raw) return null
+  try {
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? (parsed as string[]) : null
+  } catch {
+    return null
+  }
+}
+
+export function saveLineup(raceName: string, ids: string[]): void {
+  localStorage.setItem(lineupKey(raceName), JSON.stringify(ids))
 }
 
 /** Everything this app has ever written, so a wipe cannot miss an old key. */
