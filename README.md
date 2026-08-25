@@ -67,6 +67,9 @@ Live at **https://timhibbard.github.io/splitssss/**
 - **Looking at a race does not restart it.** A stopped race under "Earlier today"
   opens frozen, so you can fix a name or send the CSV again without its clock
   running. Undoing a stop is its own button.
+- **The buttons stay put.** The name grid and the running list each hold a fixed
+  share of the screen, so nine crossings look like two, and the list never grows
+  over the names or pushes Stop and Export off the bottom.
 - **Clear all races.** At the bottom of the home screen, with the counts it would
   destroy spelled out and two taps to confirm. It clears races and crossings only.
   The runners stay, since they are the part with no copy on the phone to rebuild

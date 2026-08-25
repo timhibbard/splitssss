@@ -244,6 +244,9 @@
 /* ---------- capture ---------- */
 
 .capture {
+  /* Tighter than the rest of the app. Every 4px given back here is 4px of name
+     button, and this screen is read in glances rather than studied. */
+  gap: 8px;
   transition: background-color 60ms linear;
 }
 
@@ -317,10 +320,12 @@
 }
 
 .tap {
-  flex: 1;
-  /* Below the running list's share of the screen. It grows into whatever the
-     list is not using, which early in a race is most of the screen. */
-  min-height: 30vh;
+  /* A share of what is left after the chrome, not a size the list below can
+     argue with. Two parts to the list's one, the same split the name grid gets
+     when there is a roster: whatever a volunteer taps gets twice the room of
+     what they read. */
+  flex: 2 1 0;
+  min-height: 25vh;
   background: var(--navy);
   border: none;
   border-radius: 20px;
@@ -337,11 +342,13 @@
 }
 
 /* With a roster loaded, the name buttons are the primary interaction and the
-   unnamed-crossing button steps back to a secondary role. */
+   unnamed-crossing button steps back to a secondary role: a fixed band rather
+   than a share of the screen, sized so three rows of names fit under it on a
+   phone. Still full width, which is what makes it easy to hit. */
 .has-names .tap {
   flex: 0 0 auto;
   min-height: 0;
-  height: 16vh;
+  height: 13vh;
   flex-direction: row;
   gap: 14px;
 }
@@ -384,11 +391,6 @@
 }
 
 .names {
-  /* Shares the middle of the screen with the running list below, and gives up
-     whatever the list needs first, because the list is capped and the grid
-     scrolls. Neither pane can push the footer buttons off the screen. */
-  flex: 1 1 0;
-  min-height: 0;
   overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
@@ -399,6 +401,26 @@
   align-content: start;
   /* The names scroll, so let this pane bounce without moving the whole screen. */
   overscroll-behavior: contain;
+}
+
+/*
+  The grid as a pane of the capture screen, as opposed to the same grid inside
+  the naming sheet. It takes a fixed share of whatever the chrome leaves, two
+  parts here to the running list's one, which is what makes three rows of names
+  fit on a phone: the seven of a varsity lineup, with nothing to scroll. Fixed
+  shares rather than content sizing, for two reasons.
+
+  It cannot be squeezed to nothing. It used to be the only pane with a floor of
+  zero, so five crossings into a race the list had taken the middle of the screen
+  and the names were a scrollbar's width tall.
+
+  And it does not move. A share that does not depend on how many crossings are
+  recorded means the name a thumb is travelling towards is in the same place
+  after the tap that just landed as it was before it.
+*/
+.names-pane {
+  flex: 2 1 0;
+  min-height: 0;
 }
 
 .name-chip {
@@ -476,11 +498,12 @@
 
 /* ---------- the running list ---------- */
 
-/* Takes the height it needs and no more, and is the first thing to give room
-   back when the screen is short. Never grows, so a race with two crossings
-   leaves the tap button and the name grid full size. */
+/* The other share of the leftover space, one part to the name grid's two. Fixed
+   rather than content sized, so a race with nine crossings has the same shape as
+   a race with two: the list scrolls inside its pane instead of growing into the
+   buttons above it. */
 .splits {
-  flex: 0 2 auto;
+  flex: 1 1 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -511,9 +534,11 @@
 }
 
 .splits-rows {
+  /* Fills its pane and scrolls inside it. Newest first, so the crossing that
+     just landed needs no scrolling to see. */
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  /* Newest first, so the crossing that just landed needs no scrolling. */
-  max-height: 30vh;
   overscroll-behavior: contain;
 }
 
@@ -638,7 +663,8 @@
   text-align: right;
 }
 
-.sheet-names {
+/* The same grid, sized by the sheet instead of by the screen behind it. */
+.names.sheet-names {
   flex: 0 1 auto;
   max-height: 50vh;
 }

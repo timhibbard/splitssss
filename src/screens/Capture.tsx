@@ -327,7 +327,7 @@ export function Capture({
         here, so one pair of handlers covers all twenty eight names.
       */}
       {hasRoster && (
-        <div className="names" onPointerMove={namesMove} onPointerCancel={namesCancel}>
+        <div className="names names-pane" onPointerMove={namesMove} onPointerCancel={namesCancel}>
           {race.athletes.map((a) => {
             const done = assigned.has(a.id)
             return (

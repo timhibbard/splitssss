@@ -197,8 +197,36 @@ and the finish that split projects to. Decisions inside it:
 - With no gun time the list shows time of day and no projection. The times are
   still real and the gun can be set later.
 
-The list is capped and scrolls, it never grows into the name grid, and the grid
-gives up space to it first. Neither pane can push Stop or Export off screen.
+### The panes are shares, not contents
+
+Everything under the header on the capture screen is a share of what the header,
+the crossings line, and the two rows of buttons leave over. The name grid takes
+two parts and the running list takes one, and neither is sized by what is inside
+it: whatever a volunteer taps gets twice the room of what they read.
+
+That is a fix rather than a preference. The grid used to be the only pane with a
+floor of zero while the list grew to fit its rows, so five crossings into a race
+the list had taken the middle of the screen and the names were a scrollbar's
+width tall. On a 375 by 556 phone the grid measured zero. The buttons a volunteer
+came to tap were gone, and Stop and Export were on their way off the bottom.
+
+Fixed shares fix a second thing at the same time. A pane whose size does not
+depend on how many crossings are recorded does not move, so the name a thumb is
+travelling towards is in the same place after the tap that just landed as it was
+before it.
+
+The ratio is picked against a target: three rows of name buttons on a 390 by 664
+phone, which is a varsity seven with nothing to scroll. The unnamed crossing
+button gives up its share to get there, becoming a fixed 13vh band once a roster
+is loaded rather than a hero button. Neither pane gets a floor in pixels, on
+purpose. A floor plus the fixed chrome can add up to more than a short viewport,
+and then the footer goes off screen, which is the complaint this started as.
+
+Measured in Chrome at real device metrics rather than eyeballed. At 390 by 664
+the grid is 209px and a seven runner lineup is 209px tall, and the geometry is
+identical at one crossing, five, and nine. At 375 by 556 both panes shrink and
+both scroll, and Stop, Export, Setup and "Who is running" are all still on
+screen.
 
 ### Every screen has a way out
 
