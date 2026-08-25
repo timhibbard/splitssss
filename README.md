@@ -30,14 +30,14 @@ Live at **https://timhibbard.github.io/splitssss/**
   locally. The passphrase is never in the repo, never in the URL, and never sent
   anywhere. Plaintext names are still never committed.
 - **Names go on during the race or after.** Add the roster from the panel at the
-  top of the setup screen, or from Add names on the capture screen mid race, then tap a name
-  instead of the big button and it records and names in one tap. Fall behind and
-  the name buttons switch to filling in the crossings already waiting, oldest
-  first, which is correct because runners cross in order.
+  top of the setup screen, or from Add names on the capture screen mid race. Then
+  tapping her name records her crossing at that moment, and the big button
+  records anyone you cannot name. A name tap never fills in an older crossing,
+  because that would put a stale time on a runner standing in front of you.
 - **A running list of every tap.** Named and unnamed crossings sit together in
   crossing order, newest at the top, each with its split and its projected 5K.
-  Tap a row to aim the next name at it, which is how a wrong name gets fixed.
-  A runner nobody has a button for can be typed in.
+  Tap any row to name it, or to fix a name: the picker offers the runners who
+  have no crossing there yet, or type in a runner nobody has a button for.
 - **Projected finish.** Races are 5K, so the header shows what the current pace
   projects to at the finish, and every row in the list carries her own. Linear,
   to the second, because the number gets said out loud to a runner.

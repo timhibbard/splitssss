@@ -102,24 +102,27 @@ any platform level clock jitter, so the honest position is: store
 milliseconds, display tenths, never display hundredths. The app should not
 imply precision the method does not have.
 
-### Naming during the race, without bookkeeping
+### A name tap records a time. It never fills in an old one
 
-A name button does one of three things, and the screen says which:
+Tapping a name records a crossing **at that moment** and names it. Tapping a row
+in the running list names **that** crossing. Two gestures, two jobs, and neither
+one can be mistaken for the other.
 
-- A crossing was picked out of the running list, so the tap names **that** one.
-- Nothing was picked and crossings are waiting, so the tap names the **oldest**.
-- Nothing is waiting, so the tap records a crossing and names it at once.
+The first version made a name tap fill in the oldest crossing that was still
+waiting, on the reasoning that runners cross in order, so naming them in tap
+order matches the order they passed. That is true, and it was still wrong. The
+two modes mix in practice: a volunteer taps the big button for a girl she cannot
+place, then taps a name for the next girl she can. Under the old rule that second
+tap silently attached a time from thirty seconds ago to a runner who was standing
+in front of her. A wrong split on a real runner is the one failure this app must
+not have, and nothing on screen would have contradicted it.
 
-Oldest first is correct with no extra state, because runners cross a point in
-order. Naming them in the order they were tapped therefore matches the order
-they passed. That one rule covers both modes of use: a coach who recognizes
-every girl names as they go, and a volunteer who does not tap the big button
-and fills names in afterward. Same buttons, no separate assign screen, and no
-way to get out of sync.
+So the oldest-first rule is gone. What replaces it costs one extra tap, on the
+crossing itself, and it is the tap that says which crossing you mean.
 
-A named athlete stays visible in the grid, struck through, rather than being
-removed. Removing it would reflow the grid under a thumb already on its way
-down to the next name.
+A named athlete stays visible in the grid, struck through and not tappable,
+rather than being removed. Removing it would reflow the grid under a thumb
+already on its way down to the next name.
 
 An athlete holds at most one crossing per race, so naming her on a second one
 takes her off the first and leaves that crossing unnamed and waiting. That is
@@ -139,17 +142,22 @@ and the finish that split projects to. Decisions inside it:
 - **Newest first.** The crossing that just landed is the one being checked, and
   it should never need a scroll. Chronological order would push it out of view
   after eight runners.
-- **Tapping a row aims the next name at it,** and the row is marked so the answer
-  to "who am I naming" is in the list and not only in the line above it. Tapping
-  it again lets go, and the aim falls back to oldest unnamed. The selection is
-  held as an id and looked up every render, so an undo cannot leave a stale row
-  on screen pointing at a crossing that no longer exists.
+- **Tapping a row opens a picker for that crossing,** over the screen rather than
+  beside it, because until the row has a name nothing else on the screen matters.
+  It offers only the runners with no crossing here yet, in roster order, so the
+  list shrinks as the race goes on and the last few are easy to hit. Everything
+  cancels: the backdrop, a Cancel button, or Escape.
+- **The crossing being named is held as an id** and looked up again every render,
+  so an undo cannot leave the picker pointing at a crossing that no longer
+  exists.
 - **A name can also be typed.** Another school's runner, or a girl who never made
   the list, gets a name rather than a blank row. She joins this race only, not the
   season roster, because a course is not where the coach's list gets edited. A
   typed name that matches someone already on the race reuses her instead of
-  making a twin on the grid. The field is opened deliberately and never sits
-  focused, so a keyboard cannot cover the course mid race.
+  making a twin on the grid. The field is in the picker and never focused on its
+  own, so a keyboard cannot cover the course mid race.
+- **A name can come back off,** keeping the time, because the crossing was real
+  even when the name was a guess.
 - **The projection is per row,** not just for the clock in the header, since the
   number a coach says out loud is that girl's, not the leader's.
 - With no gun time the list shows time of day and no projection. The times are
@@ -440,8 +448,8 @@ on meet mornings.
 ## Roadmap
 
 1. **Capture** (done). Setup, big tap button, undo, gun time, stop, CSV export.
-2. **Name** (done). Roster on the device, name buttons that record or assign
-   depending on what is pending, oldest crossing first.
+2. **Name** (done). Roster on the device, name buttons that record a crossing as
+   she passes, and a running list where any crossing can be named or renamed.
 3. **Share** (roster links and the encrypted published roster done). A QR code
    next, and a link that also carries
    the meet and the split point so a volunteer opens straight into position.

@@ -331,17 +331,9 @@
   background: var(--ink-soft);
 }
 
-/* The line that says where the next name lands, and the way out for a runner
-   who has no button. Fixed height so the grid below never shifts. */
-.naming {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
+/* Fixed height so the name grid below it never shifts as the wording changes. */
 .pending {
   margin: 0;
-  flex: 1;
   font-size: 15px;
   line-height: 1.35;
   color: var(--ink-soft);
@@ -350,15 +342,6 @@
 
 .pending strong {
   color: var(--navy);
-}
-
-.free-open {
-  flex: 0 0 auto;
-  padding: 10px 12px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--navy);
-  border-color: var(--navy);
 }
 
 .free-row {
@@ -385,7 +368,10 @@
   min-height: 0;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  /* Two full lines of name, and taller if a third is needed. A first name over a
+     clipped surname is a button a volunteer has to guess at. */
+  grid-auto-rows: minmax(3.8em, auto);
   gap: 8px;
   align-content: start;
   /* The names scroll, so let this pane bounce without moving the whole screen. */
@@ -393,14 +379,22 @@
 }
 
 .name-chip {
-  padding: 16px 8px;
+  /* Centres a wrapped name in the button instead of letting the second line run
+     out through the bottom border, which is what truncation was doing. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  /* Its own floor as well as the grid's, so a chip can never be shorter than the
+     name inside it however the row is sized. */
+  min-height: 3.8em;
+  padding: 6px;
   font-size: 15px;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.15;
   border-color: var(--navy);
   color: var(--navy);
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: break-word;
 }
 
 .name-chip:active {
@@ -550,6 +544,82 @@
 .split-row.target .split-name.none {
   color: var(--navy);
   font-weight: 600;
+}
+
+/* ---------- naming one crossing ---------- */
+
+/* Over the screen, not beside it: until this row has a name, nothing else on
+   the screen matters. Anchored to the bottom, where the thumb already is. */
+.sheet-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+/* The whole backdrop cancels, so a mis-tap costs one tap anywhere. */
+.sheet-back {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: rgba(11, 10, 15, 0.5);
+}
+
+.sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 88%;
+  background: var(--bg);
+  border-top: 2px solid var(--navy);
+  border-radius: 16px 16px 0 0;
+  padding: 14px max(14px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom))
+    max(14px, env(safe-area-inset-left));
+}
+
+.sheet-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.sheet-head strong {
+  font-size: 20px;
+  color: var(--navy);
+}
+
+.sheet-time {
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet-now {
+  margin-left: auto;
+  font-size: 14px;
+  color: var(--ink-soft);
+  text-align: right;
+}
+
+.sheet-names {
+  flex: 0 1 auto;
+  max-height: 50vh;
+}
+
+.sheet-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.sheet-actions button {
+  flex: 1;
+  padding: 12px;
 }
 
 .actions {

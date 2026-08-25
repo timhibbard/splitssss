@@ -9,16 +9,17 @@ import {
 } from '../lib/clock'
 import { projectedFinish } from '../lib/distance'
 import { buzz, click, undoClick } from '../lib/feedback'
-import { oldestUnnamed, splitRows } from '../lib/splits'
+import { splitRows, stillOut } from '../lib/splits'
 import type { Race, Tap } from '../lib/types'
 
 type Props = {
   race: Race
   taps: Tap[]
   onTap: () => void
-  /** Names a chosen crossing, or the oldest unnamed one when none is chosen. */
+  /** With no tapId this records a crossing now. With one it names that crossing. */
   onName: (athleteId: string, tapId?: string) => void
   onNameFree: (name: string, tapId: string) => void
+  onClearName: (tapId: string) => void
   onUndo: () => void
   onSetGun: () => void
   onStop: () => void
@@ -33,6 +34,7 @@ export function Capture({
   onTap,
   onName,
   onNameFree,
+  onClearName,
   onUndo,
   onSetGun,
   onStop,
@@ -44,13 +46,11 @@ export function Capture({
   const [now, setNow] = useState(() => stamp())
   const [confirmStop, setConfirmStop] = useState(false)
   /**
-   * The crossing a name tap will land on, when the volunteer picked one out of
-   * the list. Held as an id rather than a tap so an undo cannot leave a stale
-   * copy on screen: the row is looked up again every render, and a selection
-   * pointing at nothing quietly falls back to the oldest unnamed crossing.
+   * The crossing being named, if the picker is open. Held as an id rather than a
+   * tap so an undo cannot leave a stale copy on screen: the row is looked up
+   * again every render, and an id pointing at nothing closes the picker.
    */
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [typing, setTyping] = useState(false)
+  const [namingId, setNamingId] = useState<string | null>(null)
   const [typed, setTyped] = useState('')
   const flashTimer = useRef<number | undefined>(undefined)
   const confirmTimer = useRef<number | undefined>(undefined)
@@ -84,13 +84,18 @@ export function Capture({
 
   const rows = splitRows(race, taps, SESSION_ID)
   const assigned = new Set(taps.map((t) => t.athleteId).filter(Boolean))
-  const selected = selectedId ? taps.find((t) => t.id === selectedId) : undefined
-  /** Where the next name goes. A chosen row wins, otherwise oldest unnamed. */
-  const target = selected ?? oldestUnnamed(taps)
-  const targetRow = rows.find((r) => r.tap.id === target?.id)
   const unnamed = taps.filter((t) => !t.athleteId).length
   const hasRoster = race.athletes.length > 0
   const paceLabel = race.raceMeters === 5000 ? '5K' : `${race.raceMeters}m`
+
+  const namingRow = namingId ? rows.find((r) => r.tap.id === namingId) : undefined
+  const namingAt =
+    namingRow &&
+    (namingRow.elapsed == null
+      ? formatWallClock(namingRow.tap.wallMs)
+      : formatElapsed(namingRow.elapsed))
+  /** Who this crossing could be: everyone without one here yet, in roster order. */
+  const choices = namingRow ? stillOut(race.athletes, taps) : []
 
   function confirmFeedback() {
     click()
@@ -107,33 +112,43 @@ export function Capture({
     confirmFeedback()
   }
 
+  /** A name in the grid means she is passing now, so this records her crossing. */
   function handleName(athleteId: string) {
-    onName(athleteId, target?.id)
-    // Back to oldest-first, so the next name tap does not overwrite this row.
-    setSelectedId(null)
-    setTyping(false)
+    if (stopped) return
+    onName(athleteId)
     confirmFeedback()
   }
 
-  /** Aiming the next name at one row. Tapping the same row again lets it go. */
-  function chooseRow(tap: Tap) {
-    setSelectedId(tap.id === selectedId ? null : tap.id)
-    setTyping(false)
+  function openNaming(tap: Tap) {
+    setNamingId(tap.id)
+    setTyped('')
     click()
   }
 
-  function saveTyped() {
-    if (!target || typed.trim() === '') return
-    onNameFree(typed, target.id)
+  function closeNaming() {
+    setNamingId(null)
     setTyped('')
-    setTyping(false)
-    setSelectedId(null)
+  }
+
+  function pick(athleteId: string) {
+    if (!namingRow) return
+    onName(athleteId, namingRow.tap.id)
+    closeNaming()
     confirmFeedback()
   }
 
-  function cancelTyping() {
-    setTyped('')
-    setTyping(false)
+  function saveTyped() {
+    if (!namingRow || typed.trim() === '') return
+    onNameFree(typed, namingRow.tap.id)
+    closeNaming()
+    confirmFeedback()
+  }
+
+  function removeName() {
+    if (!namingRow) return
+    onClearName(namingRow.tap.id)
+    closeNaming()
+    click()
   }
 
   function handleUndo() {
@@ -209,59 +224,15 @@ export function Capture({
         <span className="tap-word">{stopped ? 'STOPPED' : 'TAP'}</span>
       </button>
 
-      <div className="naming">
-        <p className="pending" aria-live="polite">
-          {target ? (
-            <>
-              {target.athleteId ? 'Changing' : 'Naming'} <strong>#{target.seq}</strong>
-              {targetRow?.elapsed != null ? ` at ${formatElapsed(targetRow.elapsed)}` : ''}
-              {target.athleteId
-                ? `, now ${race.athletes.find((a) => a.id === target.athleteId)?.name ?? 'unnamed'}`
-                : unnamed > 1
-                  ? ` · ${unnamed - 1} more waiting`
-                  : ''}
-            </>
-          ) : stopped ? (
-            'Every crossing has a name.'
-          ) : hasRoster ? (
-            'Tap a name as she passes to record and name in one tap.'
-          ) : (
-            'Tap as each runner passes. Names can wait until after the race.'
-          )}
-        </p>
-        {target && !typing && (
-          <button type="button" className="free-open" onClick={() => setTyping(true)}>
-            Type a name
-          </button>
-        )}
-      </div>
-
-      {/* For a runner nobody has a button for. Opened on purpose, never sitting
-          focused, so the keyboard cannot cover the course mid race. */}
-      {typing && target && (
-        <div className="free-row">
-          <input
-            value={typed}
-            onChange={(e) => setTyped(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') saveTyped()
-              if (e.key === 'Escape') cancelTyping()
-            }}
-            placeholder={`Who was #${target.seq}?`}
-            aria-label={`Name for crossing ${target.seq}`}
-            autoFocus
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-          />
-          <button type="button" className="primary" onClick={saveTyped} disabled={typed.trim() === ''}>
-            Save
-          </button>
-          <button type="button" className="dismiss" onClick={cancelTyping}>
-            Cancel
-          </button>
-        </div>
-      )}
+      <p className="pending" aria-live="polite">
+        {unnamed > 0
+          ? `${unnamed} ${unnamed === 1 ? 'crossing needs' : 'crossings need'} a name. Tap it in the list.`
+          : stopped
+            ? 'Every crossing has a name.'
+            : hasRoster
+              ? 'Tap her name as she passes. The big button is for anyone you cannot name.'
+              : 'Tap as each runner passes. Names can wait until after the race.'}
+      </p>
 
       {hasRoster && (
         <div className="names">
@@ -273,10 +244,9 @@ export function Capture({
                 type="button"
                 className={done ? 'name-chip done' : 'name-chip'}
                 onPointerDown={() => handleName(a.id)}
-                // A chosen row can be given to anyone, including a girl already
-                // down for another crossing, because that is how a swapped pair
-                // of names gets fixed. Naming her here frees the other row.
-                disabled={selected ? false : done || (stopped && !target)}
+                // Struck through once she has a crossing here, and not tappable,
+                // because a runner passes one point once.
+                disabled={done || stopped}
               >
                 {a.name}
               </button>
@@ -302,7 +272,7 @@ export function Capture({
           {rows.length === 0 ? (
             <p className="splits-empty">
               Nothing recorded yet. {hasRoster
-                ? 'Tap a name as she passes, or the big button when you cannot tell who it is.'
+                ? 'Tap her name as she passes, or the big button when you cannot tell who it is.'
                 : 'Tap the big button as each runner passes.'}
               {race.gun ? '' : ' A gun time is optional: every tap keeps the time of day.'}
             </p>
@@ -320,11 +290,11 @@ export function Capture({
                     className={[
                       'split-row',
                       name ? '' : 'unnamed',
-                      row.tap.id === target?.id ? 'target' : '',
+                      row.tap.id === namingId ? 'target' : '',
                     ]
                       .filter(Boolean)
                       .join(' ')}
-                    onClick={() => chooseRow(row.tap)}
+                    onClick={() => openNaming(row.tap)}
                     aria-label={
                       `Crossing ${row.place} at ${at}, ` +
                       `${name ? name : 'not named yet'}. ` +
@@ -379,6 +349,83 @@ export function Capture({
           {hasRoster ? 'Edit names' : 'Add names'}
         </button>
       </nav>
+
+      {/*
+        Naming one crossing. Over the screen rather than beside it, because the
+        question is about that row and nothing else on the screen matters until
+        it is answered. The list offers only runners without a crossing here, so
+        it shrinks as the race goes on and the last few are easy to hit.
+      */}
+      {namingRow && (
+        <div className="sheet-wrap">
+          <button
+            type="button"
+            className="sheet-back"
+            aria-label="Cancel naming"
+            onClick={closeNaming}
+          />
+          <div className="sheet" role="dialog" aria-modal="true" aria-label={`Name crossing ${namingRow.place}`}>
+            <div className="sheet-head">
+              <strong>#{namingRow.place}</strong>
+              <span className="sheet-time">{namingAt}</span>
+              {namingRow.athlete && (
+                <span className="sheet-now">Now {namingRow.athlete.name}</span>
+              )}
+            </div>
+
+            {choices.length > 0 ? (
+              <div className="names sheet-names">
+                {choices.map((a) => (
+                  <button key={a.id} type="button" className="name-chip" onClick={() => pick(a.id)}>
+                    {a.name}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="hint">
+                {hasRoster
+                  ? 'Everyone on the list already has a crossing here. Type a name instead.'
+                  : 'No names loaded on this phone. Type who it was.'}
+              </p>
+            )}
+
+            <div className="free-row">
+              <input
+                value={typed}
+                onChange={(e) => setTyped(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') saveTyped()
+                  if (e.key === 'Escape') closeNaming()
+                }}
+                placeholder="Someone else"
+                aria-label={`Type a name for crossing ${namingRow.place}`}
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+              />
+              <button
+                type="button"
+                className="primary"
+                onClick={saveTyped}
+                disabled={typed.trim() === ''}
+              >
+                Save
+              </button>
+            </div>
+
+            <div className="sheet-actions">
+              {namingRow.athlete && (
+                <button type="button" className="dismiss" onClick={removeName}>
+                  Remove the name
+                </button>
+              )}
+              <button type="button" className="dismiss" onClick={closeNaming}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

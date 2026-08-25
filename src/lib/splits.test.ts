@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { assignAthlete, oldestUnnamed, splitRows } from './splits.ts'
+import { assignAthlete, clearName, splitRows, stillOut } from './splits.ts'
 import type { Race, Tap } from './types.ts'
 
 const SESSION = 'here'
@@ -118,9 +118,29 @@ test('naming an unnamed crossing touches only that crossing', () => {
   )
 })
 
-test('a name tap with nothing chosen lands on the oldest unnamed crossing', () => {
-  const taps = [tap(1, 400, 'a1'), tap(2, 410), tap(3, 420)]
-  assert.equal(oldestUnnamed(taps)?.seq, 2)
-  assert.equal(oldestUnnamed([tap(1, 400, 'a1')]), undefined)
-  assert.equal(oldestUnnamed([]), undefined)
+test('a name can come back off a crossing without losing the time', () => {
+  const taps = [tap(1, 400, 'a1'), tap(2, 410)]
+  const changed = clearName(taps, 't1')
+  assert.equal(changed.length, 1)
+  assert.equal(changed[0].athleteId, undefined)
+  assert.equal(changed[0].wallMs, taps[0].wallMs)
+  // Nothing to clear is not an error, and writes nothing.
+  assert.deepEqual(clearName(taps, 't2'), [])
+  assert.deepEqual(clearName(taps, 'gone'), [])
+})
+
+test('a waiting crossing offers the runners who have none here yet', () => {
+  const athletes = [
+    { id: 'a1', name: 'Caroline King' },
+    { id: 'a2', name: 'Emma Richard' },
+    { id: 'a3', name: 'Karen Izumi' },
+  ]
+  const taps = [tap(1, 400, 'a2'), tap(2, 410)]
+  assert.deepEqual(
+    stillOut(athletes, taps).map((a) => a.name),
+    ['Caroline King', 'Karen Izumi'],
+  )
+  // Roster order is kept, because it is the order the coach expects them to pass.
+  assert.deepEqual(stillOut(athletes, []), athletes)
+  assert.deepEqual(stillOut([], taps), [])
 })

@@ -3,7 +3,7 @@ import './App.css'
 import { SESSION_ID, stamp, todayIsoDate } from './lib/clock'
 import { rosterFromHash } from './lib/link'
 import { mergeRoster } from './lib/roster'
-import { assignAthlete, oldestUnnamed } from './lib/splits'
+import { assignAthlete, clearName } from './lib/splits'
 import * as store from './lib/storage'
 import type { Athlete, Race, RaceDraft, Tap } from './lib/types'
 import { fetchVault, openRoster, VAULT_FILE, type Vault } from './lib/vault'
@@ -235,27 +235,33 @@ export default function App() {
   }, [])
 
   /**
-   * Tapping a name does one of three things, and which one is shown on screen:
+   * Tapping a name records a crossing at that moment and names it. It never
+   * fills in a crossing recorded earlier: a name tapped as she passes means she
+   * is passing now, and quietly attaching an older time to it would put a wrong
+   * split on a real runner.
    *
-   * - A crossing was chosen in the list, so this names that one. Naming an
-   *   already named crossing is how a mis-tap gets fixed.
-   * - Nothing was chosen and crossings are waiting, so this names the oldest.
-   *   That is correct without any extra bookkeeping because runners cross in
-   *   order, so naming them in tap order matches the order they passed.
-   * - Nothing is waiting, so this records a crossing and names it in one tap.
-   *   For a coach who recognizes every girl, this is the whole interaction.
+   * Naming a crossing that is already recorded goes through the list instead,
+   * which passes the crossing's own id here.
    */
   const nameTap = useCallback(
     (athleteId: string, tapId?: string) => {
       if (!race) return
-      const target = tapId ?? oldestUnnamed(taps)?.id
-      if (!target) {
+      if (!tapId) {
         addTap(athleteId)
         return
       }
-      applyChanged(race.id, assignAthlete(taps, target, athleteId))
+      applyChanged(race.id, assignAthlete(taps, tapId, athleteId))
     },
     [race, taps, addTap, applyChanged],
+  )
+
+  /** Takes a name back off a crossing, keeping the time. */
+  const clearTapName = useCallback(
+    (tapId: string) => {
+      if (!race) return
+      applyChanged(race.id, clearName(taps, tapId))
+    },
+    [race, taps, applyChanged],
   )
 
   /**
@@ -396,6 +402,7 @@ export default function App() {
       onTap={addTap}
       onName={nameTap}
       onNameFree={nameTapFree}
+      onClearName={clearTapName}
       onUndo={undoTap}
       onSetGun={setGun}
       onStop={stopRace}

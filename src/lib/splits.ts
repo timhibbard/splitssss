@@ -76,7 +76,20 @@ export function assignAthlete(taps: Tap[], tapId: string, athleteId: string): Ta
   return changed
 }
 
-/** The crossing a name tap lands on when nobody picked one: oldest unnamed first. */
-export function oldestUnnamed(taps: Tap[]): Tap | undefined {
-  return taps.find((tap) => !tap.athleteId)
+/**
+ * Takes the name back off a crossing, keeping the time. For a name picked in
+ * error, where the crossing itself was real. Returns the taps that changed.
+ */
+export function clearName(taps: Tap[], tapId: string): Tap[] {
+  const found = taps.find((tap) => tap.id === tapId)
+  if (!found?.athleteId) return []
+  const bare = { ...found }
+  delete bare.athleteId
+  return [bare]
+}
+
+/** Runners with no crossing here yet, which is who a waiting crossing can be. */
+export function stillOut(athletes: Athlete[], taps: Tap[]): Athlete[] {
+  const taken = new Set(taps.map((tap) => tap.athleteId).filter(Boolean))
+  return athletes.filter((a) => !taken.has(a.id))
 }
