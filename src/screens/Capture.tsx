@@ -57,7 +57,7 @@ export function Capture({ race, taps, onTap, onUndo, onSetGun, onExport }: Props
     <div className={flash ? 'screen capture flash' : 'screen capture'}>
       <header className="bar">
         <div className="bar-where">
-          <strong>{race.station}</strong>
+          <strong>{race.station.label}</strong>
           <span>{race.race}</span>
         </div>
         {race.gun ? (

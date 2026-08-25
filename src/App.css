@@ -13,10 +13,20 @@
   overflow-y: auto;
 }
 
+.school {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--navy);
+}
+
 .brand h1 {
-  margin: 8px 0 0;
+  margin: 2px 0 0;
   font-size: 34px;
   letter-spacing: -0.02em;
+  color: var(--navy);
 }
 
 .tagline {
@@ -69,14 +79,30 @@
 }
 
 .chip.on {
-  background: var(--ink);
-  color: var(--bg);
-  border-color: var(--ink);
+  background: var(--navy);
+  color: #fff;
+  border-color: var(--navy);
+}
+
+.reveal {
+  margin-top: 8px;
+}
+
+.custom-distance {
+  display: grid;
+  gap: 8px;
+}
+
+.hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.4;
 }
 
 .primary {
-  background: var(--hot);
-  border-color: var(--hot);
+  background: var(--navy);
+  border-color: var(--navy);
   color: #fff;
   font-size: 19px;
   font-weight: 700;
@@ -84,7 +110,7 @@
 }
 
 .primary:active {
-  background: var(--hot-press);
+  background: var(--navy-press);
 }
 
 .prior {
@@ -124,9 +150,13 @@
   transition: background-color 60ms linear;
 }
 
-/* Confirms a tap landed for someone watching the course, not the screen. */
+/*
+  Confirms a tap landed for someone watching the course, not the screen. Uses
+  the lighter blue rather than navy so the flash still reads against the navy
+  tap button; a navy flash behind a navy button is invisible.
+*/
 .capture.flash {
-  background: var(--hot);
+  background: var(--sky);
 }
 
 .bar {
@@ -174,7 +204,7 @@
 .tap {
   flex: 1;
   min-height: 45vh;
-  background: var(--hot);
+  background: var(--navy);
   border: none;
   border-radius: 20px;
   color: #fff;
@@ -186,7 +216,7 @@
 }
 
 .tap:active {
-  background: var(--hot-press);
+  background: var(--navy-press);
 }
 
 .tap-count {

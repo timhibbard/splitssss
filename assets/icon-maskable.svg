@@ -4,9 +4,9 @@
   fallback SVG renderer is not trusted with group transforms either.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect x="0" y="0" width="512" height="512" fill="#ff4d17"/>
+  <rect x="0" y="0" width="512" height="512" fill="#1d507b"/>
   <circle cx="256" cy="284" r="103" fill="#ffffff"/>
-  <circle cx="256" cy="284" r="79" fill="#ff4d17"/>
+  <circle cx="256" cy="284" r="79" fill="#1d507b"/>
   <rect x="239" y="127" width="35" height="66" rx="12" fill="#ffffff"/>
   <polygon points="262,290 251,279 295,235 306,246" fill="#ffffff"/>
   <circle cx="256" cy="284" r="14" fill="#ffffff"/>

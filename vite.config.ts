@@ -33,8 +33,8 @@ export default defineConfig({
         scope: BASE,
         display: 'standalone',
         orientation: 'portrait',
-        background_color: '#f7f7f5',
-        theme_color: '#ff4d17',
+        background_color: '#fafafa',
+        theme_color: '#1d507b',
         icons: [
           { src: 'pwa-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'pwa-512.png', sizes: '512x512', type: 'image/png' },

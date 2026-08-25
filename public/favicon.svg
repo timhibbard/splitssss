@@ -4,10 +4,10 @@
   inside a <g>, and librsvg is not assumed to be installed. See README.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect x="0" y="0" width="512" height="512" rx="112" fill="#ff4d17"/>
-  <!-- stopwatch case, as a white disc with the face punched back out in orange -->
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="#1d507b"/>
+  <!-- stopwatch case, as a white disc with the face punched back out in navy -->
   <circle cx="256" cy="302" r="166" fill="#ffffff"/>
-  <circle cx="256" cy="302" r="128" fill="#ff4d17"/>
+  <circle cx="256" cy="302" r="128" fill="#1d507b"/>
   <!-- crown -->
   <rect x="228" y="48" width="56" height="106" rx="20" fill="#ffffff"/>
   <!-- hand, pointing at the moment a split gets taken -->

@@ -10,9 +10,9 @@ import type { Race, Tap } from './types'
  * Each tap gets its own key so a write never rewrites another tap's data.
  */
 
-const RACE_PREFIX = 'ss.v1.race.'
-const TAP_PREFIX = 'ss.v1.tap.'
-const ACTIVE_KEY = 'ss.v1.active'
+const RACE_PREFIX = 'ss.v2.race.'
+const TAP_PREFIX = 'ss.v2.tap.'
+const ACTIVE_KEY = 'ss.v2.active'
 
 function tapKey(raceId: string, seq: number): string {
   // Zero padded so the natural key sort matches crossing order.

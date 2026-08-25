@@ -18,20 +18,38 @@ export type Tap = Stamp & {
   note?: string
 }
 
+/**
+ * Where a volunteer is standing. Course markers are not always at whole miles,
+ * so the distance is a real value rather than a choice from a fixed list.
+ */
+export type Station = {
+  /** How a coach says it: "Mile 2", "2K", "1200m". */
+  label: string
+  /** Distance from the start in meters. Optional, but pace cannot be computed without it. */
+  meters?: number
+}
+
 export type Athlete = {
   id: string
   name: string
   bib?: string
 }
 
+/** What the setup form collects. Everything else about a race is assigned on save. */
+export type RaceDraft = {
+  meet: string
+  race: string
+  station: Station
+  timer: string
+}
+
 export type Race = {
   id: string
   /** "GVSU Invite" */
   meet: string
-  /** "JV Boys" */
+  /** "JV Girls" */
   race: string
-  /** "Mile 2" */
-  station: string
+  station: Station
   /** Who is holding the phone, so the coach knows whose export this is. */
   timer: string
   /** ISO date, YYYY-MM-DD. */

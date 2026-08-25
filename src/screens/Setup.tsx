@@ -1,38 +1,74 @@
 import { useState } from 'react'
-import { todayIsoDate } from '../lib/clock'
-import { newId } from '../lib/storage'
-import type { Race } from '../lib/types'
+import { distanceLabel, toMeters, type Unit } from '../lib/distance'
+import type { Race, RaceDraft, Station } from '../lib/types'
 
 type Props = {
-  onStart: (race: Race) => void
+  /** Emits form values only. Identity and timestamps belong to whoever persists them. */
+  onStart: (draft: RaceDraft) => void
   existing: Race[]
   onResume: (raceId: string) => void
 }
 
-const STATIONS = ['Mile 1', 'Mile 2', 'Mile 3', 'Finish']
+const RACES = ['Varsity Girls', 'JV Girls']
+
+/**
+ * Ordered by distance. No finish line: the meet's own timing provides that, so
+ * putting a volunteer there would duplicate work we already get for free.
+ */
+const STATIONS: Station[] = [
+  { label: '800m', meters: 800 },
+  { label: 'Mile 1', meters: 1609 },
+  { label: '2K', meters: 2000 },
+  { label: '3K', meters: 3000 },
+  { label: 'Mile 2', meters: 3219 },
+  { label: '4K', meters: 4000 },
+]
+
+const UNITS: Unit[] = ['m', 'km', 'mi']
 
 export function Setup({ onStart, existing, onResume }: Props) {
   const [meet, setMeet] = useState('')
-  const [raceName, setRaceName] = useState('')
-  const [station, setStation] = useState('Mile 2')
+
+  const [racePreset, setRacePreset] = useState<string>(RACES[1])
+  const [raceOther, setRaceOther] = useState('')
+
+  const [stationLabel, setStationLabel] = useState<string>('Mile 1')
+  const [customValue, setCustomValue] = useState('')
+  const [customUnit, setCustomUnit] = useState<Unit>('m')
+
   const [timer, setTimer] = useState('')
 
+  const customActive = stationLabel === 'custom'
+  const customNumber = Number.parseFloat(customValue)
+  const customValid = Number.isFinite(customNumber) && customNumber > 0
+
+  function resolvedStation(): Station {
+    if (!customActive) {
+      return STATIONS.find((s) => s.label === stationLabel) ?? STATIONS[1]
+    }
+    return {
+      label: distanceLabel(customNumber, customUnit),
+      meters: toMeters(customNumber, customUnit),
+    }
+  }
+
+  const raceName = racePreset === 'other' ? raceOther.trim() : racePreset
+  const canStart = raceName.length > 0 && (!customActive || customValid)
+
   function start() {
+    if (!canStart) return
     onStart({
-      id: newId(),
       meet: meet.trim() || 'Meet',
-      race: raceName.trim() || 'Race',
-      station,
+      race: raceName,
+      station: resolvedStation(),
       timer: timer.trim(),
-      date: todayIsoDate(),
-      createdWallMs: Date.now(),
-      athletes: [],
     })
   }
 
   return (
     <div className="screen setup">
       <header className="brand">
+        <p className="school">J.L. Mann Patriots</p>
         <h1>Splitssss</h1>
         <p className="tagline">Splits, saved, sorted, sent.</p>
       </header>
@@ -47,35 +83,98 @@ export function Setup({ onStart, existing, onResume }: Props) {
         <input
           value={meet}
           onChange={(e) => setMeet(e.target.value)}
-          placeholder="GVSU Invite"
-          autoComplete="off"
-        />
-      </label>
-
-      <label>
-        Race
-        <input
-          value={raceName}
-          onChange={(e) => setRaceName(e.target.value)}
-          placeholder="JV Boys"
+          placeholder="Eye Opener Invitational"
           autoComplete="off"
         />
       </label>
 
       <fieldset>
-        <legend>Where are you standing?</legend>
+        <legend>Which race?</legend>
+        <div className="chips">
+          {RACES.map((r) => (
+            <button
+              key={r}
+              type="button"
+              className={r === racePreset ? 'chip on' : 'chip'}
+              onClick={() => setRacePreset(r)}
+            >
+              {r}
+            </button>
+          ))}
+          <button
+            type="button"
+            className={racePreset === 'other' ? 'chip on' : 'chip'}
+            onClick={() => setRacePreset('other')}
+          >
+            Other
+          </button>
+        </div>
+        {racePreset === 'other' && (
+          <input
+            className="reveal"
+            value={raceOther}
+            onChange={(e) => setRaceOther(e.target.value)}
+            placeholder="Race name"
+            autoComplete="off"
+            aria-label="Race name"
+          />
+        )}
+      </fieldset>
+
+      <fieldset>
+        <legend>How far into the course are you?</legend>
         <div className="chips">
           {STATIONS.map((s) => (
             <button
-              key={s}
+              key={s.label}
               type="button"
-              className={s === station ? 'chip on' : 'chip'}
-              onClick={() => setStation(s)}
+              className={s.label === stationLabel ? 'chip on' : 'chip'}
+              onClick={() => setStationLabel(s.label)}
             >
-              {s}
+              {s.label}
             </button>
           ))}
+          <button
+            type="button"
+            className={customActive ? 'chip on' : 'chip'}
+            onClick={() => setStationLabel('custom')}
+          >
+            Custom
+          </button>
         </div>
+
+        {customActive && (
+          <div className="custom-distance">
+            <input
+              className="reveal"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="any"
+              value={customValue}
+              onChange={(e) => setCustomValue(e.target.value)}
+              placeholder="1200"
+              aria-label="Distance from the start"
+            />
+            <div className="chips">
+              {UNITS.map((u) => (
+                <button
+                  key={u}
+                  type="button"
+                  className={u === customUnit ? 'chip on' : 'chip'}
+                  onClick={() => setCustomUnit(u)}
+                >
+                  {u}
+                </button>
+              ))}
+            </div>
+            <p className="hint">
+              {customValid
+                ? `Recorded as ${distanceLabel(customNumber, customUnit)}, ${toMeters(customNumber, customUnit)}m from the start.`
+                : 'Distance from the start line. Needed to compute pace.'}
+            </p>
+          </div>
+        )}
       </fieldset>
 
       <label>
@@ -88,7 +187,7 @@ export function Setup({ onStart, existing, onResume }: Props) {
         />
       </label>
 
-      <button type="button" className="primary" onClick={start}>
+      <button type="button" className="primary" onClick={start} disabled={!canStart}>
         Start timing
       </button>
 
@@ -97,7 +196,7 @@ export function Setup({ onStart, existing, onResume }: Props) {
           <h2>Earlier today</h2>
           {existing.map((r) => (
             <button key={r.id} type="button" className="prior-race" onClick={() => onResume(r.id)}>
-              <strong>{r.race}</strong> at {r.station}
+              <strong>{r.race}</strong> at {r.station.label}
               <span className="prior-meta">{r.meet}</span>
             </button>
           ))}

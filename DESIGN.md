@@ -2,9 +2,30 @@
 
 **Splits, Saved, Sorted, Sent.**
 
-A hand timing app for cross country splits. One person stands at a mile marker,
-taps a big button as each of our runners passes, attaches names afterward, and
-texts the coach a CSV.
+A hand timing app for cross country splits, for the J.L. Mann Academy Patriots
+girls team. One person stands at a course marker, taps a big button as each of
+our runners passes, attaches names afterward, and texts the coach a CSV.
+
+## Branding
+
+School colors, taken from the J.L. Mann site and confirmed against the logo
+artwork:
+
+| Token | Value | Source |
+| --- | --- | --- |
+| `--navy` | `#1d507b` | school stylesheet, exact match to the logo wordmark |
+| `--sky` | `#3a90c3` | lighter blue in the logo |
+| `--ink` | `#0b0a0f` | near black of the Patriot figure |
+| `--bg` | `#fafafa` | logo background |
+
+The school's logo file is deliberately **not** committed here. This repository is
+public, so it uses the colors and the Patriots name and ships its own stopwatch
+mark instead of redistributing school artwork.
+
+One consequence worth recording: the tap confirmation flash uses `--sky` rather
+than navy, because the tap button is navy and a navy flash behind a navy button
+is invisible. The flash exists to be seen peripherally by someone watching the
+course, so it has to be a large luminance change.
 
 ## Who uses it
 
@@ -20,6 +41,24 @@ Two different people, with very different needs:
 The volunteer is the primary user. Every design tradeoff favors them.
 
 ## Core decisions
+
+### Split points are distances, not a fixed list
+
+Course markers are not reliably at whole miles. A station is therefore a label
+plus a distance in meters, with presets for the common points (800m, Mile 1, 2K,
+3K, Mile 2, 4K) and a custom entry that accepts meters, kilometers, or miles.
+
+Storing meters rather than just a label is what makes pace per mile computable,
+which is the number that actually helps an athlete understand their race.
+
+Pace is reported to whole seconds. A hand timed split over a marker that was
+probably paced off by a volunteer does not support more precision than that.
+
+### No finish line station
+
+The meet's own timing provides finish times, so stationing a volunteer there
+would duplicate work we already get for free. Volunteers cover the intermediate
+markers only.
 
 ### Capture first, identify later
 
@@ -91,9 +130,9 @@ Each tap is written to its own key, so a write never rewrites another tap's
 data and a single failure loses one tap rather than the race.
 
 ```
-ss.v1.race.<raceId>          race metadata
-ss.v1.tap.<raceId>.<seq>     one tap
-ss.v1.active                 id of the race being timed
+ss.v2.race.<raceId>          race metadata
+ss.v2.tap.<raceId>.<seq>     one tap
+ss.v2.active                 id of the race being timed
 ```
 
 IndexedDB is the migration path if the data model ever outgrows this.
@@ -138,9 +177,8 @@ on meet mornings.
 ## Not in scope
 
 - Team scoring.
-- Timing other teams. Roster is our athletes only, about 20 in a JV race.
-- Finish line timing when the meet is chip timed. Volunteers cover Mile 1 and
-  Mile 2; official results already have the finish.
+- Timing other teams. Roster is our girls only, about 20 in a JV race.
+- Finish line timing, ever. The meet provides it.
 - Central result collection. Volunteers text exports to the coach.
 
 ## Roadmap

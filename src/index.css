@@ -4,13 +4,18 @@
   dark room.
 */
 :root {
-  --bg: #f7f7f5;
+  /* J.L. Mann Patriots. Navy sampled from the school site CSS and confirmed
+     against the logo artwork; the near black and lighter blue come from the
+     same logo. */
+  --navy: #1d507b;
+  --navy-press: #143a5a;
+  --sky: #3a90c3;
+  --ink: #0b0a0f;
+  --ink-soft: #54595f;
+
+  --bg: #fafafa;
   --panel: #ffffff;
-  --ink: #0f1012;
-  --ink-soft: #55585e;
-  --line: #d8d8d4;
-  --hot: #ff4d17;
-  --hot-press: #d63a0c;
+  --line: #d5d9dd;
   --warn: #8a5a00;
   --warn-bg: #fff5da;
 
@@ -77,6 +82,6 @@ input {
 
 input:focus-visible,
 button:focus-visible {
-  outline: 3px solid var(--hot);
+  outline: 3px solid var(--navy);
   outline-offset: 2px;
 }

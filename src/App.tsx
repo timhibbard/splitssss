@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { SESSION_ID, stamp, todayIsoDate } from './lib/clock'
 import * as store from './lib/storage'
-import type { Race, Tap } from './lib/types'
+import type { Race, RaceDraft, Tap } from './lib/types'
 import { Capture } from './screens/Capture'
 import { ExportScreen } from './screens/ExportScreen'
 import { Setup } from './screens/Setup'
@@ -37,7 +37,14 @@ export default function App() {
    */
   const seqRef = useRef(lastSeq(restored.taps))
 
-  const startRace = useCallback((next: Race) => {
+  const startRace = useCallback((draft: RaceDraft) => {
+    const next: Race = {
+      ...draft,
+      id: store.newId(),
+      date: todayIsoDate(),
+      createdWallMs: Date.now(),
+      athletes: [],
+    }
     store.saveRace(next)
     store.setActiveRaceId(next.id)
     seqRef.current = 0

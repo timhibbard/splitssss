@@ -1,4 +1,5 @@
 import { elapsedMs, formatElapsed, formatWallClock, isoStamp } from './clock'
+import { pacePerMile } from './distance'
 import type { Race, Tap } from './types'
 
 function cell(value: string | number | undefined): string {
@@ -11,6 +12,7 @@ const COLUMNS = [
   'meet',
   'race',
   'station',
+  'station_meters',
   'timer',
   'place',
   'athlete',
@@ -20,6 +22,7 @@ const COLUMNS = [
   'iso_time',
   'elapsed_from_gun',
   'elapsed_seconds',
+  'pace_per_mile',
   'gun_iso',
   'session',
 ]
@@ -40,7 +43,8 @@ export function toCsv(race: Race, taps: Tap[]): string {
       race.date,
       race.meet,
       race.race,
-      race.station,
+      race.station.label,
+      race.station.meters ?? '',
       race.timer,
       tap.seq,
       athlete?.name ?? '',
@@ -50,6 +54,7 @@ export function toCsv(race: Race, taps: Tap[]): string {
       isoStamp(tap.wallMs),
       ms == null ? '' : formatElapsed(ms),
       ms == null ? '' : (ms / 1000).toFixed(1),
+      ms == null || !race.station.meters ? '' : pacePerMile(race.station.meters, ms),
       race.gun ? isoStamp(race.gun.wallMs) : '',
       tap.sessionId,
     ]
@@ -67,7 +72,7 @@ export function toTextSummary(race: Race, taps: Tap[]): string {
   const byId = new Map(race.athletes.map((a) => [a.id, a]))
   const lines = [
     `${race.meet} ${race.date}`,
-    `${race.race} at ${race.station}`,
+    `${race.race} at ${race.station.label}`,
     race.timer ? `Timed by ${race.timer}` : '',
     race.gun ? `Gun ${formatWallClock(race.gun.wallMs)}` : 'No gun time recorded',
     `${taps.length} crossings`,
@@ -89,5 +94,5 @@ export function toTextSummary(race: Race, taps: Tap[]): string {
 
 export function csvFilename(race: Race): string {
   const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-  return `${race.date}-${slug(race.race)}-${slug(race.station)}.csv`
+  return `${race.date}-${slug(race.race)}-${slug(race.station.label)}.csv`
 }
