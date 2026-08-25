@@ -10,11 +10,42 @@ import { VitePWA } from 'vite-plugin-pwa'
  */
 const BASE = '/splitssss/'
 
+/**
+ * When this build was made, in Eastern time, shown on the setup screen so a
+ * stale build on race day is diagnosable.
+ *
+ * Eastern and not UTC because the person reading it is standing on a course in
+ * South Carolina with a phone clock to compare it against, while the build
+ * happens on a GitHub runner set to UTC. A stamp four hours ahead of every clock
+ * at the meet is one nobody can act on: it makes this morning's build look like
+ * this afternoon's. The zone is named rather than taken from the machine so a
+ * local build and a deployed one read the same way, and so daylight saving is
+ * handled instead of hardcoded.
+ *
+ * h23 explicitly, because hour12: false has historically produced "24" for
+ * midnight, and "2026-08-25 24:05" would be a puzzle at a starting line.
+ */
+function buildStamp(): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+    timeZoneName: 'short',
+  }).formatToParts(new Date())
+  const at = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? ''
+  // EDT or EST, whichever it was, rather than a season neutral guess.
+  return `${at('year')}-${at('month')}-${at('day')} ${at('hour')}:${at('minute')} ${at('timeZoneName')}`
+}
+
 export default defineConfig({
   base: BASE,
   define: {
-    // Shown in the UI so a stale build on race day is diagnosable.
-    __BUILD__: JSON.stringify(new Date().toISOString().slice(0, 16).replace('T', ' ')),
+    __BUILD__: JSON.stringify(buildStamp()),
   },
   plugins: [
     react(),
