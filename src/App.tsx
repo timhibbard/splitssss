@@ -5,7 +5,7 @@ import { rosterFromHash } from './lib/link'
 import { mergeRoster } from './lib/roster'
 import { assignAthlete, clearName } from './lib/splits'
 import * as store from './lib/storage'
-import type { Athlete, Race, RaceDraft, Tap } from './lib/types'
+import type { Athlete, Race, RaceDraft, Stamp, Tap } from './lib/types'
 import { fetchVault, openRoster, VAULT_FILE, type Vault } from './lib/vault'
 import { Capture } from './screens/Capture'
 import { ExportScreen } from './screens/ExportScreen'
@@ -203,11 +203,15 @@ export default function App() {
   /**
    * The hot path. The stamp is taken first and the write is synchronous, so the
    * tap is durable before React is asked to render anything.
+   *
+   * A caller that already holds a stamp passes it: the name buttons take the
+   * time when the finger lands and only commit when it lifts, so the recorded
+   * moment is the landing and not the release.
    */
   const addTap = useCallback(
-    (athleteId?: string) => {
+    (athleteId?: string, held?: Stamp) => {
       if (!race || race.stoppedAt) return
-      const at = stamp()
+      const at = held ?? stamp()
       const tap: Tap = {
         id: store.newId(),
         seq: seqRef.current + 1,
@@ -235,24 +239,21 @@ export default function App() {
   }, [])
 
   /**
-   * Tapping a name records a crossing at that moment and names it. It never
-   * fills in a crossing recorded earlier: a name tapped as she passes means she
-   * is passing now, and quietly attaching an older time to it would put a wrong
-   * split on a real runner.
+   * Names a crossing that is already recorded, which is what tapping a row in
+   * the running list does.
    *
-   * Naming a crossing that is already recorded goes through the list instead,
-   * which passes the crossing's own id here.
+   * Tapping a name in the grid is the other gesture and it goes to addTap: it
+   * records a crossing at that moment. It never fills in a crossing recorded
+   * earlier, because a name tapped as she passes means she is passing now, and
+   * quietly attaching an older time to it would put a wrong split on a real
+   * runner.
    */
   const nameTap = useCallback(
-    (athleteId: string, tapId?: string) => {
+    (athleteId: string, tapId: string) => {
       if (!race) return
-      if (!tapId) {
-        addTap(athleteId)
-        return
-      }
       applyChanged(race.id, assignAthlete(taps, tapId, athleteId))
     },
-    [race, taps, addTap, applyChanged],
+    [race, taps, applyChanged],
   )
 
   /** Takes a name back off a crossing, keeping the time. */

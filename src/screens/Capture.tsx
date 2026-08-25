@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from 'react'
 import {
   SESSION_ID,
   elapsedMs,
@@ -9,15 +15,17 @@ import {
 } from '../lib/clock'
 import { projectedFinish } from '../lib/distance'
 import { buzz, click, undoClick } from '../lib/feedback'
+import { becameScroll, type Point } from '../lib/gesture'
 import { splitRows, stillOut } from '../lib/splits'
-import type { Race, Tap } from '../lib/types'
+import type { Race, Stamp, Tap } from '../lib/types'
 
 type Props = {
   race: Race
   taps: Tap[]
-  onTap: () => void
-  /** With no tapId this records a crossing now. With one it names that crossing. */
-  onName: (athleteId: string, tapId?: string) => void
+  /** Records a crossing, named when an athlete is given, at `at` if one is held. */
+  onTap: (athleteId?: string, at?: Stamp) => void
+  /** Names a crossing that is already recorded. */
+  onName: (athleteId: string, tapId: string) => void
   onNameFree: (name: string, tapId: string) => void
   onClearName: (tapId: string) => void
   onUndo: () => void
@@ -54,6 +62,19 @@ export function Capture({
   const [typed, setTyped] = useState('')
   const flashTimer = useRef<number | undefined>(undefined)
   const confirmTimer = useRef<number | undefined>(undefined)
+  /**
+   * A press in progress on a name button, with the moment the finger landed. The
+   * name grid scrolls, so pointerdown on its own cannot tell a tap from the
+   * first instant of a scroll: it recorded a crossing for whichever girl the
+   * thumb happened to touch on the way past. The time is taken on the way down
+   * and used only if the finger lifts without dragging, so a tap keeps the
+   * accuracy of pointerdown and a scroll records nothing.
+   */
+  const press = useRef<{ pointerId: number; athleteId: string; at: Stamp; from: Point } | null>(
+    null,
+  )
+  /** Set when a press recorded, so the click behind it does not record again. */
+  const pressRecorded = useRef(false)
 
   const stopped = race.stoppedAt != null
 
@@ -113,10 +134,55 @@ export function Capture({
   }
 
   /** A name in the grid means she is passing now, so this records her crossing. */
-  function handleName(athleteId: string) {
+  function recordName(athleteId: string, at: Stamp) {
     if (stopped) return
-    onName(athleteId)
+    onTap(athleteId, at)
     confirmFeedback()
+  }
+
+  function nameDown(e: ReactPointerEvent<HTMLButtonElement>, athleteId: string) {
+    pressRecorded.current = false
+    press.current = {
+      pointerId: e.pointerId,
+      athleteId,
+      at: stamp(),
+      from: { x: e.clientX, y: e.clientY },
+    }
+  }
+
+  function nameUp(e: ReactPointerEvent<HTMLButtonElement>, athleteId: string) {
+    const held = press.current
+    press.current = null
+    if (!held || held.pointerId !== e.pointerId || held.athleteId !== athleteId) return
+    pressRecorded.current = true
+    // The moment her finger landed, not the moment it lifted.
+    recordName(athleteId, held.at)
+  }
+
+  /** The finger is dragging the grid, so this press is not a tap on a name. */
+  function namesMove(e: ReactPointerEvent<HTMLDivElement>) {
+    const held = press.current
+    if (!held || held.pointerId !== e.pointerId) return
+    if (becameScroll(held.from, { x: e.clientX, y: e.clientY })) press.current = null
+  }
+
+  /** The browser took the gesture over to scroll with, which settles it. */
+  function namesCancel() {
+    press.current = null
+  }
+
+  /**
+   * Keyboard and assistive activation, which arrive as a click with no pointer
+   * events behind them. A click that follows a press is ignored, since the press
+   * already recorded her, and so is a mouse drag, whose click has a detail count.
+   */
+  function nameClick(e: ReactMouseEvent<HTMLButtonElement>, athleteId: string) {
+    if (pressRecorded.current) {
+      pressRecorded.current = false
+      return
+    }
+    if (e.detail !== 0) return
+    recordName(athleteId, stamp())
   }
 
   function openNaming(tap: Tap) {
@@ -211,7 +277,10 @@ export function Capture({
 
       {/*
         pointerdown, not click. click waits for the pointer to lift, which adds
-        real latency to a tap whose whole purpose is recording a moment.
+        real latency to a tap whose whole purpose is recording a moment. Nothing
+        scrolls under this button, so unlike the name grid below it there is no
+        gesture to tell apart: a finger landing here means record, and the
+        crossing is on disk before the finger is off the glass.
       */}
       <button
         type="button"
@@ -234,8 +303,13 @@ export function Capture({
               : 'Tap as each runner passes. Names can wait until after the race.'}
       </p>
 
+      {/*
+        Move and cancel are on the pane rather than on every button: a touch
+        keeps sending its events to the button it started on, and both bubble to
+        here, so one pair of handlers covers all twenty eight names.
+      */}
       {hasRoster && (
-        <div className="names">
+        <div className="names" onPointerMove={namesMove} onPointerCancel={namesCancel}>
           {race.athletes.map((a) => {
             const done = assigned.has(a.id)
             return (
@@ -243,7 +317,9 @@ export function Capture({
                 key={a.id}
                 type="button"
                 className={done ? 'name-chip done' : 'name-chip'}
-                onPointerDown={() => handleName(a.id)}
+                onPointerDown={(e) => nameDown(e, a.id)}
+                onPointerUp={(e) => nameUp(e, a.id)}
+                onClick={(e) => nameClick(e, a.id)}
                 // Struck through once she has a crossing here, and not tappable,
                 // because a runner passes one point once.
                 disabled={done || stopped}

@@ -131,6 +131,40 @@ taps to correct, and no crossing is ever counted twice. The rule lives in
 `lib/splits.ts` as a function that returns only the crossings that changed, and
 it is tested, because a misattributed split is a silent failure.
 
+### A tap and the start of a scroll look identical, so the name grid waits
+
+The big button fires on `pointerdown`, because waiting for the finger to lift
+adds real latency to a gesture whose whole purpose is recording a moment. The
+name buttons started out doing the same thing, and it was a bug: twenty eight
+names do not fit on a phone, so the grid scrolls, and dragging it means putting a
+finger on a name first. Every scroll recorded a crossing for whichever girl the
+thumb happened to land on. Worse than a lost tap, it is a fabricated split with a
+real name on it.
+
+The fix keeps the accuracy and drops the guess. The name buttons take the time on
+the way **down** and hold it. If the finger lifts without travelling, that held
+time is what gets recorded, so a tap is timed exactly as it was before. If the
+finger travels more than ten pixels, or the browser cancels the gesture to scroll
+with it, the held time is thrown away and nothing is recorded. Ten pixels is
+about where browsers themselves decide a touch is a pan.
+
+The big button keeps firing on `pointerdown` and is deliberately different:
+nothing scrolls under it, so there is no gesture to tell apart, and its crossing
+is on disk before the finger is off the glass. That is the button a volunteer
+hits under pressure, and it should be the one with nothing between the tap and
+the write.
+
+Move and cancel are handled on the grid rather than on each of the buttons, since
+a touch keeps sending its events to the element it started on and they bubble.
+Keyboard and assistive activation arrive as a click with no pointer events behind
+it, which is handled separately, and a click that follows a real press is ignored
+so a crossing cannot be recorded twice.
+
+The slop rule is a pure function in `lib/gesture.ts` with its own tests. The rest
+was verified by driving a real DOM: a drag over a name records nothing, a lifted
+press records at the landing moment even when the finger is held down for a
+quarter second, and a mouse drag's trailing click does not sneak through.
+
 ### The running list
 
 The capture screen shows every crossing as it happens: place, split, who it was,
@@ -389,6 +423,10 @@ The split tests cover the pieces of the running list that could lose a name
 without saying so: which clock each row is measured against, a station with no
 distance, a crossing pointing at an athlete who has since been deleted, and
 naming a runner onto a second crossing freeing the first.
+
+The gesture tests cover the line between a tap and a scroll: a still finger, a
+wobble, a drag on either axis, and a diagonal that trips the threshold without
+either axis doing it alone.
 
 The storage tests install a synchronous in memory `localStorage` before
 importing the module, which is a faithful stand in precisely because the

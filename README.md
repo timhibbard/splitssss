@@ -34,6 +34,10 @@ Live at **https://timhibbard.github.io/splitssss/**
   tapping her name records her crossing at that moment, and the big button
   records anyone you cannot name. A name tap never fills in an older crossing,
   because that would put a stale time on a runner standing in front of you.
+- **Scrolling the names records nothing.** The grid of names scrolls, so a name
+  button holds the time from the moment your finger lands and only records it if
+  the finger lifts without dragging. A tap is timed to the instant it landed. A
+  scroll is a scroll.
 - **A running list of every tap.** Named and unnamed crossings sit together in
   crossing order, newest at the top, each with its split and its projected 5K.
   Tap any row to name it, or to fix a name: the picker offers the runners who
@@ -82,7 +86,7 @@ npm run dev
 ```sh
 npm run build    # type check and build
 npm run lint
-npm test         # clock, storage, roster, link, vault, and distance math, via node --test
+npm test         # clock, storage, roster, link, vault, distance, split, and gesture logic, via node --test
 npm run preview  # serve the production build at /splitssss/
 ```
 
