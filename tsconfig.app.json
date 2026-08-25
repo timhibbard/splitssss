@@ -22,5 +22,7 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  /* Tests run under Node, not the bundler. See tsconfig.test.json. */
+  "exclude": ["src/**/*.test.ts"]
 }

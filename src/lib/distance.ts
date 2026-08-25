@@ -31,6 +31,27 @@ export function distanceLabel(value: number, unit: Unit): string {
 }
 
 /**
+ * Even pace projection: the finish time a runner is on for if she holds the pace
+ * she has run so far.
+ *
+ * Deliberately linear rather than Riegel's endurance formula. Riegel would
+ * predict a slower finish, and probably a more accurate one, but this number is
+ * read off a phone mid race and then said out loud to a teenager. "If you hold
+ * this pace" is a thing a coach can explain and an athlete can act on. A decay
+ * exponent is not.
+ */
+export function projectedFinish(
+  stationMeters: number | undefined,
+  raceMeters: number | undefined,
+  elapsed: number,
+): number | undefined {
+  if (!stationMeters || !raceMeters) return undefined
+  if (stationMeters <= 0 || raceMeters <= 0) return undefined
+  if (!Number.isFinite(elapsed) || elapsed <= 0) return undefined
+  return elapsed * (raceMeters / stationMeters)
+}
+
+/**
  * Pace per mile as m:ss. No tenths: pace is derived from a hand timed split over
  * a course marker that was probably paced off by a volunteer, so the precision
  * is not there and showing it would be a lie.

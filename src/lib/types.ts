@@ -41,6 +41,8 @@ export type RaceDraft = {
   race: string
   station: Station
   timer: string
+  /** Full race distance, for projecting a finish time from a split. */
+  raceMeters: number
 }
 
 export type Race = {
@@ -50,12 +52,16 @@ export type Race = {
   /** "JV Girls" */
   race: string
   station: Station
+  /** Full race distance in meters. 5000 for a high school 5K. */
+  raceMeters: number
   /** Who is holding the phone, so the coach knows whose export this is. */
   timer: string
   /** ISO date, YYYY-MM-DD. */
   date: string
   /** Optional and correctable. Elapsed times are derived from this, not stored. */
   gun?: Stamp
+  /** Set by the stop button. Freezes the running clock and closes the race. */
+  stoppedAt?: Stamp
   /** Which session captured the gun, so its monotonic reading is only used with taps that share it. */
   gunSessionId?: string
   createdWallMs: number

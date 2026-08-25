@@ -1,4 +1,4 @@
-import type { Race, Tap } from './types'
+import type { Athlete, Race, Tap } from './types'
 
 /**
  * localStorage, deliberately, not IndexedDB.
@@ -13,6 +13,7 @@ import type { Race, Tap } from './types'
 const RACE_PREFIX = 'ss.v2.race.'
 const TAP_PREFIX = 'ss.v2.tap.'
 const ACTIVE_KEY = 'ss.v2.active'
+const ROSTER_KEY = 'ss.v2.roster'
 
 function tapKey(raceId: string, seq: number): string {
   // Zero padded so the natural key sort matches crossing order.
@@ -86,6 +87,26 @@ export function setActiveRaceId(raceId: string | null): void {
 
 export function getActiveRaceId(): string | null {
   return localStorage.getItem(ACTIVE_KEY)
+}
+
+/**
+ * The roster lives on the device, not on a race, because it is the same twenty
+ * girls all season. Each race takes a snapshot at start so that editing the
+ * roster later cannot rewrite the names on a race already run.
+ */
+export function loadRoster(): Athlete[] {
+  const raw = localStorage.getItem(ROSTER_KEY)
+  if (!raw) return []
+  try {
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? (parsed as Athlete[]) : []
+  } catch {
+    return []
+  }
+}
+
+export function saveRoster(athletes: Athlete[]): void {
+  localStorage.setItem(ROSTER_KEY, JSON.stringify(athletes))
 }
 
 export function newId(): string {

@@ -2,22 +2,28 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { SESSION_ID, stamp, todayIsoDate } from './lib/clock'
 import * as store from './lib/storage'
-import type { Race, RaceDraft, Tap } from './lib/types'
+import type { Athlete, Race, RaceDraft, Tap } from './lib/types'
 import { Capture } from './screens/Capture'
 import { ExportScreen } from './screens/ExportScreen'
+import { Roster } from './screens/Roster'
 import { Setup } from './screens/Setup'
 
-type Screen = 'setup' | 'capture' | 'export'
+type Screen = 'setup' | 'roster' | 'capture' | 'export'
 
 /**
  * Read whatever was being timed back out of storage. Done during the first
- * render rather than in an effect so a volunteer whose page was discarded mid
- * race never sees a flash of the setup screen before their taps come back.
+ * render rather than in an effect so a volunteer whose page was discarded or
+ * refreshed mid race never sees a flash of the setup screen before their taps
+ * come back.
  */
-function restore(): { race: Race | null; taps: Tap[] } {
+function restore(): { race: Race | null; taps: Tap[]; roster: Athlete[] } {
   const activeId = store.getActiveRaceId()
   const race = activeId ? store.loadRace(activeId) : null
-  return { race, taps: race ? store.loadTaps(race.id) : [] }
+  return {
+    race,
+    taps: race ? store.loadTaps(race.id) : [],
+    roster: store.loadRoster(),
+  }
 }
 
 function lastSeq(taps: Tap[]): number {
@@ -28,6 +34,7 @@ export default function App() {
   const [restored] = useState(restore)
   const [race, setRace] = useState<Race | null>(restored.race)
   const [taps, setTaps] = useState<Tap[]>(restored.taps)
+  const [roster, setRoster] = useState<Athlete[]>(restored.roster)
   const [screen, setScreen] = useState<Screen>(restored.race ? 'capture' : 'setup')
 
   /**
@@ -37,29 +44,41 @@ export default function App() {
    */
   const seqRef = useRef(lastSeq(restored.taps))
 
-  const startRace = useCallback((draft: RaceDraft) => {
-    const next: Race = {
-      ...draft,
-      id: store.newId(),
-      date: todayIsoDate(),
-      createdWallMs: Date.now(),
-      athletes: [],
-    }
-    store.saveRace(next)
-    store.setActiveRaceId(next.id)
-    seqRef.current = 0
-    setRace(next)
-    setTaps([])
-    setScreen('capture')
+  const saveRoster = useCallback((next: Athlete[]) => {
+    store.saveRoster(next)
+    setRoster(next)
   }, [])
+
+  const startRace = useCallback(
+    (draft: RaceDraft) => {
+      const next: Race = {
+        ...draft,
+        id: store.newId(),
+        date: todayIsoDate(),
+        createdWallMs: Date.now(),
+        // Snapshot, so editing the roster later cannot rewrite a race already run.
+        athletes: roster,
+      }
+      store.saveRace(next)
+      store.setActiveRaceId(next.id)
+      seqRef.current = 0
+      setRace(next)
+      setTaps([])
+      setScreen('capture')
+    },
+    [roster],
+  )
 
   const resumeRace = useCallback((raceId: string) => {
     const loaded = store.loadRace(raceId)
     if (!loaded) return
     const loadedTaps = store.loadTaps(raceId)
+    // Reopen it. A mis-tapped stop should not end the day's timing.
+    const reopened: Race = { ...loaded, stoppedAt: undefined }
+    store.saveRace(reopened)
     store.setActiveRaceId(raceId)
     seqRef.current = lastSeq(loadedTaps)
-    setRace(loaded)
+    setRace(reopened)
     setTaps(loadedTaps)
     setScreen('capture')
   }, [])
@@ -68,20 +87,48 @@ export default function App() {
    * The hot path. The stamp is taken first and the write is synchronous, so the
    * tap is durable before React is asked to render anything.
    */
-  const addTap = useCallback(() => {
-    if (!race) return
-    const at = stamp()
-    const tap: Tap = {
-      id: store.newId(),
-      seq: seqRef.current + 1,
-      wallMs: at.wallMs,
-      monoMs: at.monoMs,
-      sessionId: SESSION_ID,
-    }
-    store.saveTap(race.id, tap)
-    seqRef.current = tap.seq
-    setTaps((prev) => [...prev, tap])
-  }, [race])
+  const addTap = useCallback(
+    (athleteId?: string) => {
+      if (!race || race.stoppedAt) return
+      const at = stamp()
+      const tap: Tap = {
+        id: store.newId(),
+        seq: seqRef.current + 1,
+        wallMs: at.wallMs,
+        monoMs: at.monoMs,
+        sessionId: SESSION_ID,
+        ...(athleteId ? { athleteId } : {}),
+      }
+      store.saveTap(race.id, tap)
+      seqRef.current = tap.seq
+      setTaps((prev) => [...prev, tap])
+    },
+    [race],
+  )
+
+  /**
+   * Tapping a name does one of two things, and which one is shown on screen:
+   *
+   * - Crossings are waiting to be named, so this names the oldest one. That is
+   *   correct without any extra bookkeeping because runners cross in order, so
+   *   naming them in the order they were tapped matches the order they passed.
+   * - Nothing is waiting, so this records a crossing and names it in one tap.
+   *   For a coach who recognizes every girl, this is the whole interaction.
+   */
+  const nameTap = useCallback(
+    (athleteId: string) => {
+      if (!race) return
+      const pending = taps.find((t) => !t.athleteId)
+      if (!pending) {
+        addTap(athleteId)
+        return
+      }
+      const updated: Tap = { ...pending, athleteId }
+      store.saveTap(race.id, updated)
+      setTaps((prev) => prev.map((t) => (t.id === pending.id ? updated : t)))
+    },
+    [race, taps, addTap],
+  )
 
   const undoTap = useCallback(() => {
     if (!race || seqRef.current === 0) return
@@ -97,6 +144,22 @@ export default function App() {
     setRace(next)
   }, [race])
 
+  const stopRace = useCallback(() => {
+    if (!race) return
+    const next: Race = { ...race, stoppedAt: stamp() }
+    store.saveRace(next)
+    setRace(next)
+    setScreen('export')
+  }, [race])
+
+  const newRace = useCallback(() => {
+    store.setActiveRaceId(null)
+    setRace(null)
+    setTaps([])
+    seqRef.current = 0
+    setScreen('setup')
+  }, [])
+
   const showSetup = !race || screen === 'setup'
   const todaysRaces = useMemo(() => {
     if (!showSetup) return []
@@ -104,12 +167,37 @@ export default function App() {
     return store.loadAllRaces().filter((r) => r.date === today)
   }, [showSetup])
 
+  if (screen === 'roster') {
+    return (
+      <Roster
+        athletes={roster}
+        onSave={saveRoster}
+        onBack={() => setScreen(race ? 'capture' : 'setup')}
+      />
+    )
+  }
+
   if (showSetup) {
-    return <Setup onStart={startRace} onResume={resumeRace} existing={todaysRaces} />
+    return (
+      <Setup
+        onStart={startRace}
+        onResume={resumeRace}
+        existing={todaysRaces}
+        rosterCount={roster.length}
+        onEditRoster={() => setScreen('roster')}
+      />
+    )
   }
 
   if (screen === 'export') {
-    return <ExportScreen race={race} taps={taps} onBack={() => setScreen('capture')} />
+    return (
+      <ExportScreen
+        race={race}
+        taps={taps}
+        onBack={() => setScreen('capture')}
+        onNewRace={newRace}
+      />
+    )
   }
 
   return (
@@ -117,8 +205,10 @@ export default function App() {
       race={race}
       taps={taps}
       onTap={addTap}
+      onName={nameTap}
       onUndo={undoTap}
       onSetGun={setGun}
+      onStop={stopRace}
       onExport={() => setScreen('export')}
     />
   )

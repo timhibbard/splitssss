@@ -1,5 +1,5 @@
-import { elapsedMs, formatElapsed, formatWallClock, isoStamp } from './clock'
-import { pacePerMile } from './distance'
+import { elapsedMs, formatElapsed, formatMinSec, formatWallClock, isoStamp } from './clock'
+import { pacePerMile, projectedFinish } from './distance'
 import type { Race, Tap } from './types'
 
 function cell(value: string | number | undefined): string {
@@ -13,6 +13,7 @@ const COLUMNS = [
   'race',
   'station',
   'station_meters',
+  'race_meters',
   'timer',
   'place',
   'athlete',
@@ -23,6 +24,7 @@ const COLUMNS = [
   'elapsed_from_gun',
   'elapsed_seconds',
   'pace_per_mile',
+  'projected_finish',
   'gun_iso',
   'session',
 ]
@@ -39,12 +41,14 @@ export function toCsv(race: Race, taps: Tap[]): string {
     const ms = race.gun
       ? elapsedMs(race.gun, tap, tap.sessionId === race.gunSessionId)
       : undefined
+    const proj = ms == null ? undefined : projectedFinish(race.station.meters, race.raceMeters, ms)
     return [
       race.date,
       race.meet,
       race.race,
       race.station.label,
       race.station.meters ?? '',
+      race.raceMeters,
       race.timer,
       tap.seq,
       athlete?.name ?? '',
@@ -55,6 +59,7 @@ export function toCsv(race: Race, taps: Tap[]): string {
       ms == null ? '' : formatElapsed(ms),
       ms == null ? '' : (ms / 1000).toFixed(1),
       ms == null || !race.station.meters ? '' : pacePerMile(race.station.meters, ms),
+      proj == null ? '' : formatMinSec(proj),
       race.gun ? isoStamp(race.gun.wallMs) : '',
       tap.sessionId,
     ]

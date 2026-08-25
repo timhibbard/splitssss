@@ -6,9 +6,10 @@ type Props = {
   race: Race
   taps: Tap[]
   onBack: () => void
+  onNewRace: () => void
 }
 
-export function ExportScreen({ race, taps, onBack }: Props) {
+export function ExportScreen({ race, taps, onBack, onNewRace }: Props) {
   const [status, setStatus] = useState('')
   const csv = toCsv(race, taps)
   const summary = toTextSummary(race, taps)
@@ -66,13 +67,17 @@ export function ExportScreen({ race, taps, onBack }: Props) {
         </button>
         <div className="bar-where">
           <strong>Send to coach</strong>
+          <span>
+            {race.race} at {race.station.label}
+          </span>
         </div>
       </header>
 
       {unassigned > 0 && (
         <p className="warn">
           {unassigned} of {taps.length} crossings have no name yet. Sending is
-          still fine, the times are what matter.
+          still fine, the times are what matter. Go Back and tap names to fill
+          them in, oldest first.
         </p>
       )}
 
@@ -95,6 +100,13 @@ export function ExportScreen({ race, taps, onBack }: Props) {
 
       <h2>CSV</h2>
       <pre className="preview small">{csv}</pre>
+
+      <button type="button" className="new-race" onClick={onNewRace}>
+        Time another race
+      </button>
+      <p className="hint">
+        This one stays on the phone under "Earlier today" if you need it again.
+      </p>
     </div>
   )
 }

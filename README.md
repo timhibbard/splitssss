@@ -20,6 +20,17 @@ Live at **https://timhibbard.github.io/splitssss/**
 - **The gun time is optional.** Every tap stores an absolute time of day, so
   elapsed times are computed later by subtracting the gun time. A volunteer at
   Mile 2 who cannot hear the start does not need to know when the race began.
+- **Names go on during the race or after.** Load the team once, then tap a name
+  instead of the big button and it records and names in one tap. Fall behind and
+  the name buttons switch to filling in the crossings already waiting, oldest
+  first, which is correct because runners cross in order.
+- **Projected finish.** Given a split distance and a race distance, the header
+  shows what the current pace projects to at the finish. Linear, to the second,
+  because the number gets said out loud to a runner.
+- **A refresh loses nothing.** Every tap is on disk before the button springs
+  back. Reloading restores the race, the roster, and every crossing in order.
+- **Stop takes two taps**, because an accidental stop mid race is the worst
+  thing this app could do to a volunteer. Resuming undoes it.
 - **No backend.** Static site, all state on the device, exports leave by way of
   the share sheet.
 - **Works with no signal.** Fully offline once loaded, which matters at the two
@@ -48,6 +59,7 @@ npm run dev
 ```sh
 npm run build    # type check and build
 npm run lint
+npm test         # clock, storage, and distance math, via node --test
 npm run preview  # serve the production build at /splitssss/
 ```
 

@@ -186,11 +186,29 @@
   white-space: nowrap;
 }
 
+.bar-clocks {
+  text-align: right;
+}
+
 .bar-clock {
   font-size: 30px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
+  line-height: 1.05;
+}
+
+/* Projected finish at the current pace. Secondary to the running clock. */
+.proj {
+  font-size: 13px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.proj strong {
+  color: var(--navy);
+  font-size: 15px;
 }
 
 .gun {
@@ -217,6 +235,89 @@
 
 .tap:active {
   background: var(--navy-press);
+}
+
+/* With a roster loaded, the name buttons are the primary interaction and the
+   unnamed-crossing button steps back to a secondary role. */
+.has-names .tap {
+  flex: 0 0 auto;
+  min-height: 0;
+  height: 20vh;
+  flex-direction: row;
+  gap: 14px;
+}
+
+.has-names .tap-count {
+  font-size: 11vh;
+}
+
+.stopped .tap {
+  background: var(--ink-soft);
+}
+
+.pending {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.35;
+  color: var(--ink-soft);
+  min-height: 2.7em;
+}
+
+.pending strong {
+  color: var(--navy);
+}
+
+.names {
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 8px;
+  align-content: start;
+  /* The names scroll, so let this pane bounce without moving the whole screen. */
+  overscroll-behavior: contain;
+}
+
+.name-chip {
+  padding: 16px 8px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  border-color: var(--navy);
+  color: var(--navy);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.name-chip:active {
+  background: var(--navy);
+  color: #fff;
+}
+
+/* Already crossed. Kept visible rather than removed so the grid does not
+   reflow under a thumb that is about to land on it. */
+.name-chip.done {
+  border-color: var(--line);
+  color: var(--ink-soft);
+  background: var(--bg);
+  text-decoration: line-through;
+  opacity: 1;
+}
+
+.stop {
+  border-color: var(--ink);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.stop.confirming {
+  background: var(--ink);
+  color: #fff;
+}
+
+.new-race {
+  margin-top: 8px;
+  font-weight: 600;
 }
 
 .tap-count {
@@ -275,6 +376,71 @@
   flex: 1;
   padding: 18px 12px;
   font-weight: 600;
+}
+
+/* ---------- roster ---------- */
+
+.roster {
+  overflow-y: auto;
+}
+
+.roster label {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.roster textarea {
+  font: inherit;
+  font-size: 17px;
+  color: inherit;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  width: 100%;
+  resize: vertical;
+}
+
+.roster-list h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+
+.roster-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.roster-name {
+  flex: 1;
+  font-size: 17px;
+}
+
+.roster-bib {
+  display: inline-block;
+  min-width: 2.4em;
+  margin-right: 8px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--navy);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.remove {
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--ink-soft);
 }
 
 /* ---------- export ---------- */

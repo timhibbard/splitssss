@@ -102,6 +102,62 @@ any platform level clock jitter, so the honest position is: store
 milliseconds, display tenths, never display hundredths. The app should not
 imply precision the method does not have.
 
+### Naming during the race, without bookkeeping
+
+A name button does one of two things, and the screen says which:
+
+- Crossings are waiting to be named, so the tap names the **oldest** one.
+- Nothing is waiting, so the tap records a crossing and names it at once.
+
+Oldest first is correct with no extra state, because runners cross a point in
+order. Naming them in the order they were tapped therefore matches the order
+they passed. That one rule covers both modes of use: a coach who recognizes
+every girl names as they go, and a volunteer who does not tap the big button
+and fills names in afterward. Same buttons, no separate assign screen, and no
+way to get out of sync.
+
+A named athlete stays visible in the grid, struck through, rather than being
+removed. Removing it would reflow the grid under a thumb already on its way
+down to the next name.
+
+### Projected finish
+
+The header carries the running clock and, under it, the finish time this pace
+projects to. The projection is linear: `elapsed * (raceMeters / stationMeters)`.
+
+Riegel's exponent would model fade more accurately, but this number gets read
+off a phone mid race and said out loud to a teenager. "If you hold this pace"
+is a thing a coach can explain and an athlete can act on. A decay exponent is
+not. The projection is shown to the second, never to tenths, because pretending
+otherwise would be false precision on top of an estimate.
+
+It needs both a station distance and a race distance, so a custom split point
+entered without a distance shows the clock and no projection rather than a
+wrong number.
+
+### Stop takes two taps
+
+The stop button sits inches from a target being hit repeatedly under pressure,
+and an accidental stop mid race is the worst thing this app could do to a
+volunteer. So the first tap arms it and the second confirms, and the armed
+state expires after four seconds. Stopping freezes the clock and moves to the
+export screen. It is also reversible: resuming clears the stop, so a mis-tap
+is not fatal.
+
+### A refresh loses nothing
+
+Every tap is already on disk before its event handler returns, and the id of
+the race being timed is stored too, so a reload restores the race, the roster,
+and every crossing in order. The only thing that changes is which clock is
+authoritative.
+
+`performance.timeOrigin` resets on reload, so monotonic readings from the new
+page share no reference frame with the ones taken before it. Elapsed time
+therefore falls back to the wall clock across a refresh, which is accurate to
+the millisecond and only vulnerable to a clock correction landing inside the
+race. Within one page session, monotonic time is preferred and such a
+correction is ignored entirely. Both paths are covered by tests.
+
 ### Roster travels in the URL fragment
 
 There is no backend. The coach generates a link containing the race setup and
@@ -131,11 +187,29 @@ data and a single failure loses one tap rather than the race.
 
 ```
 ss.v2.race.<raceId>          race metadata
-ss.v2.tap.<raceId>.<seq>     one tap
+ss.v2.tap.<raceId>.<seq>     one tap, seq zero padded so keys sort in order
 ss.v2.active                 id of the race being timed
+ss.v2.roster                 the team, per device, not per race
 ```
 
+Reads are defensive per key: an unreadable tap is skipped and logged rather
+than thrown, so a partial write costs one crossing and not the race.
+
 IndexedDB is the migration path if the data model ever outgrows this.
+
+### Tests
+
+`npm test` runs Node's built in test runner directly against the TypeScript,
+no build step and no test framework. Coverage is deliberately narrow: the clock,
+the storage layer, and the distance math, which are the three places a bug is
+silent and unrecoverable. A wrong pixel is visible on race day. A wrong split is
+not.
+
+The storage tests install a synchronous in memory `localStorage` before
+importing the module, which is a faithful stand in precisely because the
+durability claim rests on `setItem` being synchronous. They cover the refresh
+path, out of order and past ten sequence numbers, corrupt records, and races
+not leaking taps into each other.
 
 ### Install to the home screen
 
@@ -183,11 +257,10 @@ on meet mornings.
 
 ## Roadmap
 
-1. **Capture** (in progress). Setup, big tap button, undo, gun time, CSV export.
-2. **Assign.** Unassigned taps plus a grid of remaining athlete names. One
-   crossing per athlete per station makes this a one to one match, so the grid
-   shrinks toward zero and a leftover name signals a problem.
-3. **Share.** Roster link generation, QR code, and an export that reads well
-   pasted into Messages alongside a CSV attachment.
+1. **Capture** (done). Setup, big tap button, undo, gun time, stop, CSV export.
+2. **Name** (done). Roster on the device, name buttons that record or assign
+   depending on what is pending, oldest crossing first.
+3. **Share** (next). Roster link generation and a QR code, so the coach hands
+   out a link that already knows the meet, the split point, and the team.
 4. **Records.** Long format export, stable split distances per course, season
    over season comparison.

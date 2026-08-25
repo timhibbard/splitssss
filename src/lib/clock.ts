@@ -39,6 +39,17 @@ export function formatElapsed(ms: number): string {
   return `${sign}${mins}:${String(secs).padStart(2, '0')}.${tenths}`
 }
 
+/**
+ * Format elapsed ms as m:ss, no tenths. For derived numbers like a projected
+ * finish, where tenths would imply the projection is that good.
+ */
+export function formatMinSec(ms: number): string {
+  if (!Number.isFinite(ms)) return '--:--'
+  const total = Math.round(Math.abs(ms) / 1000)
+  const sign = ms < 0 ? '-' : ''
+  return `${sign}${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
+}
+
 /** Format a wall clock time as h:mm:ss.t in the device's local timezone. */
 export function formatWallClock(wallMs: number): string {
   const d = new Date(wallMs)

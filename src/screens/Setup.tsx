@@ -7,9 +7,19 @@ type Props = {
   onStart: (draft: RaceDraft) => void
   existing: Race[]
   onResume: (raceId: string) => void
+  rosterCount: number
+  onEditRoster: () => void
 }
 
 const RACES = ['Varsity Girls', 'JV Girls']
+
+/** Full race distance, used to project a finish time from a split. */
+const RACE_DISTANCES = [
+  { label: '5K', meters: 5000 },
+  { label: '4K', meters: 4000 },
+  { label: '3 mi', meters: 4828 },
+  { label: '2 mi', meters: 3219 },
+]
 
 /**
  * Ordered by distance. No finish line: the meet's own timing provides that, so
@@ -26,8 +36,9 @@ const STATIONS: Station[] = [
 
 const UNITS: Unit[] = ['m', 'km', 'mi']
 
-export function Setup({ onStart, existing, onResume }: Props) {
+export function Setup({ onStart, existing, onResume, rosterCount, onEditRoster }: Props) {
   const [meet, setMeet] = useState('')
+  const [raceMeters, setRaceMeters] = useState(5000)
 
   const [racePreset, setRacePreset] = useState<string>(RACES[1])
   const [raceOther, setRaceOther] = useState('')
@@ -62,6 +73,7 @@ export function Setup({ onStart, existing, onResume }: Props) {
       race: raceName,
       station: resolvedStation(),
       timer: timer.trim(),
+      raceMeters,
     })
   }
 
@@ -119,6 +131,23 @@ export function Setup({ onStart, existing, onResume }: Props) {
             aria-label="Race name"
           />
         )}
+      </fieldset>
+
+      <fieldset>
+        <legend>Race distance</legend>
+        <div className="chips">
+          {RACE_DISTANCES.map((d) => (
+            <button
+              key={d.label}
+              type="button"
+              className={d.meters === raceMeters ? 'chip on' : 'chip'}
+              onClick={() => setRaceMeters(d.meters)}
+            >
+              {d.label}
+            </button>
+          ))}
+        </div>
+        <p className="hint">Used to project a finish time from your split.</p>
       </fieldset>
 
       <fieldset>
@@ -186,6 +215,12 @@ export function Setup({ onStart, existing, onResume }: Props) {
           autoComplete="off"
         />
       </label>
+
+      <button type="button" onClick={onEditRoster}>
+        {rosterCount === 0
+          ? 'Add the roster, so you can tap names'
+          : `Roster: ${rosterCount} runners`}
+      </button>
 
       <button type="button" className="primary" onClick={start} disabled={!canStart}>
         Start timing
