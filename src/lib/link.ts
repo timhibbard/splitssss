@@ -1,5 +1,6 @@
 // Explicit extension so `node --test` can load this module's graph without a
 // build step. Vite resolves it identically.
+import { base64UrlToText, textToBase64Url } from './base64.ts'
 import { parseRoster } from './roster.ts'
 import type { Athlete } from './types'
 
@@ -18,34 +19,14 @@ import type { Athlete } from './types'
  */
 const KEY = 'r='
 
-function toBase64Url(text: string): string {
-  const bytes = new TextEncoder().encode(text)
-  let binary = ''
-  // Built one char at a time rather than by spreading into fromCharCode, which
-  // blows the argument limit on large inputs.
-  for (const byte of bytes) binary += String.fromCharCode(byte)
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-}
-
-function fromBase64Url(encoded: string): string | null {
-  try {
-    const padded = encoded.replace(/-/g, '+').replace(/_/g, '/')
-    const binary = atob(padded)
-    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0))
-    return new TextDecoder().decode(bytes)
-  } catch {
-    // A truncated or hand-edited link. Better to ignore it than to import junk.
-    return null
-  }
-}
-
 export function encodeRoster(athletes: Athlete[]): string {
-  const text = athletes.map((a) => a.name).join('\n')
-  return toBase64Url(text)
+  return textToBase64Url(athletes.map((a) => a.name).join('\n'))
 }
 
 export function decodeRoster(encoded: string): Athlete[] {
-  const text = fromBase64Url(encoded)
+  // A truncated or hand-edited link decodes to null. Better to import nothing
+  // than to import junk.
+  const text = base64UrlToText(encoded)
   return text == null ? [] : parseRoster(text)
 }
 

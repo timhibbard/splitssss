@@ -9,7 +9,8 @@
     "lint": "oxlint",
     "test": "node --test",
     "preview": "vite preview",
-    "roster-link": "node tools/roster-link.ts"
+    "roster-link": "node tools/roster-link.ts",
+    "roster-encrypt": "node tools/roster-encrypt.ts"
   },
   "dependencies": {
     "react": "^19.2.8",

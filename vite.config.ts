@@ -42,7 +42,9 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
+        // `enc` is the published roster: precached like everything else, so a
+        // volunteer can unlock it with no signal at the two mile mark.
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest,enc}'],
         // Everything is precached and there are no network calls, so the app is
         // fully functional with no signal at the two mile mark.
         navigateFallback: `${BASE}index.html`,

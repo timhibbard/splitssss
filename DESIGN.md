@@ -225,7 +225,8 @@ Two reasons this is the right call and not just the lazy one:
    touch a web server log or a CDN cache. The published site is public
    regardless of repository visibility.
 
-**The roster is never committed to this repository.**
+**Plaintext names are never committed to this repository.** The encrypted form
+below is the one exception, and it is ciphertext.
 
 The payload is base64url of the same one-runner-per-line text a coach would
 paste, so a link and a paste decode through identical code and there is one
@@ -250,6 +251,61 @@ device that made it.
 One caveat worth stating in the UI, because it will otherwise waste somebody's
 morning: on iOS a site added to the home screen keeps storage separate from
 Safari. Open the link in the same place you intend to time.
+
+### The encrypted roster, and what a public repo can and cannot keep
+
+The link works, but it has to be re-sent, and a coach who wants the team already
+in the app on any phone asked the obvious question: can the names be secret in
+the repo and still load on the page?
+
+Only one way, and it is worth being exact about why.
+
+The repo has to be public for free GitHub Pages, and the published site is public
+regardless. Anything the page can read without a human supplying something,
+anyone can read: a base64 file, an obscure filename, a key shipped in the
+JavaScript. Those are speed bumps. Worse, they read as protection, and git
+history keeps the file after it is deleted.
+
+So the only real option is a passphrase that never enters the repo:
+
+```
+public/roster.enc     AES-256-GCM ciphertext, committed
+passphrase            in the coach's head, texted separately, never written here
+```
+
+`npm run roster-encrypt -- roster.txt` seals the same one-runner-per-line text a
+paste or a link would carry, then reads the file back and opens it before saying
+it worked. The app fetches the file at startup, and the roster screen offers an
+unlock. Decryption is in the browser, so the passphrase never leaves the phone,
+and the decrypted names persist locally, which makes this once per phone rather
+than once per race. A wrong passphrase and a tampered file both fail, since GCM
+authenticates: no version of this ever decrypts to the wrong names.
+
+Choices worth defending:
+
+- **PBKDF2-SHA256 at 1,200,000 rounds**, twice OWASP's 2023 floor. The count is
+  stored in the file, so it can rise later without stranding a published roster.
+  It measures at a fraction of a second, paid once per device, and the ciphertext
+  is public forever, so the rounds are cheap here and expensive for anyone
+  guessing offline. A count above four million is rejected rather than attempted,
+  so a corrupt file cannot hang a phone at the starting line.
+- **The encrypt tool refuses a passphrase under sixteen characters.** The file it
+  protects can be attacked offline for years. Four random words is easy to text
+  and far past anything worth grinding for a JV roster.
+- **Unlocking routes through the same prompt a link does.** Both channels stage
+  the names and ask before touching what is on the phone, so a volunteer who
+  typed a few by hand does not lose them.
+- **No published roster means no prompt.** A fresh clone has no `roster.enc`, the
+  fetch 404s, and the feature is simply invisible. A 404 page, an offline phone
+  and a malformed file all read as absent rather than as an error.
+- **The file is precached** with the rest of the build, so an unlock works with no
+  signal, and its revision is a content hash, so re-publishing a roster reaches
+  every phone on the next load.
+
+What this does not do: it does not make the names secret from anyone holding the
+passphrase, and it does not unpublish the ciphertext already in git history.
+Rotating means a new passphrase and a new file. Plaintext names still never get
+committed, which is the rule the gitignore enforces.
 
 ### Storage: synchronous, one key per tap
 
@@ -279,15 +335,20 @@ IndexedDB is the migration path if the data model ever outgrows this.
 
 `npm test` runs Node's built in test runner directly against the TypeScript,
 no build step and no test framework. Coverage is deliberately narrow: the clock,
-the storage layer, and the distance math, which are the three places a bug is
-silent and unrecoverable. A wrong pixel is visible on race day. A wrong split is
-not.
+the storage layer, the distance math, and the two ways a roster arrives, which
+are the places a bug is silent and unrecoverable. A wrong pixel is visible on
+race day. A wrong split is not.
 
 The storage tests install a synchronous in memory `localStorage` before
 importing the module, which is a faithful stand in precisely because the
 durability claim rests on `setItem` being synchronous. They cover the refresh
 path, out of order and past ten sequence numbers, corrupt records, and races
 not leaking taps into each other.
+
+The vault tests assert the claim the whole feature rests on: that no name appears
+anywhere in the published file, that a wrong passphrase and a tampered file both
+yield nothing rather than a plausible wrong list, and that a missing or malformed
+file reads as no prompt rather than as an error.
 
 ### Install to the home screen
 
@@ -338,7 +399,8 @@ on meet mornings.
 1. **Capture** (done). Setup, big tap button, undo, gun time, stop, CSV export.
 2. **Name** (done). Roster on the device, name buttons that record or assign
    depending on what is pending, oldest crossing first.
-3. **Share** (roster links done). A QR code next, and a link that also carries
+3. **Share** (roster links and the encrypted published roster done). A QR code
+   next, and a link that also carries
    the meet and the split point so a volunteer opens straight into position.
 4. **Records.** Long format export, stable split distances per course, season
    over season comparison.

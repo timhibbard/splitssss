@@ -24,6 +24,11 @@ Live at **https://timhibbard.github.io/splitssss/**
   and texts a link that loads all the names in one tap. The names ride in the URL
   fragment, which browsers never send to a server, so they reach no log or cache.
   The recipient gets a prompt, not a silent overwrite.
+- **Or the roster ships encrypted with the app.** `public/roster.enc` is
+  AES-GCM ciphertext, so it can sit in a public repo. The app asks for the season
+  passphrase once per phone, decrypts in the browser, and keeps the names
+  locally. The passphrase is never in the repo, never in the URL, and never sent
+  anywhere. Plaintext names are still never committed.
 - **Names go on during the race or after.** Add the roster from the panel at the
   top of the setup screen, or from Add names on the capture screen mid race, then tap a name
   instead of the big button and it records and names in one tap. Fall behind and
@@ -49,9 +54,15 @@ limitations.
 
 ## Privacy
 
-Athlete rosters are never committed to this repository. Roster data travels in
-the URL fragment of a shared link, which browsers do not send to the server, so
-the names of minors never reach a web server log or a CDN cache.
+Plaintext athlete names are never committed to this repository. They travel two
+ways, and neither one puts a name on a server:
+
+- In the fragment of a shared link, which browsers do not send to the server, so
+  the names of minors never reach a web server log or a CDN cache.
+- In `public/roster.enc`, encrypted with a passphrase that lives only in the
+  coach's head and in a text message. This repo is public and the published site
+  is public either way, so a committed roster is only as private as the
+  passphrase over it. See DESIGN.md for what that does and does not protect.
 
 The school's logo file is also not committed. This app uses the school colors
 and the Patriots name and ships its own stopwatch mark rather than
@@ -67,7 +78,7 @@ npm run dev
 ```sh
 npm run build    # type check and build
 npm run lint
-npm test         # clock, storage, roster, link, and distance math, via node --test
+npm test         # clock, storage, roster, link, vault, and distance math, via node --test
 npm run preview  # serve the production build at /splitssss/
 ```
 
@@ -77,6 +88,18 @@ Generate a roster link from a file of names, without the names touching git:
 npm run roster-link roster.txt     # roster*.txt is gitignored
 pbpaste | npm run roster-link
 ```
+
+Publish the roster with the app instead, encrypted:
+
+```sh
+npm run roster-encrypt -- roster.txt   # prompts for the passphrase, twice
+git add public/roster.enc              # ciphertext, and the only roster file that gets committed
+```
+
+Run `npm run dev` first and unlock it on localhost to confirm the passphrase
+before pushing. Re-running the tool re-encrypts the whole list, which is how a
+runner gets added and how the passphrase gets rotated. Old ciphertext stays in
+git history forever, so rotating means a new passphrase *and* a new file.
 
 Pushing to `main` deploys to GitHub Pages via `.github/workflows/deploy.yml`.
 

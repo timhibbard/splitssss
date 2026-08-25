@@ -8,6 +8,8 @@ type Props = {
   existing: Race[]
   onResume: (raceId: string) => void
   rosterCount: number
+  /** This build ships an encrypted roster, so loading it takes a passphrase. */
+  hasPublished: boolean
   onEditRoster: () => void
   /** The race being timed right now, if this screen was opened mid race. */
   active: Race | null
@@ -57,6 +59,7 @@ export function Setup({
   existing,
   onResume,
   rosterCount,
+  hasPublished,
   onEditRoster,
   active,
   onBackToTiming,
@@ -156,13 +159,15 @@ export function Setup({
             {rosterCount === 0 ? 'No runners yet' : `${rosterCount} runners on this phone`}
           </strong>
           <span>
-            {rosterCount === 0
-              ? 'Add them once and tap names instead of just times.'
-              : 'Paste or edit the list any time, even mid race.'}
+            {rosterCount > 0
+              ? 'Paste or edit the list any time, even mid race.'
+              : hasPublished
+                ? 'The team roster is published with this app. Loading it takes the season passphrase.'
+                : 'Add them once and tap names instead of just times.'}
           </span>
         </div>
         <button type="button" className="team-edit" onClick={onEditRoster}>
-          {rosterCount === 0 ? 'Add runners' : 'Edit'}
+          {rosterCount > 0 ? 'Edit' : hasPublished ? 'Load them' : 'Add runners'}
         </button>
       </section>
 

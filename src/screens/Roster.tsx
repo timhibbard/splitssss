@@ -7,10 +7,14 @@ type Props = {
   athletes: Athlete[]
   onSave: (athletes: Athlete[]) => void
   onBack: () => void
-  /** Runners found in the link this app was opened with, awaiting a decision. */
+  /** Runners waiting on a decision, from a link or from the published roster. */
   incoming: Athlete[] | null
+  incomingSource: 'link' | 'published'
   onImport: (mode: 'replace' | 'add') => void
   onDismissImport: () => void
+  /** This build ships an encrypted roster, so a passphrase can load it. */
+  hasPublished: boolean
+  onUnlock: (passphrase: string) => Promise<boolean>
 }
 
 export function Roster({
@@ -18,12 +22,47 @@ export function Roster({
   onSave,
   onBack,
   incoming,
+  incomingSource,
   onImport,
   onDismissImport,
+  hasPublished,
+  onUnlock,
 }: Props) {
   const [paste, setPaste] = useState('')
   const [single, setSingle] = useState('')
   const [status, setStatus] = useState('')
+  const [passphrase, setPassphrase] = useState('')
+  const [unlocking, setUnlocking] = useState(false)
+  const [unlockError, setUnlockError] = useState('')
+  const [showUnlock, setShowUnlock] = useState(false)
+
+  /**
+   * An empty phone is the case the published roster exists for, so the prompt is
+   * open. Once there are names on the list it folds down to one quiet line: still
+   * reachable when the coach adds a runner and re-publishes, not in the way.
+   */
+  const unlockOpen = hasPublished && !incoming && (athletes.length === 0 || showUnlock)
+
+  /**
+   * Key derivation takes a moment on purpose, so the button has to say what is
+   * happening. A failure is a wrong passphrase far more often than a bad file,
+   * and the message leads with that.
+   */
+  async function unlock() {
+    if (passphrase.trim() === '' || unlocking) return
+    setUnlocking(true)
+    setUnlockError('')
+    const ok = await onUnlock(passphrase)
+    setUnlocking(false)
+    if (ok) {
+      setPassphrase('')
+      setShowUnlock(false)
+      return
+    }
+    setUnlockError(
+      'That passphrase did not work. Check for a capital letter, and mind autocorrect.',
+    )
+  }
 
   function addPasted() {
     const parsed = parseRoster(paste)
@@ -82,7 +121,8 @@ export function Roster({
       {incoming && incoming.length > 0 && (
         <section className="incoming">
           <p>
-            This link has <strong>{incoming.length} runners</strong>.
+            {incomingSource === 'link' ? 'This link has ' : 'The team roster has '}
+            <strong>{incoming.length} runners</strong>.
             {athletes.length > 0 ? ` You already have ${athletes.length} on this phone.` : ''}
           </p>
           <div className="incoming-actions">
@@ -96,8 +136,48 @@ export function Roster({
             )}
           </div>
           <button type="button" className="dismiss" onClick={onDismissImport}>
-            Ignore this link
+            {incomingSource === 'link' ? 'Ignore this link' : 'Not now'}
           </button>
+        </section>
+      )}
+
+      {hasPublished && !incoming && !unlockOpen && (
+        <button type="button" className="vault-toggle" onClick={() => setShowUnlock(true)}>
+          Load the published team roster
+        </button>
+      )}
+
+      {unlockOpen && (
+        <section className="vault">
+          <p>
+            <strong>The team roster is published with this app.</strong> It is
+            encrypted, so it takes the season passphrase once on this phone. Ask
+            the coach for it.
+          </p>
+          <label>
+            Season passphrase
+            <input
+              type="password"
+              value={passphrase}
+              onChange={(e) => setPassphrase(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void unlock()
+              }}
+              autoComplete="off"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+            />
+          </label>
+          <button
+            type="button"
+            className="primary"
+            onClick={() => void unlock()}
+            disabled={unlocking || passphrase.trim() === ''}
+          >
+            {unlocking ? 'Unlocking...' : 'Load the team'}
+          </button>
+          {unlockError && <p className="warn">{unlockError}</p>}
         </section>
       )}
 
