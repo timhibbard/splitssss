@@ -3,26 +3,23 @@ import { newId } from './storage.ts'
 import type { Athlete } from './types'
 
 /**
- * Parses a list of runners, one per line. Accepts "Name", "12 Name", "Name, 12"
- * and "Name 12", so a coach can paste whatever the meet entry list gave them
- * without reformatting. Also the decoder for a shared roster link, so both paths
- * agree on what a line means.
+ * Parses a list of runners, one per line. Also the decoder for a shared roster
+ * link, so a paste and a link cannot disagree about what a line means.
+ *
+ * Runners are known by name and face, so there are no bib numbers to keep. A
+ * pasted meet entry list often carries them anyway, so a leading or trailing
+ * number is stripped rather than stored. That is the difference between pasting
+ * a list unmodified and hand editing 28 lines.
  */
 export function parseRoster(text: string): Athlete[] {
   return text
     .split('\n')
     .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const leadingBib = /^(\d{1,4})\s+(.*)$/.exec(line)
-      if (leadingBib) return { id: newId(), name: leadingBib[2].trim(), bib: leadingBib[1] }
-
-      const trailingBib = /^(.*?)[,\s]+(\d{1,4})$/.exec(line)
-      if (trailingBib) return { id: newId(), name: trailingBib[1].trim(), bib: trailingBib[2] }
-
-      return { id: newId(), name: line }
-    })
-    .filter((a) => a.name.length > 0)
+    .map((line) => line.replace(/^\d{1,4}[,\s]+/, '').replace(/[,\s]+\d{1,4}$/, '').trim())
+    // A line with no letters in it is a leftover number or a stray comma, not a
+    // runner. A name chip you cannot read is worse than a missing one.
+    .filter((name) => /\p{L}/u.test(name))
+    .map((name) => ({ id: newId(), name }))
 }
 
 /**

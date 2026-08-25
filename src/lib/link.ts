@@ -40,7 +40,7 @@ function fromBase64Url(encoded: string): string | null {
 }
 
 export function encodeRoster(athletes: Athlete[]): string {
-  const text = athletes.map((a) => (a.bib ? `${a.bib} ${a.name}` : a.name)).join('\n')
+  const text = athletes.map((a) => a.name).join('\n')
   return toBase64Url(text)
 }
 

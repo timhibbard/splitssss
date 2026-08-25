@@ -112,7 +112,7 @@ export function Roster({
           value={paste}
           onChange={(e) => setPaste(e.target.value)}
           rows={5}
-          placeholder={'Avery Collins\n14 Rowan Hayes\nJordan Blake, 22'}
+          placeholder={'Avery Collins\nRowan Hayes\nJordan Blake'}
           autoComplete="off"
         />
       </label>
@@ -128,7 +128,7 @@ export function Roster({
           onKeyDown={(e) => {
             if (e.key === 'Enter') addSingle()
           }}
-          placeholder="Name, or bib and name"
+          placeholder="Runner's name"
           autoComplete="off"
         />
       </label>
@@ -143,7 +143,6 @@ export function Roster({
             {athletes.map((a) => (
               <div key={a.id} className="roster-row">
                 <span className="roster-name">
-                  {a.bib && <span className="roster-bib">{a.bib}</span>}
                   {a.name}
                 </span>
                 <button type="button" className="remove" onClick={() => remove(a.id)}>

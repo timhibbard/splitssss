@@ -32,7 +32,6 @@ export type Station = {
 export type Athlete = {
   id: string
   name: string
-  bib?: string
 }
 
 /** What the setup form collects. Everything else about a race is assigned on save. */

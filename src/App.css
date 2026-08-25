@@ -545,19 +545,6 @@
   font-size: 17px;
 }
 
-.roster-bib {
-  display: inline-block;
-  min-width: 2.4em;
-  margin-right: 8px;
-  padding: 2px 6px;
-  border-radius: 6px;
-  background: var(--navy);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  text-align: center;
-}
-
 .remove {
   padding: 8px 12px;
   font-size: 14px;

@@ -4,8 +4,8 @@
  *   node tools/roster-link.ts roster.txt
  *   pbpaste | node tools/roster-link.ts
  *
- * One runner per line, in any of the forms the app accepts: "Avery Collins",
- * "14 Rowan Hayes", "Jordan Blake, 22".
+ * One runner per line. A bib number on the line is stripped, so an entry list
+ * can go in as it came out.
  *
  * The file is never committed: roster*.txt is gitignored, and the names end up
  * in the fragment of the link, which browsers do not send to a server. Uses the
@@ -29,5 +29,5 @@ if (athletes.length === 0) {
 const url = `${SITE}#r=${encodeRoster(athletes)}`
 
 console.error(`${athletes.length} runners, ${url.length} characters:`)
-console.error(athletes.map((a) => (a.bib ? `  ${a.bib} ${a.name}` : `  ${a.name}`)).join('\n'))
+console.error(athletes.map((a) => `  ${a.name}`).join('\n'))
 console.log(url)

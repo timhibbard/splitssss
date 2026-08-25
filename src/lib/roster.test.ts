@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { mergeRoster } from './roster.ts'
+import { mergeRoster, parseRoster } from './roster.ts'
 import type { Athlete } from './types.ts'
 
 const avery: Athlete = { id: 'a1', name: 'Avery Collins' }
@@ -55,5 +55,38 @@ test('clearing the roster keeps only the runners with times', () => {
   assert.deepEqual(
     merged.map((a) => a.id),
     ['a3'],
+  )
+})
+
+test('a pasted list becomes runners, one per line', () => {
+  const parsed = parseRoster('Avery Collins\n  Rowan Hayes  \n\nJordan Blake\n')
+  assert.deepEqual(
+    parsed.map((a) => a.name),
+    ['Avery Collins', 'Rowan Hayes', 'Jordan Blake'],
+    'blank lines and stray spaces are dropped',
+  )
+  assert.equal(new Set(parsed.map((a) => a.id)).size, 3, 'each gets its own id')
+})
+
+test('bib numbers on a pasted entry list are stripped, not stored', () => {
+  // We know the runners by name and face. An entry list still ships numbers, and
+  // a list should paste in as it came out.
+  const parsed = parseRoster('14 Rowan Hayes\nJordan Blake, 22\nAvery Collins 7\n101 Zoe Ramirez')
+  assert.deepEqual(
+    parsed.map((a) => a.name),
+    ['Rowan Hayes', 'Jordan Blake', 'Avery Collins', 'Zoe Ramirez'],
+  )
+  assert.equal(Object.hasOwn(parsed[0], 'bib'), false, 'no bib field survives')
+})
+
+test('a name that is only a number is not a runner', () => {
+  assert.deepEqual(parseRoster('42\n\n  \n'), [])
+})
+
+test('hyphenated and apostrophe names are left alone', () => {
+  const parsed = parseRoster("Bex O'Neal-Ruiz\nAnne-Marie St. James")
+  assert.deepEqual(
+    parsed.map((a) => a.name),
+    ["Bex O'Neal-Ruiz", 'Anne-Marie St. James'],
   )
 })

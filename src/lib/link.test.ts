@@ -5,7 +5,7 @@ import type { Athlete } from './types.ts'
 
 const team: Athlete[] = [
   { id: 'a1', name: 'Avery Collins' },
-  { id: 'a2', name: 'Rowan Hayes', bib: '14' },
+  { id: 'a2', name: 'Rowan Hayes' },
   { id: 'a3', name: "Bex O'Neal-Ruiz" },
 ]
 
@@ -15,8 +15,6 @@ test('a roster survives the round trip through a link', () => {
     back.map((a) => a.name),
     ['Avery Collins', 'Rowan Hayes', "Bex O'Neal-Ruiz"],
   )
-  assert.equal(back[1].bib, '14', 'bibs come back too')
-  assert.equal(back[0].bib, undefined)
 })
 
 test('ids are minted fresh, because they are local to a device', () => {
@@ -35,7 +33,6 @@ test('the payload is URL safe', () => {
   const many = Array.from({ length: 28 }, (_, i) => ({
     id: `a${i}`,
     name: `Firstname Lastname${i}`,
-    bib: String(100 + i),
   }))
   const encoded = encodeRoster(many)
   assert.match(encoded, /^[A-Za-z0-9\-_]+$/, 'no +, / or = to be escaped or truncated')

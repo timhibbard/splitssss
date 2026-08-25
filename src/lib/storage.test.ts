@@ -164,11 +164,11 @@ test('the roster survives a refresh and is independent of any race', () => {
   mem.clear()
   store.saveRoster([
     { id: 'a1', name: 'Avery Collins' },
-    { id: 'a2', name: 'Rowan Hayes', bib: '14' },
+    { id: 'a2', name: 'Rowan Hayes' },
   ])
   const back = store.loadRoster()
   assert.equal(back.length, 2)
-  assert.equal(back[1].bib, '14')
+  assert.equal(back[1].name, 'Rowan Hayes')
   assert.deepEqual(store.loadAllRaces(), [], 'roster is not stored as a race')
 })
 

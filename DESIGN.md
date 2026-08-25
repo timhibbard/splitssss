@@ -205,6 +205,14 @@ the millisecond and only vulnerable to a clock correction landing inside the
 race. Within one page session, monotonic time is preferred and such a
 correction is ignored entirely. Both paths are covered by tests.
 
+### A runner is a name, not a number
+
+There are no bib numbers anywhere in the data model. A coach standing at 2K
+knows the team by face, and a number is one more thing to read wrong at speed.
+A pasted meet entry list usually carries numbers anyway, so a leading or
+trailing number on a line is stripped on import rather than stored. Pasting a
+list unmodified beats hand editing twenty eight lines.
+
 ### Roster travels in the URL fragment
 
 There is no backend. The coach texts a link whose fragment carries the roster.
@@ -223,8 +231,8 @@ The payload is base64url of the same one-runner-per-line text a coach would
 paste, so a link and a paste decode through identical code and there is one
 format to get right rather than two. Base64 is not secrecy. It keeps a list of
 names out of a message preview and survives clients that would otherwise mangle
-spaces, commas, and accents. Twenty eight runners with bibs comes to about 830
-characters, which texts fine and leaves room for a QR code later.
+spaces, commas, and accents. A twenty eight name roster makes a link of about
+600 characters, which texts fine and leaves room for a QR code later.
 
 Three rules the implementation follows:
 
