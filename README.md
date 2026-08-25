@@ -20,7 +20,8 @@ Live at **https://timhibbard.github.io/splitssss/**
 - **The gun time is optional.** Every tap stores an absolute time of day, so
   elapsed times are computed later by subtracting the gun time. A volunteer at
   Mile 2 who cannot hear the start does not need to know when the race began.
-- **Names go on during the race or after.** Load the team once, then tap a name
+- **Names go on during the race or after.** Add the roster from the panel at the
+  top of the setup screen, or from Add names on the capture screen mid race, then tap a name
   instead of the big button and it records and names in one tap. Fall behind and
   the name buttons switch to filling in the crossings already waiting, oldest
   first, which is correct because runners cross in order.

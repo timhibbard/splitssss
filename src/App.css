@@ -46,6 +46,44 @@
   padding: 12px 14px;
 }
 
+/* Set up once, so it sits above the per race fields and is outlined in navy to
+   read as the thing to do first on a fresh phone. */
+.team {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel);
+  border: 1px solid var(--navy);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.team-count {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.team-count strong {
+  font-size: 17px;
+  color: var(--navy);
+}
+
+.team-count span {
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.35;
+}
+
+.team-edit {
+  padding: 14px 20px;
+  font-weight: 700;
+  border-color: var(--navy);
+  color: var(--navy);
+}
+
 .setup label {
   display: grid;
   gap: 6px;
@@ -376,6 +414,21 @@
   flex: 1;
   padding: 18px 12px;
   font-weight: 600;
+}
+
+/* Navigation, deliberately quiet next to the race actions above it. */
+.nav-row {
+  display: flex;
+  gap: 10px;
+}
+
+.nav-row .nav {
+  flex: 1;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  background: transparent;
 }
 
 /* ---------- roster ---------- */

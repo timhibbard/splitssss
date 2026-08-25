@@ -9,6 +9,9 @@ type Props = {
   onResume: (raceId: string) => void
   rosterCount: number
   onEditRoster: () => void
+  /** The race being timed right now, if this screen was opened mid race. */
+  active: Race | null
+  onBackToTiming: () => void
 }
 
 const RACES = ['Varsity Girls', 'JV Girls']
@@ -36,7 +39,15 @@ const STATIONS: Station[] = [
 
 const UNITS: Unit[] = ['m', 'km', 'mi']
 
-export function Setup({ onStart, existing, onResume, rosterCount, onEditRoster }: Props) {
+export function Setup({
+  onStart,
+  existing,
+  onResume,
+  rosterCount,
+  onEditRoster,
+  active,
+  onBackToTiming,
+}: Props) {
   const [meet, setMeet] = useState('')
   const [raceMeters, setRaceMeters] = useState(5000)
 
@@ -85,10 +96,38 @@ export function Setup({ onStart, existing, onResume, rosterCount, onEditRoster }
         <p className="tagline">Splits, saved, sorted, sent.</p>
       </header>
 
+      {/* Opened mid race, so getting back to the clock comes before anything else. */}
+      {active && (
+        <button type="button" className="primary" onClick={onBackToTiming}>
+          Back to timing {active.race} at {active.station.label}
+        </button>
+      )}
+
       <p className="instructions">
-        Tap the big button as each of our runners passes you. Add names
-        afterward. You do not need to know when the race started.
+        Tap a runner's name as she passes you, or tap the big button and add
+        names after. You do not need to know when the race started.
       </p>
+
+      {/*
+        The roster is the one thing a new user has to find, and it used to be a
+        plain button below the fold. It sits above the race details now, because
+        it is set up once and everything below it is set up per race.
+      */}
+      <section className="team">
+        <div className="team-count">
+          <strong>
+            {rosterCount === 0 ? 'No runners yet' : `${rosterCount} runners on this phone`}
+          </strong>
+          <span>
+            {rosterCount === 0
+              ? 'Add them once and tap names instead of just times.'
+              : 'Paste or edit the list any time, even mid race.'}
+          </span>
+        </div>
+        <button type="button" className="team-edit" onClick={onEditRoster}>
+          {rosterCount === 0 ? 'Add runners' : 'Edit'}
+        </button>
+      </section>
 
       <label>
         Meet
@@ -216,14 +255,8 @@ export function Setup({ onStart, existing, onResume, rosterCount, onEditRoster }
         />
       </label>
 
-      <button type="button" onClick={onEditRoster}>
-        {rosterCount === 0
-          ? 'Add the roster, so you can tap names'
-          : `Roster: ${rosterCount} runners`}
-      </button>
-
       <button type="button" className="primary" onClick={start} disabled={!canStart}>
-        Start timing
+        {active ? 'Start a second race' : 'Start timing'}
       </button>
 
       {existing.length > 0 && (

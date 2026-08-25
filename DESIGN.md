@@ -120,6 +120,36 @@ A named athlete stays visible in the grid, struck through, rather than being
 removed. Removing it would reflow the grid under a thumb already on its way
 down to the next name.
 
+### Every screen has a way out
+
+The first version put the roster behind a plain button low on the setup screen,
+and the capture screen had no way back at all. Since the app restores the race
+in progress on load, a returning user landed on the clock and could not reach
+setup or the roster from there. Two lessons, both now built in:
+
+- The roster is set up once, so it belongs above the per race fields, not below
+  them. It is a bordered panel with a count, not a button in a stack of buttons.
+- The capture screen carries quiet Setup and Add names links under the race
+  actions. Leaving is free, because taps are already on disk and the race stays
+  the active one, so these are safe to hit by accident. That is why they are
+  small and grey rather than styled like Stop.
+
+Opening setup mid race puts "Back to timing" at the top, and the race in
+progress is left out of the "Earlier today" list so it appears in exactly one
+place.
+
+### The roster follows the race that is running
+
+The race stores a snapshot of the roster, so editing the team in November
+cannot rewrite a race run in September. The exception is the race being timed
+right now: adding a girl at the starting line has to put her on the grid without
+restarting anything, so an edit is merged into the active race.
+
+The merge lets the roster win, except that anyone already holding a crossing
+stays on the race even if she is removed from the roster. A recorded time must
+never lose the name attached to it. That rule lives in `lib/roster.ts` with
+tests, rather than inline in a component, because it fails silently.
+
 ### Projected finish
 
 The header carries the running clock and, under it, the finish time this pace

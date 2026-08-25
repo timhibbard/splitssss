@@ -20,6 +20,8 @@ type Props = {
   onSetGun: () => void
   onStop: () => void
   onExport: () => void
+  onSetup: () => void
+  onEditRoster: () => void
 }
 
 export function Capture({
@@ -31,6 +33,8 @@ export function Capture({
   onSetGun,
   onStop,
   onExport,
+  onSetup,
+  onEditRoster,
 }: Props) {
   const [flash, setFlash] = useState(false)
   const [now, setNow] = useState(() => stamp())
@@ -206,7 +210,8 @@ export function Capture({
         <div className="recent" aria-live="polite">
           {recent.length === 0 ? (
             <p className="recent-empty">
-              No crossings yet.
+              No names loaded, so this records times only. Add names below at any
+              time, including mid race.
               {race.gun ? '' : ' You can start tapping without setting a gun time.'}
             </p>
           ) : (
@@ -244,6 +249,21 @@ export function Capture({
           Export
         </button>
       </footer>
+
+      {/*
+        Escape hatches. Leaving this screen never costs anything: taps are
+        already on disk and the race stays the active one, so both of these are
+        safe to hit by accident, which is why they are plain and small rather
+        than styled like the buttons above.
+      */}
+      <nav className="nav-row">
+        <button type="button" className="nav" onClick={onSetup}>
+          Setup
+        </button>
+        <button type="button" className="nav" onClick={onEditRoster}>
+          {hasRoster ? 'Edit names' : 'Add names'}
+        </button>
+      </nav>
     </div>
   )
 }

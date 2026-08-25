@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { SESSION_ID, stamp, todayIsoDate } from './lib/clock'
+import { mergeRoster } from './lib/roster'
 import * as store from './lib/storage'
 import type { Athlete, Race, RaceDraft, Tap } from './lib/types'
 import { Capture } from './screens/Capture'
@@ -36,6 +37,13 @@ export default function App() {
   const [taps, setTaps] = useState<Tap[]>(restored.taps)
   const [roster, setRoster] = useState<Athlete[]>(restored.roster)
   const [screen, setScreen] = useState<Screen>(restored.race ? 'capture' : 'setup')
+  /** Where Back goes from the roster, so it returns you where you came from. */
+  const [rosterReturn, setRosterReturn] = useState<Screen>('setup')
+
+  const editRoster = useCallback((from: Screen) => {
+    setRosterReturn(from)
+    setScreen('roster')
+  }, [])
 
   /**
    * Crossing counter, held outside React state so the storage write can happen
@@ -44,10 +52,27 @@ export default function App() {
    */
   const seqRef = useRef(lastSeq(restored.taps))
 
-  const saveRoster = useCallback((next: Athlete[]) => {
-    store.saveRoster(next)
-    setRoster(next)
-  }, [])
+  /**
+   * The roster lives on the device, and the race holds a snapshot of it, so a
+   * roster edited weeks later cannot rewrite a race already run. The race being
+   * timed right now is the exception: a girl added at the starting line has to
+   * appear on the grid without restarting anything.
+   *
+   * Anyone already holding a crossing stays on the race even if she is removed
+   * from the roster, so a recorded time never loses its name.
+   */
+  const saveRoster = useCallback(
+    (next: Athlete[]) => {
+      store.saveRoster(next)
+      setRoster(next)
+      if (!race) return
+      const named = new Set(taps.map((t) => t.athleteId).filter((id): id is string => !!id))
+      const updated: Race = { ...race, athletes: mergeRoster(race.athletes, next, named) }
+      store.saveRace(updated)
+      setRace(updated)
+    },
+    [race, taps],
+  )
 
   const startRace = useCallback(
     (draft: RaceDraft) => {
@@ -56,7 +81,7 @@ export default function App() {
         id: store.newId(),
         date: todayIsoDate(),
         createdWallMs: Date.now(),
-        // Snapshot, so editing the roster later cannot rewrite a race already run.
+        // Snapshot. See saveRoster for how the active race is kept in step.
         athletes: roster,
       }
       store.saveRace(next)
@@ -161,18 +186,20 @@ export default function App() {
   }, [])
 
   const showSetup = !race || screen === 'setup'
+  // The race in progress gets its own button at the top, so it is not also
+  // listed as something to resume.
   const todaysRaces = useMemo(() => {
     if (!showSetup) return []
     const today = todayIsoDate()
-    return store.loadAllRaces().filter((r) => r.date === today)
-  }, [showSetup])
+    return store.loadAllRaces().filter((r) => r.date === today && r.id !== race?.id)
+  }, [showSetup, race?.id])
 
   if (screen === 'roster') {
     return (
       <Roster
         athletes={roster}
         onSave={saveRoster}
-        onBack={() => setScreen(race ? 'capture' : 'setup')}
+        onBack={() => setScreen(rosterReturn)}
       />
     )
   }
@@ -184,7 +211,9 @@ export default function App() {
         onResume={resumeRace}
         existing={todaysRaces}
         rosterCount={roster.length}
-        onEditRoster={() => setScreen('roster')}
+        onEditRoster={() => editRoster('setup')}
+        active={race}
+        onBackToTiming={() => setScreen('capture')}
       />
     )
   }
@@ -210,6 +239,8 @@ export default function App() {
       onSetGun={setGun}
       onStop={stopRace}
       onExport={() => setScreen('export')}
+      onSetup={() => setScreen('setup')}
+      onEditRoster={() => editRoster('capture')}
     />
   )
 }
