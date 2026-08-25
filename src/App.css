@@ -295,7 +295,9 @@
 
 .tap {
   flex: 1;
-  min-height: 45vh;
+  /* Below the running list's share of the screen. It grows into whatever the
+     list is not using, which early in a race is most of the screen. */
+  min-height: 30vh;
   background: var(--navy);
   border: none;
   border-radius: 20px;
@@ -316,21 +318,30 @@
 .has-names .tap {
   flex: 0 0 auto;
   min-height: 0;
-  height: 20vh;
+  height: 16vh;
   flex-direction: row;
   gap: 14px;
 }
 
 .has-names .tap-count {
-  font-size: 11vh;
+  font-size: 9vh;
 }
 
 .stopped .tap {
   background: var(--ink-soft);
 }
 
+/* The line that says where the next name lands, and the way out for a runner
+   who has no button. Fixed height so the grid below never shifts. */
+.naming {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .pending {
   margin: 0;
+  flex: 1;
   font-size: 15px;
   line-height: 1.35;
   color: var(--ink-soft);
@@ -341,8 +352,37 @@
   color: var(--navy);
 }
 
-.names {
+.free-open {
+  flex: 0 0 auto;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+  border-color: var(--navy);
+}
+
+.free-row {
+  display: flex;
+  gap: 8px;
+}
+
+.free-row input {
   flex: 1;
+  min-width: 0;
+}
+
+.free-row button {
+  flex: 0 0 auto;
+  padding: 12px 14px;
+  font-weight: 600;
+}
+
+.names {
+  /* Shares the middle of the screen with the running list below, and gives up
+     whatever the list needs first, because the list is capped and the grid
+     scrolls. Neither pane can push the footer buttons off the screen. */
+  flex: 1 1 0;
+  min-height: 0;
   overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
@@ -395,7 +435,7 @@
 }
 
 .tap-count {
-  font-size: 28vh;
+  font-size: 20vh;
   line-height: 0.9;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
@@ -409,35 +449,106 @@
   opacity: 0.75;
 }
 
-.recent {
-  min-height: 92px;
+/* ---------- the running list ---------- */
+
+/* Takes the height it needs and no more, and is the first thing to give room
+   back when the screen is short. Never grows, so a race with two crossings
+   leaves the tap button and the name grid full size. */
+.splits {
+  flex: 0 2 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-.recent-empty {
-  margin: 0;
+/* One shared grid for the header and every row, so the columns line up. */
+.splits-head,
+.split-row {
+  display: grid;
+  grid-template-columns: 2em 5.6em 1fr 3.4em;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.splits-head {
+  padding: 0 6px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  border-bottom: 1px solid var(--line);
+}
+
+.splits-head span:first-child,
+.splits-head span:last-child {
+  text-align: right;
+}
+
+.splits-rows {
+  overflow-y: auto;
+  /* Newest first, so the crossing that just landed needs no scrolling. */
+  max-height: 30vh;
+  overscroll-behavior: contain;
+}
+
+.splits-empty {
+  margin: 8px 2px 0;
   font-size: 14px;
   color: var(--ink-soft);
   line-height: 1.4;
 }
 
-.recent-row {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  padding: 2px 0;
+.split-row {
+  width: 100%;
+  text-align: left;
+  padding: 10px 6px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
   font-variant-numeric: tabular-nums;
 }
 
-.recent-place {
-  width: 2.2em;
+.split-place {
   text-align: right;
-  color: var(--ink-soft);
   font-size: 15px;
   font-weight: 700;
+  color: var(--ink-soft);
 }
 
-.recent-time {
-  font-size: 19px;
+.split-time {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.split-name {
+  font-size: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.split-name.none {
+  color: var(--ink-soft);
+}
+
+.split-proj {
+  text-align: right;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+/* Where the next name tap will land. Marked on the row itself, so the answer to
+   "who am I naming" is in the list rather than only in the line above it. */
+.split-row.target {
+  background: var(--sky-tint);
+  box-shadow: inset 3px 0 0 var(--navy);
+}
+
+.split-row.target .split-name.none {
+  color: var(--navy);
   font-weight: 600;
 }
 

@@ -34,9 +34,13 @@ Live at **https://timhibbard.github.io/splitssss/**
   instead of the big button and it records and names in one tap. Fall behind and
   the name buttons switch to filling in the crossings already waiting, oldest
   first, which is correct because runners cross in order.
+- **A running list of every tap.** Named and unnamed crossings sit together in
+  crossing order, newest at the top, each with its split and its projected 5K.
+  Tap a row to aim the next name at it, which is how a wrong name gets fixed.
+  A runner nobody has a button for can be typed in.
 - **Projected finish.** Races are 5K, so the header shows what the current pace
-  projects to at the finish. Linear, to the second, because the number gets said
-  out loud to a runner.
+  projects to at the finish, and every row in the list carries her own. Linear,
+  to the second, because the number gets said out loud to a runner.
 - **A refresh loses nothing.** Every tap is on disk before the button springs
   back. Reloading restores the race, the roster, and every crossing in order.
 - **Stop takes two taps**, because an accidental stop mid race is the worst

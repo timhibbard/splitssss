@@ -10,6 +10,9 @@
   --navy: #1d507b;
   --navy-press: #143a5a;
   --sky: #3a90c3;
+  /* The same blue at a wash, for marking one row in a list without lowering the
+     contrast of the black text sitting on it in sunlight. */
+  --sky-tint: #e4f0f8;
   --ink: #0b0a0f;
   --ink-soft: #54595f;
 

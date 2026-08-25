@@ -104,9 +104,10 @@ imply precision the method does not have.
 
 ### Naming during the race, without bookkeeping
 
-A name button does one of two things, and the screen says which:
+A name button does one of three things, and the screen says which:
 
-- Crossings are waiting to be named, so the tap names the **oldest** one.
+- A crossing was picked out of the running list, so the tap names **that** one.
+- Nothing was picked and crossings are waiting, so the tap names the **oldest**.
 - Nothing is waiting, so the tap records a crossing and names it at once.
 
 Oldest first is correct with no extra state, because runners cross a point in
@@ -119,6 +120,43 @@ way to get out of sync.
 A named athlete stays visible in the grid, struck through, rather than being
 removed. Removing it would reflow the grid under a thumb already on its way
 down to the next name.
+
+An athlete holds at most one crossing per race, so naming her on a second one
+takes her off the first and leaves that crossing unnamed and waiting. That is
+what makes a mix up fixable: two names tapped in the wrong order are two more
+taps to correct, and no crossing is ever counted twice. The rule lives in
+`lib/splits.ts` as a function that returns only the crossings that changed, and
+it is tested, because a misattributed split is a silent failure.
+
+### The running list
+
+The capture screen shows every crossing as it happens: place, split, who it was,
+and the finish that split projects to. Decisions inside it:
+
+- **Named and unnamed crossings are one list, interlaced in crossing order.**
+  They happened in one order and separating them would lose it. An unnamed row is
+  not an error state, it is a row waiting for a name.
+- **Newest first.** The crossing that just landed is the one being checked, and
+  it should never need a scroll. Chronological order would push it out of view
+  after eight runners.
+- **Tapping a row aims the next name at it,** and the row is marked so the answer
+  to "who am I naming" is in the list and not only in the line above it. Tapping
+  it again lets go, and the aim falls back to oldest unnamed. The selection is
+  held as an id and looked up every render, so an undo cannot leave a stale row
+  on screen pointing at a crossing that no longer exists.
+- **A name can also be typed.** Another school's runner, or a girl who never made
+  the list, gets a name rather than a blank row. She joins this race only, not the
+  season roster, because a course is not where the coach's list gets edited. A
+  typed name that matches someone already on the race reuses her instead of
+  making a twin on the grid. The field is opened deliberately and never sits
+  focused, so a keyboard cannot cover the course mid race.
+- **The projection is per row,** not just for the clock in the header, since the
+  number a coach says out loud is that girl's, not the leader's.
+- With no gun time the list shows time of day and no projection. The times are
+  still real and the gun can be set later.
+
+The list is capped and scrolls, it never grows into the name grid, and the grid
+gives up space to it first. Neither pane can push Stop or Export off screen.
 
 ### Every screen has a way out
 
@@ -335,9 +373,14 @@ IndexedDB is the migration path if the data model ever outgrows this.
 
 `npm test` runs Node's built in test runner directly against the TypeScript,
 no build step and no test framework. Coverage is deliberately narrow: the clock,
-the storage layer, the distance math, and the two ways a roster arrives, which
-are the places a bug is silent and unrecoverable. A wrong pixel is visible on
-race day. A wrong split is not.
+the storage layer, the distance math, the naming rules behind the running list,
+and the two ways a roster arrives, which are the places a bug is silent and
+unrecoverable. A wrong pixel is visible on race day. A wrong split is not.
+
+The split tests cover the pieces of the running list that could lose a name
+without saying so: which clock each row is measured against, a station with no
+distance, a crossing pointing at an athlete who has since been deleted, and
+naming a runner onto a second crossing freeing the first.
 
 The storage tests install a synchronous in memory `localStorage` before
 importing the module, which is a faithful stand in precisely because the

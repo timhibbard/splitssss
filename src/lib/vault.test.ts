@@ -38,7 +38,10 @@ test('the wrong passphrase gets nothing, not a guess', async () => {
 test('no name appears anywhere in the published file', async () => {
   // The whole point. This file gets committed to a public repository.
   const onDisk = JSON.stringify(sealed).toLowerCase()
-  for (const name of ['avery', 'collins', 'ramírez', 'ramirez', "o'neal", 'bex', 'zo']) {
+  // Fragments of four characters and up. A shorter one turns up in random base64
+  // often enough to fail this test on a good file, which would teach us to ignore
+  // it, and an ignored leak test is worse than none.
+  for (const name of ['avery', 'collins', 'ramírez', 'ramirez', "o'neal", 'neal', 'ruiz']) {
     assert.equal(onDisk.includes(name), false, `${name} leaked into the file`)
   }
 })

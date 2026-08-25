@@ -3,6 +3,7 @@ import './App.css'
 import { SESSION_ID, stamp, todayIsoDate } from './lib/clock'
 import { rosterFromHash } from './lib/link'
 import { mergeRoster } from './lib/roster'
+import { assignAthlete, oldestUnnamed } from './lib/splits'
 import * as store from './lib/storage'
 import type { Athlete, Race, RaceDraft, Tap } from './lib/types'
 import { fetchVault, openRoster, VAULT_FILE, type Vault } from './lib/vault'
@@ -223,27 +224,65 @@ export default function App() {
   )
 
   /**
-   * Tapping a name does one of two things, and which one is shown on screen:
+   * Writes the crossings a naming changed and reflects them on screen. Both
+   * naming paths end here, and both go through storage first.
+   */
+  const applyChanged = useCallback((raceId: string, changed: Tap[]) => {
+    if (changed.length === 0) return
+    for (const tap of changed) store.saveTap(raceId, tap)
+    const byId = new Map(changed.map((t) => [t.id, t]))
+    setTaps((prev) => prev.map((t) => byId.get(t.id) ?? t))
+  }, [])
+
+  /**
+   * Tapping a name does one of three things, and which one is shown on screen:
    *
-   * - Crossings are waiting to be named, so this names the oldest one. That is
-   *   correct without any extra bookkeeping because runners cross in order, so
-   *   naming them in the order they were tapped matches the order they passed.
+   * - A crossing was chosen in the list, so this names that one. Naming an
+   *   already named crossing is how a mis-tap gets fixed.
+   * - Nothing was chosen and crossings are waiting, so this names the oldest.
+   *   That is correct without any extra bookkeeping because runners cross in
+   *   order, so naming them in tap order matches the order they passed.
    * - Nothing is waiting, so this records a crossing and names it in one tap.
    *   For a coach who recognizes every girl, this is the whole interaction.
    */
   const nameTap = useCallback(
-    (athleteId: string) => {
+    (athleteId: string, tapId?: string) => {
       if (!race) return
-      const pending = taps.find((t) => !t.athleteId)
-      if (!pending) {
+      const target = tapId ?? oldestUnnamed(taps)?.id
+      if (!target) {
         addTap(athleteId)
         return
       }
-      const updated: Tap = { ...pending, athleteId }
-      store.saveTap(race.id, updated)
-      setTaps((prev) => prev.map((t) => (t.id === pending.id ? updated : t)))
+      applyChanged(race.id, assignAthlete(taps, target, athleteId))
     },
-    [race, taps, addTap],
+    [race, taps, addTap, applyChanged],
+  )
+
+  /**
+   * Naming a crossing by typing, for a runner nobody has a button for: another
+   * school's girl, or one whose name never made the list.
+   *
+   * She joins this race only, not the season roster, because the roster is the
+   * coach's list and a course is not where it gets edited. A name that matches
+   * someone already here reuses her rather than making a twin on the grid.
+   */
+  const nameTapFree = useCallback(
+    (name: string, tapId: string) => {
+      if (!race) return
+      const trimmed = name.trim()
+      if (trimmed === '') return
+      const existing = race.athletes.find((a) => a.name.toLowerCase() === trimmed.toLowerCase())
+      let athleteId = existing?.id
+      if (!athleteId) {
+        const athlete: Athlete = { id: store.newId(), name: trimmed }
+        athleteId = athlete.id
+        const updated: Race = { ...race, athletes: [...race.athletes, athlete] }
+        store.saveRace(updated)
+        setRace(updated)
+      }
+      applyChanged(race.id, assignAthlete(taps, tapId, athleteId))
+    },
+    [race, taps, applyChanged],
   )
 
   const undoTap = useCallback(() => {
@@ -356,6 +395,7 @@ export default function App() {
       taps={taps}
       onTap={addTap}
       onName={nameTap}
+      onNameFree={nameTapFree}
       onUndo={undoTap}
       onSetGun={setGun}
       onStop={stopRace}

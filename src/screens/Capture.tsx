@@ -9,13 +9,16 @@ import {
 } from '../lib/clock'
 import { projectedFinish } from '../lib/distance'
 import { buzz, click, undoClick } from '../lib/feedback'
+import { oldestUnnamed, splitRows } from '../lib/splits'
 import type { Race, Tap } from '../lib/types'
 
 type Props = {
   race: Race
   taps: Tap[]
   onTap: () => void
-  onName: (athleteId: string) => void
+  /** Names a chosen crossing, or the oldest unnamed one when none is chosen. */
+  onName: (athleteId: string, tapId?: string) => void
+  onNameFree: (name: string, tapId: string) => void
   onUndo: () => void
   onSetGun: () => void
   onStop: () => void
@@ -29,6 +32,7 @@ export function Capture({
   taps,
   onTap,
   onName,
+  onNameFree,
   onUndo,
   onSetGun,
   onStop,
@@ -39,6 +43,15 @@ export function Capture({
   const [flash, setFlash] = useState(false)
   const [now, setNow] = useState(() => stamp())
   const [confirmStop, setConfirmStop] = useState(false)
+  /**
+   * The crossing a name tap will land on, when the volunteer picked one out of
+   * the list. Held as an id rather than a tap so an undo cannot leave a stale
+   * copy on screen: the row is looked up again every render, and a selection
+   * pointing at nothing quietly falls back to the oldest unnamed crossing.
+   */
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [typing, setTyping] = useState(false)
+  const [typed, setTyped] = useState('')
   const flashTimer = useRef<number | undefined>(undefined)
   const confirmTimer = useRef<number | undefined>(undefined)
 
@@ -65,6 +78,20 @@ export function Capture({
   // same page session. Across a reload, fall back to wall clock.
   const gunSameSession = race.gunSessionId === SESSION_ID
 
+  const clockAt = race.stoppedAt ?? now
+  const running = race.gun ? elapsedMs(race.gun, clockAt, gunSameSession && !race.stoppedAt) : undefined
+  const projected = projectedFinish(race.station.meters, race.raceMeters, running ?? 0)
+
+  const rows = splitRows(race, taps, SESSION_ID)
+  const assigned = new Set(taps.map((t) => t.athleteId).filter(Boolean))
+  const selected = selectedId ? taps.find((t) => t.id === selectedId) : undefined
+  /** Where the next name goes. A chosen row wins, otherwise oldest unnamed. */
+  const target = selected ?? oldestUnnamed(taps)
+  const targetRow = rows.find((r) => r.tap.id === target?.id)
+  const unnamed = taps.filter((t) => !t.athleteId).length
+  const hasRoster = race.athletes.length > 0
+  const paceLabel = race.raceMeters === 5000 ? '5K' : `${race.raceMeters}m`
+
   function confirmFeedback() {
     click()
     buzz()
@@ -81,8 +108,32 @@ export function Capture({
   }
 
   function handleName(athleteId: string) {
-    onName(athleteId)
+    onName(athleteId, target?.id)
+    // Back to oldest-first, so the next name tap does not overwrite this row.
+    setSelectedId(null)
+    setTyping(false)
     confirmFeedback()
+  }
+
+  /** Aiming the next name at one row. Tapping the same row again lets it go. */
+  function chooseRow(tap: Tap) {
+    setSelectedId(tap.id === selectedId ? null : tap.id)
+    setTyping(false)
+    click()
+  }
+
+  function saveTyped() {
+    if (!target || typed.trim() === '') return
+    onNameFree(typed, target.id)
+    setTyped('')
+    setTyping(false)
+    setSelectedId(null)
+    confirmFeedback()
+  }
+
+  function cancelTyping() {
+    setTyped('')
+    setTyping(false)
   }
 
   function handleUndo() {
@@ -109,21 +160,6 @@ export function Capture({
     onStop()
   }
 
-  const clockAt = race.stoppedAt ?? now
-  const running = race.gun ? elapsedMs(race.gun, clockAt, gunSameSession && !race.stoppedAt) : undefined
-  const projected = projectedFinish(race.station.meters, race.raceMeters, running ?? 0)
-
-  const assigned = new Set(taps.map((t) => t.athleteId).filter(Boolean))
-  const pending = taps.find((t) => !t.athleteId)
-  const pendingElapsed =
-    pending && race.gun
-      ? elapsedMs(race.gun, pending, gunSameSession && pending.sessionId === SESSION_ID)
-      : undefined
-  const unnamed = taps.filter((t) => !t.athleteId).length
-  const hasRoster = race.athletes.length > 0
-
-  const recent = taps.slice(-3).reverse()
-
   return (
     <div
       className={[
@@ -147,8 +183,7 @@ export function Capture({
             </div>
             {projected != null && (
               <div className="proj" aria-label="projected finish at this pace">
-                {race.raceMeters === 5000 ? '5K' : `${race.raceMeters}m`} pace{' '}
-                <strong>{formatMinSec(projected)}</strong>
+                {paceLabel} pace <strong>{formatMinSec(projected)}</strong>
               </div>
             )}
           </div>
@@ -174,63 +209,143 @@ export function Capture({
         <span className="tap-word">{stopped ? 'STOPPED' : 'TAP'}</span>
       </button>
 
-      {hasRoster ? (
-        <>
-          <p className="pending" aria-live="polite">
-            {pending ? (
-              <>
-                Naming <strong>#{pending.seq}</strong>
-                {pendingElapsed != null ? ` at ${formatElapsed(pendingElapsed)}` : ''}
-                {unnamed > 1 ? ` · ${unnamed - 1} more waiting` : ''}
-              </>
-            ) : stopped ? (
-              'All crossings named.'
-            ) : (
-              'Tap a name as she passes to record and name in one tap.'
-            )}
-          </p>
-          <div className="names">
-            {race.athletes.map((a) => {
-              const done = assigned.has(a.id)
-              return (
-                <button
-                  key={a.id}
-                  type="button"
-                  className={done ? 'name-chip done' : 'name-chip'}
-                  onPointerDown={() => handleName(a.id)}
-                  disabled={done || (stopped && !pending)}
-                >
-                  {a.name}
-                </button>
-              )
-            })}
-          </div>
-        </>
-      ) : (
-        <div className="recent" aria-live="polite">
-          {recent.length === 0 ? (
-            <p className="recent-empty">
-              No names loaded, so this records times only. Add names below at any
-              time, including mid race.
-              {race.gun ? '' : ' You can start tapping without setting a gun time.'}
-            </p>
+      <div className="naming">
+        <p className="pending" aria-live="polite">
+          {target ? (
+            <>
+              {target.athleteId ? 'Changing' : 'Naming'} <strong>#{target.seq}</strong>
+              {targetRow?.elapsed != null ? ` at ${formatElapsed(targetRow.elapsed)}` : ''}
+              {target.athleteId
+                ? `, now ${race.athletes.find((a) => a.id === target.athleteId)?.name ?? 'unnamed'}`
+                : unnamed > 1
+                  ? ` · ${unnamed - 1} more waiting`
+                  : ''}
+            </>
+          ) : stopped ? (
+            'Every crossing has a name.'
+          ) : hasRoster ? (
+            'Tap a name as she passes to record and name in one tap.'
           ) : (
-            recent.map((tap) => {
-              const ms = race.gun
-                ? elapsedMs(race.gun, tap, gunSameSession && tap.sessionId === SESSION_ID)
-                : undefined
-              return (
-                <div key={tap.id} className="recent-row">
-                  <span className="recent-place">{tap.seq}</span>
-                  <span className="recent-time">
-                    {ms == null ? formatWallClock(tap.wallMs) : formatElapsed(ms)}
-                  </span>
-                </div>
-              )
-            })
+            'Tap as each runner passes. Names can wait until after the race.'
           )}
+        </p>
+        {target && !typing && (
+          <button type="button" className="free-open" onClick={() => setTyping(true)}>
+            Type a name
+          </button>
+        )}
+      </div>
+
+      {/* For a runner nobody has a button for. Opened on purpose, never sitting
+          focused, so the keyboard cannot cover the course mid race. */}
+      {typing && target && (
+        <div className="free-row">
+          <input
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') saveTyped()
+              if (e.key === 'Escape') cancelTyping()
+            }}
+            placeholder={`Who was #${target.seq}?`}
+            aria-label={`Name for crossing ${target.seq}`}
+            autoFocus
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+          />
+          <button type="button" className="primary" onClick={saveTyped} disabled={typed.trim() === ''}>
+            Save
+          </button>
+          <button type="button" className="dismiss" onClick={cancelTyping}>
+            Cancel
+          </button>
         </div>
       )}
+
+      {hasRoster && (
+        <div className="names">
+          {race.athletes.map((a) => {
+            const done = assigned.has(a.id)
+            return (
+              <button
+                key={a.id}
+                type="button"
+                className={done ? 'name-chip done' : 'name-chip'}
+                onPointerDown={() => handleName(a.id)}
+                // A chosen row can be given to anyone, including a girl already
+                // down for another crossing, because that is how a swapped pair
+                // of names gets fixed. Naming her here frees the other row.
+                disabled={selected ? false : done || (stopped && !target)}
+              >
+                {a.name}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {/*
+        The running list. Newest first, so the crossing just recorded is always
+        the one in view and nobody has to scroll during a race. Named and unnamed
+        rows sit together in crossing order, because they happened together and
+        the unnamed ones are the ones that need a thumb.
+      */}
+      <section className="splits">
+        <div className="splits-head" aria-hidden="true">
+          <span>#</span>
+          <span>{race.gun ? 'Split' : 'Clock'}</span>
+          <span>Runner</span>
+          <span>{paceLabel}</span>
+        </div>
+        <div className="splits-rows">
+          {rows.length === 0 ? (
+            <p className="splits-empty">
+              Nothing recorded yet. {hasRoster
+                ? 'Tap a name as she passes, or the big button when you cannot tell who it is.'
+                : 'Tap the big button as each runner passes.'}
+              {race.gun ? '' : ' A gun time is optional: every tap keeps the time of day.'}
+            </p>
+          ) : (
+            rows
+              .slice()
+              .reverse()
+              .map((row) => {
+                const name = row.athlete?.name
+                const at = row.elapsed == null ? formatWallClock(row.tap.wallMs) : formatElapsed(row.elapsed)
+                return (
+                  <button
+                    key={row.tap.id}
+                    type="button"
+                    className={[
+                      'split-row',
+                      name ? '' : 'unnamed',
+                      row.tap.id === target?.id ? 'target' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    onClick={() => chooseRow(row.tap)}
+                    aria-label={
+                      `Crossing ${row.place} at ${at}, ` +
+                      `${name ? name : 'not named yet'}. ` +
+                      `${row.projected != null ? `On pace for ${formatMinSec(row.projected)}. ` : ''}` +
+                      `${name ? 'Tap to change the name.' : 'Tap to name it.'}`
+                    }
+                  >
+                    <span className="split-place">{row.place}</span>
+                    <span className="split-time">{at}</span>
+                    <span className={name ? 'split-name' : 'split-name none'}>
+                      {name ?? 'Tap to name'}
+                    </span>
+                    <span className="split-proj">
+                      {row.projected == null ? '' : formatMinSec(row.projected)}
+                    </span>
+                  </button>
+                )
+              })
+          )}
+        </div>
+      </section>
 
       <footer className="actions">
         <button type="button" onClick={handleUndo} disabled={taps.length === 0}>
