@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { SESSION_ID, stamp, todayIsoDate } from './lib/clock'
 import * as store from './lib/storage'
@@ -20,15 +20,27 @@ function restore(): { race: Race | null; taps: Tap[] } {
   return { race, taps: race ? store.loadTaps(race.id) : [] }
 }
 
+function lastSeq(taps: Tap[]): number {
+  return taps.length > 0 ? taps[taps.length - 1].seq : 0
+}
+
 export default function App() {
   const [restored] = useState(restore)
   const [race, setRace] = useState<Race | null>(restored.race)
   const [taps, setTaps] = useState<Tap[]>(restored.taps)
   const [screen, setScreen] = useState<Screen>(restored.race ? 'capture' : 'setup')
 
+  /**
+   * Crossing counter, held outside React state so the storage write can happen
+   * exactly once per tap. Deriving the next seq inside a setState updater would
+   * put a side effect in a place React is allowed to call twice.
+   */
+  const seqRef = useRef(lastSeq(restored.taps))
+
   const startRace = useCallback((next: Race) => {
     store.saveRace(next)
     store.setActiveRaceId(next.id)
+    seqRef.current = 0
     setRace(next)
     setTaps([])
     setScreen('capture')
@@ -37,39 +49,38 @@ export default function App() {
   const resumeRace = useCallback((raceId: string) => {
     const loaded = store.loadRace(raceId)
     if (!loaded) return
+    const loadedTaps = store.loadTaps(raceId)
     store.setActiveRaceId(raceId)
+    seqRef.current = lastSeq(loadedTaps)
     setRace(loaded)
-    setTaps(store.loadTaps(raceId))
+    setTaps(loadedTaps)
     setScreen('capture')
   }, [])
 
   /**
-   * The hot path. The stamp is taken before anything else and the write is
-   * synchronous, so the tap is durable before React is asked to render.
+   * The hot path. The stamp is taken first and the write is synchronous, so the
+   * tap is durable before React is asked to render anything.
    */
   const addTap = useCallback(() => {
     if (!race) return
     const at = stamp()
-    setTaps((prev) => {
-      const tap: Tap = {
-        id: store.newId(),
-        seq: prev.length > 0 ? prev[prev.length - 1].seq + 1 : 1,
-        wallMs: at.wallMs,
-        monoMs: at.monoMs,
-        sessionId: SESSION_ID,
-      }
-      store.saveTap(race.id, tap)
-      return [...prev, tap]
-    })
+    const tap: Tap = {
+      id: store.newId(),
+      seq: seqRef.current + 1,
+      wallMs: at.wallMs,
+      monoMs: at.monoMs,
+      sessionId: SESSION_ID,
+    }
+    store.saveTap(race.id, tap)
+    seqRef.current = tap.seq
+    setTaps((prev) => [...prev, tap])
   }, [race])
 
   const undoTap = useCallback(() => {
-    if (!race) return
-    setTaps((prev) => {
-      if (prev.length === 0) return prev
-      store.deleteTap(race.id, prev[prev.length - 1].seq)
-      return prev.slice(0, -1)
-    })
+    if (!race || seqRef.current === 0) return
+    store.deleteTap(race.id, seqRef.current)
+    seqRef.current -= 1
+    setTaps((prev) => prev.slice(0, -1))
   }, [race])
 
   const setGun = useCallback(() => {
