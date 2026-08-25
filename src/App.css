@@ -473,6 +473,38 @@
   overflow-y: auto;
 }
 
+/* A list arrived by link. Highlighted because it is the reason this screen
+   opened, and it needs a decision before anything else here makes sense. */
+.incoming {
+  background: var(--panel);
+  border: 2px solid var(--navy);
+  border-radius: 12px;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.incoming p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.incoming-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.incoming-actions button {
+  flex: 1;
+}
+
+.dismiss {
+  color: var(--ink-soft);
+  font-size: 14px;
+  border-color: var(--line);
+}
+
 .roster label {
   display: grid;
   gap: 6px;

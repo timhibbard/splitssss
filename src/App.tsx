@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import './App.css'
 import { SESSION_ID, stamp, todayIsoDate } from './lib/clock'
+import { rosterFromHash } from './lib/link'
 import { mergeRoster } from './lib/roster'
 import * as store from './lib/storage'
 import type { Athlete, Race, RaceDraft, Tap } from './lib/types'
@@ -29,6 +30,24 @@ function restore(): { race: Race | null; taps: Tap[]; roster: Athlete[] } {
 
 const EMPTY_COUNTS = { races: 0, taps: 0, roster: 0 }
 
+/**
+ * A roster shared by link, read once at module load, before anything renders.
+ *
+ * The fragment is stripped from the address bar immediately: a refresh should not
+ * re-prompt, and a list of minors' names should not sit in a visible URL or in
+ * whatever the browser decides to keep. Nothing is imported without the user
+ * choosing, so this only stages the names.
+ */
+function takeLinkedRoster(): Athlete[] | null {
+  if (typeof window === 'undefined') return null
+  const found = rosterFromHash(window.location.hash)
+  if (found.length === 0) return null
+  window.history.replaceState(null, '', window.location.pathname + window.location.search)
+  return found
+}
+
+const LINKED_ROSTER = takeLinkedRoster()
+
 function lastSeq(taps: Tap[]): number {
   return taps.length > 0 ? taps[taps.length - 1].seq : 0
 }
@@ -38,9 +57,13 @@ export default function App() {
   const [race, setRace] = useState<Race | null>(restored.race)
   const [taps, setTaps] = useState<Tap[]>(restored.taps)
   const [roster, setRoster] = useState<Athlete[]>(restored.roster)
-  const [screen, setScreen] = useState<Screen>(restored.race ? 'capture' : 'setup')
+  const [incoming, setIncoming] = useState<Athlete[] | null>(LINKED_ROSTER)
+  // A shared link opens on the roster, because deciding about it comes first.
+  const [screen, setScreen] = useState<Screen>(
+    LINKED_ROSTER ? 'roster' : restored.race ? 'capture' : 'setup',
+  )
   /** Where Back goes from the roster, so it returns you where you came from. */
-  const [rosterReturn, setRosterReturn] = useState<Screen>('setup')
+  const [rosterReturn, setRosterReturn] = useState<Screen>(restored.race ? 'capture' : 'setup')
   /**
    * Forces a render after a wipe. Clearing an empty session changes no other
    * state, so without this the setup screen could keep showing counts for data
@@ -80,6 +103,20 @@ export default function App() {
       setRace(updated)
     },
     [race, taps],
+  )
+
+  /**
+   * Accepting a shared list. Replace is the common case, since the coach's list
+   * is the authority, but a volunteer who already added a few names by hand
+   * should not lose them.
+   */
+  const importRoster = useCallback(
+    (mode: 'replace' | 'add') => {
+      if (!incoming) return
+      saveRoster(mode === 'replace' ? incoming : [...roster, ...incoming])
+      setIncoming(null)
+    },
+    [incoming, roster, saveRoster],
   )
 
   const startRace = useCallback(
@@ -229,6 +266,9 @@ export default function App() {
         athletes={roster}
         onSave={saveRoster}
         onBack={() => setScreen(rosterReturn)}
+        incoming={incoming}
+        onImport={importRoster}
+        onDismissImport={() => setIncoming(null)}
       />
     )
   }

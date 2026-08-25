@@ -22,5 +22,6 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/**/*.test.ts"]
+  /* Everything Node runs directly, rather than through Vite. */
+  "include": ["src/**/*.test.ts", "tools/**/*.ts"]
 }

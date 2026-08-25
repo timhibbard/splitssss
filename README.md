@@ -20,6 +20,10 @@ Live at **https://timhibbard.github.io/splitssss/**
 - **The gun time is optional.** Every tap stores an absolute time of day, so
   elapsed times are computed later by subtracting the gun time. A volunteer at
   Mile 2 who cannot hear the start does not need to know when the race began.
+- **The roster travels by link.** The coach taps "Send this list to a volunteer"
+  and texts a link that loads all the names in one tap. The names ride in the URL
+  fragment, which browsers never send to a server, so they reach no log or cache.
+  The recipient gets a prompt, not a silent overwrite.
 - **Names go on during the race or after.** Add the roster from the panel at the
   top of the setup screen, or from Add names on the capture screen mid race, then tap a name
   instead of the big button and it records and names in one tap. Fall behind and
@@ -63,8 +67,15 @@ npm run dev
 ```sh
 npm run build    # type check and build
 npm run lint
-npm test         # clock, storage, and distance math, via node --test
+npm test         # clock, storage, roster, link, and distance math, via node --test
 npm run preview  # serve the production build at /splitssss/
+```
+
+Generate a roster link from a file of names, without the names touching git:
+
+```sh
+npm run roster-link roster.txt     # roster*.txt is gitignored
+pbpaste | npm run roster-link
 ```
 
 Pushing to `main` deploys to GitHub Pages via `.github/workflows/deploy.yml`.

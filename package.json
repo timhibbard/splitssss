@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "test": "node --test",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "roster-link": "node tools/roster-link.ts"
   },
   "dependencies": {
     "react": "^19.2.8",

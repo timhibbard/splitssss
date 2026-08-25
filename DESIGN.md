@@ -207,9 +207,8 @@ correction is ignored entirely. Both paths are covered by tests.
 
 ### Roster travels in the URL fragment
 
-There is no backend. The coach generates a link containing the race setup and
-roster, compressed into the URL fragment, and texts it. The texted link *is*
-the data transfer.
+There is no backend. The coach texts a link whose fragment carries the roster.
+The texted link *is* the data transfer.
 
 Two reasons this is the right call and not just the lazy one:
 
@@ -219,6 +218,30 @@ Two reasons this is the right call and not just the lazy one:
    regardless of repository visibility.
 
 **The roster is never committed to this repository.**
+
+The payload is base64url of the same one-runner-per-line text a coach would
+paste, so a link and a paste decode through identical code and there is one
+format to get right rather than two. Base64 is not secrecy. It keeps a list of
+names out of a message preview and survives clients that would otherwise mangle
+spaces, commas, and accents. Twenty eight runners with bibs comes to about 830
+characters, which texts fine and leaves room for a QR code later.
+
+Three rules the implementation follows:
+
+- The fragment is read once at module load and stripped from the address bar
+  immediately, so a refresh does not re-prompt and the names do not sit in a
+  visible URL.
+- Nothing is imported without a choice. The link opens the roster screen with
+  "Use this list instead" and "Add to mine", because a volunteer who typed a few
+  names by hand should not silently lose them.
+- A truncated or hand-edited link imports nothing rather than half a name.
+
+Athlete ids are minted fresh on import, since an id only means anything on the
+device that made it.
+
+One caveat worth stating in the UI, because it will otherwise waste somebody's
+morning: on iOS a site added to the home screen keeps storage separate from
+Safari. Open the link in the same place you intend to time.
 
 ### Storage: synchronous, one key per tap
 
@@ -307,7 +330,7 @@ on meet mornings.
 1. **Capture** (done). Setup, big tap button, undo, gun time, stop, CSV export.
 2. **Name** (done). Roster on the device, name buttons that record or assign
    depending on what is pending, oldest crossing first.
-3. **Share** (next). Roster link generation and a QR code, so the coach hands
-   out a link that already knows the meet, the split point, and the team.
+3. **Share** (roster links done). A QR code next, and a link that also carries
+   the meet and the split point so a volunteer opens straight into position.
 4. **Records.** Long format export, stable split distances per course, season
    over season comparison.

@@ -1,6 +1,7 @@
 # Athlete data never belongs in this repo. These are minors and the published
 # site is public regardless of repo visibility. See DESIGN.md.
 roster*.csv
+roster*.txt
 roster*.json
 /rosters/
 *-splits.csv

@@ -1,4 +1,29 @@
+// Explicit extension: see the note in link.ts.
+import { newId } from './storage.ts'
 import type { Athlete } from './types'
+
+/**
+ * Parses a list of runners, one per line. Accepts "Name", "12 Name", "Name, 12"
+ * and "Name 12", so a coach can paste whatever the meet entry list gave them
+ * without reformatting. Also the decoder for a shared roster link, so both paths
+ * agree on what a line means.
+ */
+export function parseRoster(text: string): Athlete[] {
+  return text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const leadingBib = /^(\d{1,4})\s+(.*)$/.exec(line)
+      if (leadingBib) return { id: newId(), name: leadingBib[2].trim(), bib: leadingBib[1] }
+
+      const trailingBib = /^(.*?)[,\s]+(\d{1,4})$/.exec(line)
+      if (trailingBib) return { id: newId(), name: trailingBib[1].trim(), bib: trailingBib[2] }
+
+      return { id: newId(), name: line }
+    })
+    .filter((a) => a.name.length > 0)
+}
 
 /**
  * Reconciles the race's athlete list with an edited roster, mid race.
