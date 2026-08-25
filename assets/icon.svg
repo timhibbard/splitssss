@@ -1,12 +1,16 @@
+<!--
+  Fills only, attributes inline on every element, no group inheritance and no
+  strokes. ImageMagick's built in SVG renderer silently drops stroked shapes
+  inside a <g>, and librsvg is not assumed to be installed. See README.
+-->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" rx="112" fill="#ff4d17"/>
-  <g fill="none" stroke="#ffffff" stroke-width="38" stroke-linecap="round">
-    <!-- stopwatch crown -->
-    <path d="M256 62 V128" stroke-width="52"/>
-    <!-- case -->
-    <circle cx="256" cy="304" r="146"/>
-    <!-- hand, pointing where a split gets taken -->
-    <path d="M256 304 L352 216"/>
-  </g>
-  <circle cx="256" cy="304" r="20" fill="#ffffff"/>
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="#ff4d17"/>
+  <!-- stopwatch case, as a white disc with the face punched back out in orange -->
+  <circle cx="256" cy="302" r="166" fill="#ffffff"/>
+  <circle cx="256" cy="302" r="128" fill="#ff4d17"/>
+  <!-- crown -->
+  <rect x="228" y="48" width="56" height="106" rx="20" fill="#ffffff"/>
+  <!-- hand, pointing at the moment a split gets taken -->
+  <polygon points="265,311 247,293 318,222 336,240" fill="#ffffff"/>
+  <circle cx="256" cy="302" r="22" fill="#ffffff"/>
 </svg>
