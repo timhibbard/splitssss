@@ -9,7 +9,8 @@ type Props = {
   /** Emits form values only. Identity and timestamps belong to whoever persists them. */
   onStart: (draft: RaceDraft) => void
   existing: Race[]
-  onResume: (raceId: string) => void
+  /** Opens a race stored earlier today. Looking at one does not restart it. */
+  onOpen: (raceId: string) => void
   /** Everyone on the phone. A race takes its lineup out of this. */
   team: Athlete[]
   /** Who ran the last race by this name, if anyone did. */
@@ -64,7 +65,7 @@ function describe(stored: { races: number; taps: number }): string {
 export function Setup({
   onStart,
   existing,
-  onResume,
+  onOpen,
   team,
   rememberedLineup,
   hasPublished,
@@ -347,10 +348,18 @@ export function Setup({
       {existing.length > 0 && (
         <section className="prior">
           <h2>Earlier today</h2>
+          {/*
+            The label says which one this is, because a stopped race opens frozen
+            for a look and an unstopped one opens still running. Tapping either is
+            safe: neither restarts a clock.
+          */}
           {existing.map((r) => (
-            <button key={r.id} type="button" className="prior-race" onClick={() => onResume(r.id)}>
+            <button key={r.id} type="button" className="prior-race" onClick={() => onOpen(r.id)}>
               <strong>{r.race}</strong> at {r.station.label}
-              <span className="prior-meta">{r.meet}</span>
+              <span className="prior-meta">
+                {r.meet}
+                {r.stoppedAt ? ', stopped' : ', still timing'}
+              </span>
             </button>
           ))}
         </section>

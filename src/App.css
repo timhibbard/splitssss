@@ -446,6 +446,14 @@
   color: #fff;
 }
 
+/* Takes Stop's place on a stopped race, and reads as a normal action rather than
+   a destructive one, because starting the clock again breaks nothing. */
+.reopen {
+  border-color: var(--navy);
+  color: var(--navy);
+  font-weight: 700;
+}
+
 .new-race {
   margin-top: 8px;
   font-weight: 600;

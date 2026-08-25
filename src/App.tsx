@@ -277,19 +277,35 @@ export default function App() {
     setScreen('capture')
   }, [])
 
-  const resumeRace = useCallback((raceId: string) => {
+  /**
+   * Opens a race from earlier today. Looking is not timing: a race that was
+   * stopped stays stopped, with its clock frozen where it stopped, so opening the
+   * first race of the morning to fix a name or send the CSV again cannot set a
+   * finished race running.
+   *
+   * This used to clear the stop, on the reasoning that a mis-tapped stop should
+   * not end the day's timing. That reason is still good and it now has its own
+   * button, because it is a decision and not a side effect of tapping a race in a
+   * list.
+   */
+  const openRace = useCallback((raceId: string) => {
     const loaded = store.loadRace(raceId)
     if (!loaded) return
     const loadedTaps = store.loadTaps(raceId)
-    // Reopen it. A mis-tapped stop should not end the day's timing.
-    const reopened: Race = { ...loaded, stoppedAt: undefined }
-    store.saveRace(reopened)
     store.setActiveRaceId(raceId)
     seqRef.current = lastSeq(loadedTaps)
-    setRace(reopened)
+    setRace(loaded)
     setTaps(loadedTaps)
     setScreen('capture')
   }, [])
+
+  /** Undoes a stop, for the mis-tap and for a race that turned out not to be over. */
+  const reopenRace = useCallback(() => {
+    if (!race?.stoppedAt) return
+    const next: Race = { ...race, stoppedAt: undefined }
+    store.saveRace(next)
+    setRace(next)
+  }, [race])
 
   /**
    * The hot path. The stamp is taken first and the write is synchronous, so the
@@ -468,7 +484,7 @@ export default function App() {
     return (
       <Setup
         onStart={startRace}
-        onResume={resumeRace}
+        onOpen={openRace}
         existing={todaysRaces}
         team={roster}
         rememberedLineup={store.loadLineup}
@@ -506,6 +522,7 @@ export default function App() {
       onUndo={undoTap}
       onSetGun={setGun}
       onStop={stopRace}
+      onReopen={reopenRace}
       onExport={() => setScreen('export')}
       onSetup={() => setScreen('setup')}
       onEditRoster={() => editRoster('capture')}

@@ -36,6 +36,8 @@ type Props = {
   onUndo: () => void
   onSetGun: () => void
   onStop: () => void
+  /** Undoes a stop. Never automatic: opening a stopped race must not restart it. */
+  onReopen: () => void
   onExport: () => void
   onSetup: () => void
   onEditRoster: () => void
@@ -53,6 +55,7 @@ export function Capture({
   onUndo,
   onSetGun,
   onStop,
+  onReopen,
   onExport,
   onSetup,
   onEditRoster,
@@ -413,7 +416,17 @@ export function Capture({
         <button type="button" onClick={handleUndo} disabled={taps.length === 0}>
           Undo
         </button>
-        {!stopped && (
+        {stopped ? (
+          /*
+            One tap, no confirm, unlike Stop. Starting the clock again is
+            recoverable: the crossings are untouched and Stop is right here. It
+            reads "Keep timing" rather than "Resume" because it is the answer to a
+            stop that was a mis-tap or a race that turned out not to be over.
+          */
+          <button type="button" className="reopen" onClick={onReopen}>
+            Keep timing
+          </button>
+        ) : (
           <button
             type="button"
             className={confirmStop ? 'stop confirming' : 'stop'}

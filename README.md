@@ -63,7 +63,10 @@ Live at **https://timhibbard.github.io/splitssss/**
 - **A refresh loses nothing.** Every tap is on disk before the button springs
   back. Reloading restores the race, the roster, and every crossing in order.
 - **Stop takes two taps**, because an accidental stop mid race is the worst
-  thing this app could do to a volunteer. Resuming undoes it.
+  thing this app could do to a volunteer. "Keep timing" undoes it.
+- **Looking at a race does not restart it.** A stopped race under "Earlier today"
+  opens frozen, so you can fix a name or send the CSV again without its clock
+  running. Undoing a stop is its own button.
 - **Clear all races.** At the bottom of the home screen, with the counts it would
   destroy spelled out and two taps to confirm. It clears races and crossings only.
   The runners stay, since they are the part with no copy on the phone to rebuild

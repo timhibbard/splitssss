@@ -347,8 +347,23 @@ The stop button sits inches from a target being hit repeatedly under pressure,
 and an accidental stop mid race is the worst thing this app could do to a
 volunteer. So the first tap arms it and the second confirms, and the armed
 state expires after four seconds. Stopping freezes the clock and moves to the
-export screen. It is also reversible: resuming clears the stop, so a mis-tap
-is not fatal.
+export screen.
+
+It is reversible, and how it is reversed matters. Undoing a stop used to be a
+side effect of opening a race from "Earlier today", which meant looking at the
+morning's first race to fix a name or send the CSV again started its clock
+running from a stop that had happened an hour ago. The frozen split times on
+screen were suddenly moving, and the race that was finished was live.
+
+So opening a race only opens it. A stopped race opens stopped, with the clock
+frozen where it stopped, the big button reading STOPPED and refusing to record.
+The way back to timing is a "Keep timing" button in Stop's place on that screen.
+One tap, no confirm, because unlike Stop it destroys nothing: the crossings are
+untouched and Stop is right there again. Names can still be tapped in and fixed on
+a stopped race, which is most of why anyone opens one.
+
+The "Earlier today" list says which kind each race is, "stopped" or "still
+timing", so what a tap will do is readable before making it.
 
 ### A refresh loses nothing
 
