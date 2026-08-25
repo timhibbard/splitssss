@@ -406,15 +406,18 @@ export default function App() {
   }, [race])
 
   /**
-   * Erases everything this app has stored on the phone. Unrecoverable by design,
-   * since nothing is ever sent anywhere, so the button that calls this asks
-   * twice. Bumping wiped re-reads the counts that the setup screen shows.
+   * Erases the races and their crossings, and leaves the team list alone. Times
+   * are unrecoverable, since nothing is ever sent anywhere, so the button that
+   * calls this asks twice. The names have a copy in the build and a runner leaves
+   * the list from the roster screen, one at a time, which is where a change to the
+   * team belongs.
+   *
+   * Bumping wiped re-reads the counts that the setup screen shows.
    */
-  const clearAll = useCallback(() => {
-    store.clearAll()
+  const clearRaces = useCallback(() => {
+    store.clearRaces()
     setRace(null)
     setTaps([])
-    setRoster([])
     seqRef.current = 0
     setWiped((n) => n + 1)
     setScreen('setup')
@@ -470,12 +473,11 @@ export default function App() {
         team={roster}
         rememberedLineup={store.loadLineup}
         hasPublished={vault !== null}
-        hasShipped={shipped !== null}
         onEditRoster={() => editRoster('setup')}
         active={race}
         onBackToTiming={() => setScreen('capture')}
         stored={stored}
-        onClearAll={clearAll}
+        onClearRaces={clearRaces}
       />
     )
   }

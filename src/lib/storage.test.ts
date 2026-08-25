@@ -208,53 +208,68 @@ test('a corrupt lineup reads as never chosen', () => {
   assert.equal(store.loadLineup('Varsity Girls'), null)
 })
 
-test('the shipped list this phone has seen is remembered, and forgotten by a wipe', () => {
+test('the shipped list this phone has seen is remembered', () => {
   mem.clear()
   assert.equal(store.loadShippedSeen(), null, 'a fresh phone has seen nothing')
   store.saveShippedSeen('Avery C.\nRowan H.')
   assert.equal(store.loadShippedSeen(), 'Avery C.\nRowan H.')
-  store.clearAll()
-  assert.equal(store.loadShippedSeen(), null)
 })
 
-test('clear everything wipes races, taps, the roster, and the lineups', () => {
+test('clearing the races wipes races, taps and the active pointer', () => {
   mem.clear()
   store.saveRace(race('r1'))
   store.saveRace(race('r2'))
   store.setActiveRaceId('r1')
   for (const seq of [1, 2, 3]) store.saveTap('r1', tap(seq))
-  store.saveRoster([{ id: 'a1', name: 'Avery Collins' }])
-  store.saveLineup('JV Girls', ['a1'])
 
-  const removed = store.clearAll()
+  const removed = store.clearRaces()
 
-  assert.equal(removed, 8, '2 races, 3 taps, the active pointer, the roster, and a lineup')
-  assert.equal(store.loadLineup('JV Girls'), null)
+  assert.equal(removed, 6, '2 races, 3 taps and the active pointer')
   assert.deepEqual(store.loadAllRaces(), [])
   assert.deepEqual(store.loadTaps('r1'), [])
-  assert.deepEqual(store.loadRoster(), [])
   assert.equal(store.getActiveRaceId(), null)
   assert.equal(mem.length, 0)
 })
 
-test('clear everything takes old schema versions with it', () => {
+test('clearing the races keeps the team, the lineups and the shipped list', () => {
+  mem.clear()
+  store.saveRace(race('r1'))
+  store.saveTap('r1', tap(1))
+  store.saveRoster([{ id: 'a1', name: 'Avery Collins' }])
+  store.saveLineup('JV Girls', ['a1'])
+  store.saveShippedSeen('Avery C.')
+
+  store.clearRaces()
+
+  // The names are the part with no copy on the phone to rebuild from, and
+  // clearing last week's meet is not a request to retype the team.
+  assert.deepEqual(store.loadRoster(), [{ id: 'a1', name: 'Avery Collins' }])
+  assert.deepEqual(store.loadLineup('JV Girls'), ['a1'])
+  assert.equal(store.loadShippedSeen(), 'Avery C.')
+})
+
+test('clearing the races takes an older schema version of a race with it', () => {
   mem.clear()
   mem.poison('ss.v1.race.old', '{}')
-  mem.poison('ss.something', 'x')
-  store.clearAll()
+  mem.poison('ss.v1.tap.old.0001', '{}')
+  mem.poison('ss.v1.active', 'old')
+  assert.equal(store.clearRaces(), 3)
   assert.equal(mem.length, 0)
 })
 
-test('clear everything leaves keys that are not ours alone', () => {
+test('clearing the races leaves keys that are not ours alone', () => {
   mem.clear()
   mem.poison('theme', 'dark')
   mem.poison('ss.v2.roster', '[]')
-  const removed = store.clearAll()
-  assert.equal(removed, 1)
+  mem.poison('ssomething.v2.race.x', '{}')
+  store.saveRace(race('r1'))
+  const removed = store.clearRaces()
+  assert.equal(removed, 1, 'only the race')
   assert.equal(mem.getItem('theme'), 'dark')
+  assert.equal(mem.getItem('ssomething.v2.race.x'), '{}')
 })
 
-test('counts describe what a wipe would destroy', () => {
+test('counts describe what a clear would destroy, and what it would keep', () => {
   mem.clear()
   store.saveRace(race('r1'))
   for (const seq of [1, 2]) store.saveTap('r1', tap(seq))

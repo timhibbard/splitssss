@@ -64,9 +64,10 @@ Live at **https://timhibbard.github.io/splitssss/**
   back. Reloading restores the race, the roster, and every crossing in order.
 - **Stop takes two taps**, because an accidental stop mid race is the worst
   thing this app could do to a volunteer. Resuming undoes it.
-- **Clear everything.** At the bottom of the setup screen, with the counts it
-  would destroy spelled out and two taps to confirm. Handy while building, and
-  the only way to hand the phone on clean.
+- **Clear all races.** At the bottom of the home screen, with the counts it would
+  destroy spelled out and two taps to confirm. It clears races and crossings only.
+  The runners stay, since they are the part with no copy on the phone to rebuild
+  from. Take someone off the team from the roster screen instead.
 - **No backend.** Static site, all state on the device, exports leave by way of
   the share sheet.
 - **Works with no signal.** Fully offline once loaded, which matters at the two

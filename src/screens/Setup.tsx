@@ -16,14 +16,12 @@ type Props = {
   rememberedLineup: (raceName: string) => string[] | null
   /** This build ships an encrypted roster, so loading it takes a passphrase. */
   hasPublished: boolean
-  /** This build ships a team list, so a wipe does not keep the names off. */
-  hasShipped: boolean
   onEditRoster: () => void
   /** The race being timed right now, if this screen was opened mid race. */
   active: Race | null
   onBackToTiming: () => void
   stored: { races: number; taps: number; roster: number }
-  onClearAll: () => void
+  onClearRaces: () => void
 }
 
 const RACES = ['Varsity Girls', 'JV Girls']
@@ -51,15 +49,16 @@ const STATIONS: Station[] = [
 
 const UNITS: Unit[] = ['m', 'km', 'mi']
 
-/** Says what a wipe would destroy, so it is a decision and not a surprise. */
-function describe(stored: { races: number; taps: number; roster: number }): string {
+/**
+ * Says what a clear would destroy, so it is a decision and not a surprise. Races
+ * and crossings only: the team list is not something this button touches.
+ */
+function describe(stored: { races: number; taps: number }): string {
   const parts: string[] = []
   if (stored.races > 0) parts.push(`${stored.races} race${stored.races === 1 ? '' : 's'}`)
   if (stored.taps > 0) parts.push(`${stored.taps} crossing${stored.taps === 1 ? '' : 's'}`)
-  if (stored.roster > 0) parts.push(`${stored.roster} runner${stored.roster === 1 ? '' : 's'}`)
   if (parts.length === 0) return 'nothing'
-  if (parts.length === 1) return parts[0]
-  return `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`
+  return parts.join(' and ')
 }
 
 export function Setup({
@@ -69,12 +68,11 @@ export function Setup({
   team,
   rememberedLineup,
   hasPublished,
-  hasShipped,
   onEditRoster,
   active,
   onBackToTiming,
   stored,
-  onClearAll,
+  onClearRaces,
 }: Props) {
   const [meet, setMeet] = useState('')
   const [confirmClear, setConfirmClear] = useState(false)
@@ -146,12 +144,12 @@ export function Setup({
     })
   }
 
-  const hasData = stored.races > 0 || stored.taps > 0 || stored.roster > 0
+  const hasData = stored.races > 0 || stored.taps > 0
 
   /**
-   * Two taps, like Stop, and for the same reason: this one is unrecoverable.
-   * The armed state expires so a stray tap cannot leave the button loaded for
-   * whoever picks up the phone next.
+   * Two taps, like Stop, and for the same reason: the times have no copy
+   * anywhere. The armed state expires so a stray tap cannot leave the button
+   * loaded for whoever picks up the phone next.
    */
   function clear() {
     if (!confirmClear) {
@@ -162,7 +160,7 @@ export function Setup({
     }
     window.clearTimeout(clearTimer.current)
     setConfirmClear(false)
-    onClearAll()
+    onClearRaces()
   }
 
   return (
@@ -373,23 +371,22 @@ export function Setup({
       )}
 
       <section className="danger">
-        <h2>Start over</h2>
+        <h2>Clear the races</h2>
         <p className="hint">
           {hasData
-            ? `Erases ${describe(stored)} from this phone. The times are gone for good, since nothing is sent anywhere and there is no copy to get them back from.`
-            : 'Nothing is stored on this phone yet.'}
+            ? `Erases ${describe(stored)} from this phone. Export anything you still need first: nothing is sent anywhere, so there is no copy to get the times back from.`
+            : 'No races on this phone yet.'}
         </p>
         {/*
-          The names are the one thing a wipe does not keep off, now that they
-          ship with the app, and a coach handing a phone back deserves to know
-          that before tapping rather than after.
+          Said plainly, because the button used to take the names too and a coach
+          who learned that behavior should not have to test it to find out it
+          changed.
         */}
-        {hasData && hasShipped && stored.roster > 0 && (
+        {stored.roster > 0 && (
           <p className="hint">
-            The team list comes back the next time you open the app, as first names
-            and an initial, because it ships with the app. Only the races and times
-            are gone for good. A phone that should hold no names at all is one that
-            takes the app off the home screen.
+            The {stored.roster} runner{stored.roster === 1 ? '' : 's'} on this phone
+            stay{stored.roster === 1 ? 's' : ''}. Take someone off the team list from
+            the roster screen instead.
           </p>
         )}
         <button
@@ -398,7 +395,7 @@ export function Setup({
           onClick={clear}
           disabled={!hasData}
         >
-          {confirmClear ? 'Tap again to erase everything' : 'Clear everything'}
+          {confirmClear ? 'Tap again to erase the races' : 'Clear all races'}
         </button>
       </section>
 

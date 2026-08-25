@@ -152,8 +152,14 @@ export function saveShippedSeen(text: string): void {
   localStorage.setItem(SHIPPED_KEY, text)
 }
 
-/** Everything this app has ever written, so a wipe cannot miss an old key. */
-const ALL_PREFIX = 'ss.'
+/**
+ * A race, a crossing, and the pointer at the race being timed, in any schema
+ * version this app has ever written. Matched by shape rather than by the current
+ * version so an older build's races are erased too, and narrowly enough that a
+ * key belonging to something else on the origin is never touched.
+ */
+const RACE_KEY = /^ss\.[^.]+\.(?:race|tap)\./
+const ACTIVE_ANY = /^ss\.[^.]+\.active$/
 
 export function storedCounts(): { races: number; taps: number; roster: number } {
   let races = 0
@@ -167,17 +173,22 @@ export function storedCounts(): { races: number; taps: number; roster: number } 
 }
 
 /**
- * Wipes every key this app owns and nothing else, matching on the `ss.` prefix
- * rather than the current schema version so an older build's leftovers go too.
+ * Erases the races and every crossing in them, and nothing else.
+ *
+ * The team list stays, along with the lineups remembered under each race name
+ * and the record of which shipped list this phone has seen. Clearing last week's
+ * meet is not a request to retype the team, and the runners are the part with no
+ * copy on the device to rebuild from. A runner leaves the list one at a time,
+ * from the roster screen, which is where a change to the team belongs.
  *
  * Keys are collected before any removal, because removing while walking the
  * index shifts the keys that have not been visited yet.
  */
-export function clearAll(): number {
+export function clearRaces(): number {
   const keys: string[] = []
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i)
-    if (key?.startsWith(ALL_PREFIX)) keys.push(key)
+    if (key && (RACE_KEY.test(key) || ACTIVE_ANY.test(key))) keys.push(key)
   }
   for (const key of keys) localStorage.removeItem(key)
   return keys.length

@@ -290,35 +290,36 @@ either list says, and cannot be removed by the lineup screen either, because a
 recorded time must never lose its name. That rule lives in `lib/roster.ts` with
 tests, rather than inline in a component, because it fails silently.
 
-### Clear everything
+### Clear all races, and not the runners
 
-Unrecoverable, on purpose, because nothing is ever sent anywhere and there is no
-copy to restore from. So the button says what it will destroy in counts ("2
-races, 34 crossings and 20 runners"), asks twice like Stop does, disarms itself
-after four seconds, and disables when there is nothing to erase.
+This button used to wipe everything, including the team list, on the theory that
+"start over" should mean start over. Two things made that wrong.
 
-Shipping the team with the app took away one of the three reasons this button
-existed and made another one a half truth, so both are worth stating.
+The names are the part with no copy on the phone to rebuild from, and they are the
+part somebody had to get onto it in the first place. Races are what accumulates:
+last Saturday's meet is clutter by Tuesday, while the twenty eight runners are
+the same twenty eight runners all season. So the button clears races, crossings
+and the pointer at the race being timed, and touches nothing else. The team list,
+the lineups remembered under each race name, and the record of which shipped list
+this phone has seen all stay.
 
-It is still the only way to delete a race, a crossing, or a lineup this phone
-remembers. There is no per race delete, on purpose: a screen that can erase a
-morning's crossings one tap at a time is worse than one that cannot erase them at
-all. And it is still the only way to hand a phone on without last week's meet on
-it.
+A runner leaves the team list one at a time, from the roster screen, which is
+where a change to the team belongs. There is still no per race delete: a screen
+that can erase a morning's crossings one tap at a time is worse than one that
+cannot erase them at all.
 
-What it no longer does is keep the names off. A wipe clears the roster and the
-record of which shipped list this phone has seen, so the next open finds an empty
-phone and silently takes the shipped list again. That is correct, since a wiped
-phone is exactly the case automatic adoption is for, but it means the old sentence
-"there is no copy to get it back from" was true of the times and false of the
-names. The panel now says so, and says the only real answer for a phone that
-should hold no names, which is to take the app off the home screen. The names are
-in the app, not in the storage a button can clear.
+The times are still unrecoverable, because nothing is ever sent anywhere, so the
+panel says what it will destroy in counts ("2 races and 34 crossings"), says to
+export first, asks twice like Stop does, disarms itself after four seconds, and
+disables when there are no races. It also says plainly that the runners stay,
+because a coach who learned the old behavior should not have to test the button to
+find out it changed.
 
-It matches on the `ss.` prefix rather than the current schema version, so an
-older build's leftovers go with it, and it leaves keys it does not own alone. It
-lives at the bottom of the setup screen, below a rule, where nothing shares an
-edge with a button used on race day.
+Race and tap keys are matched by shape, `ss.<version>.race.` and
+`ss.<version>.tap.`, rather than by the current schema version, so an older
+build's races go too while a key this app does not own is never touched. It lives
+at the bottom of the setup screen, below a rule, where nothing shares an edge with
+a button used on race day.
 
 ### Projected finish
 
