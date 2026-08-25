@@ -4,8 +4,8 @@ import { fetchVault, isVault, ITERATIONS, open, openRoster, sealRoster } from '.
 import type { Athlete } from './types.ts'
 
 const team: Athlete[] = [
-  { id: 'a1', name: 'Avery Collins' },
-  { id: 'a2', name: 'Zoë Ramírez' },
+  { id: 'a1', name: 'Marlowe Holloway' },
+  { id: 'a2', name: 'Chloë Ramírez' },
   { id: 'a3', name: "Bex O'Neal-Ruiz" },
 ]
 
@@ -18,7 +18,7 @@ test('the roster comes back out with the right passphrase', async () => {
   const back = await openRoster(sealed, PASS)
   assert.deepEqual(
     back?.map((a) => a.name),
-    ['Avery Collins', 'Zoë Ramírez', "Bex O'Neal-Ruiz"],
+    ['Marlowe Holloway', 'Chloë Ramírez', "Bex O'Neal-Ruiz"],
     'accents and apostrophes included',
   )
 })
@@ -41,7 +41,7 @@ test('no name appears anywhere in the published file', async () => {
   // Fragments of four characters and up. A shorter one turns up in random base64
   // often enough to fail this test on a good file, which would teach us to ignore
   // it, and an ignored leak test is worse than none.
-  for (const name of ['avery', 'collins', 'ramírez', 'ramirez', "o'neal", 'neal', 'ruiz']) {
+  for (const name of ['marlowe', 'holloway', 'ramírez', 'ramirez', "o'neal", 'neal', 'ruiz']) {
     assert.equal(onDisk.includes(name), false, `${name} leaked into the file`)
   }
 })

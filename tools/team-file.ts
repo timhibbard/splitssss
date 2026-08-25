@@ -8,7 +8,7 @@
  * which **is** meant to be committed. The names file is not: roster*.txt is
  * gitignored.
  *
- * What gets written is the short form the buttons already say, "Caroline K.", not
+ * What gets written is the short form the buttons already say, "Rowan H.", not
  * the full names, and it is scrambled rather than encrypted. The app reads it with
  * nothing from a human, so the way to read it ships in the JavaScript, so anyone
  * who wants the list can have it. See src/lib/teamfile.ts for the whole argument.

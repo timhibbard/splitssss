@@ -18,7 +18,7 @@ import type { Athlete } from './types'
  * - What it does buy is real but narrow: the names are not plaintext in a public
  *   repository, not in a file a crawler can index, and not readable by someone
  *   who happens to look. Search for a runner and this app is not the result.
- * - So the list that ships here is deliberately the short form, "Caroline K.",
+ * - So the list that ships here is deliberately the short form, "Rowan H.",
  *   the same thing the buttons say. Decoded, it is first names and an initial for
  *   a team whose roster a meet program prints anyway, rather than a file of full
  *   names.

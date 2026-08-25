@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { fetchTeam, scrambleTeam, teamText, unscrambleTeam } from './teamfile.ts'
 
 // Never the real team. These are stand ins, like everywhere else in the tests.
-const TEAM = ['Avery C.', 'Rowan H.', 'Jordan B.', 'Mary Eliza D.']
+const TEAM = ['Marlowe H.', 'Rowan H.', 'Jordan B.', 'Anna Grace F.']
 
 test('a shipped list round trips', () => {
   const back = unscrambleTeam(scrambleTeam(TEAM))
@@ -18,7 +18,7 @@ test('no name is readable in the file', () => {
     // leave lying around in fragments.
     assert.ok(!body.includes(name.replace(/\s/g, '')), `${name} appears unspaced`)
   }
-  assert.ok(!body.includes('Avery'), 'a first name on its own appears')
+  assert.ok(!body.includes('Marlowe'), 'a first name on its own appears')
   assert.ok(!body.includes('splitssss'), 'the header appears in the clear')
 })
 
@@ -27,12 +27,12 @@ test('the same list rebuilds byte for byte, so a rebuild is not a diff', () => {
 })
 
 test('one changed name changes the file', () => {
-  assert.notEqual(scrambleTeam(TEAM), scrambleTeam([...TEAM, 'Sasha C.']))
+  assert.notEqual(scrambleTeam(TEAM), scrambleTeam([...TEAM, 'Quinn D.']))
 })
 
 test('blank lines and stray spaces do not become runners', () => {
-  const back = unscrambleTeam(scrambleTeam(['  Avery C.  ', '', 'Rowan H.']))
-  assert.deepEqual(back?.map((a) => a.name), ['Avery C.', 'Rowan H.'])
+  const back = unscrambleTeam(scrambleTeam(['  Marlowe H.  ', '', 'Rowan H.']))
+  assert.deepEqual(back?.map((a) => a.name), ['Marlowe H.', 'Rowan H.'])
 })
 
 test('anything that is not a team file reads as no team file', () => {
@@ -80,11 +80,11 @@ test('a missing file reads as no shipped team, never as an error', async () => {
 
 test('the fingerprint is the names in order, and nothing else', () => {
   const a = [
-    { id: 'x1', name: 'Avery C.' },
+    { id: 'x1', name: 'Marlowe H.' },
     { id: 'x2', name: 'Rowan H.' },
   ]
   const b = [
-    { id: 'y9', name: 'Avery C.' },
+    { id: 'y9', name: 'Marlowe H.' },
     { id: 'y8', name: 'Rowan H.' },
   ]
   assert.equal(teamText(a), teamText(b), 'ids are not part of it')

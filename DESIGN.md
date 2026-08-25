@@ -318,16 +318,16 @@ secondary is not a reason to be hard to hit.
 
 Twenty eight full names do not fit on a phone, and a volunteer picking a runner
 out of a field of a hundred does not read a surname to know who is coming. So a
-button says "Caroline K." A three word name keeps the first two words as the
-first name, because "Mary Eliza D." is what the team calls out and "Mary E." is
+button says "Rowan H." A three word name keeps the first two words as the first
+name, because "Anna Grace F." is what the team calls out and "Anna G." is
 somebody else.
 
 Two buttons that read the same would be a split on the wrong runner, so a clash
-costs letters until it is gone: Emma R. and Emma R. become Emma Ri. and Emma Ro.
-Only the clashing pair grows, and the comparison ignores a trailing dot, so
-"Ella Hu" and "Ella Hu." are treated as the same label rather than as two
-buttons that differ by a speck of punctuation. Twenty letters in, two people
-genuinely share a name and both get it in full.
+costs letters until it is gone: Rowan H. and Rowan H. become Rowan Ha. and
+Rowan He. Only the clashing pair grows, and the comparison ignores a trailing
+dot, so "Marlowe Ho" and "Marlowe Ho." are treated as the same label rather than
+as two buttons that differ by a speck of punctuation. Twenty letters in, two
+people genuinely share a name and both get it in full.
 
 Short labels are for the grid, the running list and the picker. Full names go to
 storage, to the export, to every `aria-label`, and to the lineup screen, where a
@@ -581,7 +581,7 @@ choice is not how to hide the file, it is what goes in it.
 What goes in it is the short label a button already says:
 
 ```
-public/team.dat    "Caroline K.", scrambled, committed
+public/team.dat    "Rowan H.", scrambled, committed
 ```
 
 First name and an initial, never a surname. That is what a meet program prints

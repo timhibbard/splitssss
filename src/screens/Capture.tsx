@@ -142,9 +142,9 @@ export function Capture({
   const hasRoster = race.athletes.length > 0
   const paceLabel = race.raceMeters === 5000 ? '5K' : `${race.raceMeters}m`
   /**
-   * First name and an initial. A button has room for "Caroline K." and a
-   * volunteer does not read a surname to know who is coming. Full names are what
-   * the export carries, and what a screen reader is given here.
+   * First name and an initial. A button has room for "Rowan H." and a volunteer
+   * does not read a surname to know who is coming. Full names are what the export
+   * carries, and what a screen reader is given here.
    */
   const labels = displayNames(race.athletes)
   const labelOf = (a: Athlete) => labels.get(a.id) ?? a.name

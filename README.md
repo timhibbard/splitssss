@@ -39,11 +39,10 @@ Live at **https://timhibbard.github.io/splitssss/**
   big button records anyone you cannot name. A name tap never fills in an older
   crossing, because that would put a stale time on a runner standing in front of
   you.
-- **A button says a first name and an initial.** "Caroline K." fits a phone, and
-  a three word name keeps the first two words, so "Mary Eliza D." is what the
-  team calls out. If two labels would read the same they grow a letter until they
-  do not: Emma Ri. and Emma Ro. Full names go to the export and to screen
-  readers.
+- **A button says a first name and an initial.** "Rowan H." fits a phone, and a
+  three word name keeps the first two words, so "Anna Grace F." is what the team
+  calls out. If two labels would read the same they grow a letter until they do
+  not: Rowan Ha. and Rowan He. Full names go to the export and to screen readers.
 - **Pick who is running.** A varsity race is seven buttons, not twenty eight.
   Choose the lineup before the race or change it mid race, with Top 7, Everyone
   else, Everyone and Nobody one tap each. The choice is remembered under the race
@@ -107,7 +106,7 @@ ways, and neither one puts a name on a server:
 
 `public/team.dat` is committed too, and it is the one file that carries anything
 about a runner without a passphrase over it. It holds first names and an initial,
-"Caroline K.", scrambled. Scrambled is not encrypted: the app reads it with
+"Rowan H.", scrambled. Scrambled is not encrypted: the app reads it with
 nothing typed, so the way to read it ships in the JavaScript and anyone who wants
 the list can have it. That is the trade for the names being there automatically,
 and it is why the file holds no surnames. See DESIGN.md.

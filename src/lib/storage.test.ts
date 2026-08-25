@@ -49,7 +49,7 @@ function race(id = 'r1'): Race {
     timer: 'A Parent',
     date: '2026-08-24',
     createdWallMs: 1_756_000_000_000,
-    athletes: [{ id: 'a1', name: 'Avery Collins' }],
+    athletes: [{ id: 'a1', name: 'Marlowe Holloway' }],
   }
 }
 
@@ -163,7 +163,7 @@ test('assigning a name overwrites the tap in place, keeping its time', () => {
 test('the roster survives a refresh and is independent of any race', () => {
   mem.clear()
   store.saveRoster([
-    { id: 'a1', name: 'Avery Collins' },
+    { id: 'a1', name: 'Marlowe Holloway' },
     { id: 'a2', name: 'Rowan Hayes' },
   ])
   const back = store.loadRoster()
@@ -211,8 +211,8 @@ test('a corrupt lineup reads as never chosen', () => {
 test('the shipped list this phone has seen is remembered', () => {
   mem.clear()
   assert.equal(store.loadShippedSeen(), null, 'a fresh phone has seen nothing')
-  store.saveShippedSeen('Avery C.\nRowan H.')
-  assert.equal(store.loadShippedSeen(), 'Avery C.\nRowan H.')
+  store.saveShippedSeen('Marlowe H.\nRowan H.')
+  assert.equal(store.loadShippedSeen(), 'Marlowe H.\nRowan H.')
 })
 
 test('clearing the races wipes races, taps and the active pointer', () => {
@@ -235,17 +235,17 @@ test('clearing the races keeps the team, the lineups and the shipped list', () =
   mem.clear()
   store.saveRace(race('r1'))
   store.saveTap('r1', tap(1))
-  store.saveRoster([{ id: 'a1', name: 'Avery Collins' }])
+  store.saveRoster([{ id: 'a1', name: 'Marlowe Holloway' }])
   store.saveLineup('JV Girls', ['a1'])
-  store.saveShippedSeen('Avery C.')
+  store.saveShippedSeen('Marlowe H.')
 
   store.clearRaces()
 
   // The names are the part with no copy on the phone to rebuild from, and
   // clearing last week's meet is not a request to retype the team.
-  assert.deepEqual(store.loadRoster(), [{ id: 'a1', name: 'Avery Collins' }])
+  assert.deepEqual(store.loadRoster(), [{ id: 'a1', name: 'Marlowe Holloway' }])
   assert.deepEqual(store.loadLineup('JV Girls'), ['a1'])
-  assert.equal(store.loadShippedSeen(), 'Avery C.')
+  assert.equal(store.loadShippedSeen(), 'Marlowe H.')
 })
 
 test('clearing the races takes an older schema version of a race with it', () => {
@@ -274,7 +274,7 @@ test('counts describe what a clear would destroy, and what it would keep', () =>
   store.saveRace(race('r1'))
   for (const seq of [1, 2]) store.saveTap('r1', tap(seq))
   store.saveRoster([
-    { id: 'a1', name: 'Avery Collins' },
+    { id: 'a1', name: 'Marlowe Holloway' },
     { id: 'a2', name: 'Rowan Hayes' },
   ])
   assert.deepEqual(store.storedCounts(), { races: 1, taps: 2, roster: 2 })

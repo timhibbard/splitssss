@@ -4,67 +4,71 @@ import { test } from 'node:test'
 import { displayNames, nameParts, shortName, shortNames, summarize } from './names.ts'
 import type { Athlete } from './types.ts'
 
+// Invented runners throughout. The real team never appears in this repository,
+// which is public, and these are minors: see the note in DESIGN.md.
+
 test('a two word name is a first name and a surname', () => {
-  assert.deepEqual(nameParts('Caroline King'), { first: 'Caroline', last: 'King' })
+  assert.deepEqual(nameParts('Rowan Hayes'), { first: 'Rowan', last: 'Hayes' })
 })
 
 test('three words means a two word first name', () => {
-  assert.deepEqual(nameParts('Mary Eliza Duncan'), { first: 'Mary Eliza', last: 'Duncan' })
-  assert.deepEqual(nameParts('Mary Ward McGee'), { first: 'Mary Ward', last: 'McGee' })
+  assert.deepEqual(nameParts('Anna Grace Fielding'), { first: 'Anna Grace', last: 'Fielding' })
+  assert.deepEqual(nameParts('Ruth Ann Calloway'), { first: 'Ruth Ann', last: 'Calloway' })
 })
 
 test('one word is all first name', () => {
-  assert.deepEqual(nameParts('Adalyn'), { first: 'Adalyn', last: '' })
+  assert.deepEqual(nameParts('Marlowe'), { first: 'Marlowe', last: '' })
 })
 
 test('stray spaces do not become a surname', () => {
-  assert.deepEqual(nameParts('  Zoe   Wong  '), { first: 'Zoe', last: 'Wong' })
+  assert.deepEqual(nameParts('  Quinn   Delgado  '), { first: 'Quinn', last: 'Delgado' })
 })
 
 test('the button says a first name and an initial', () => {
-  assert.equal(shortName('Caroline King'), 'Caroline K.')
-  assert.equal(shortName('MyAngel Gates'), 'MyAngel G.')
-  assert.equal(shortName('Mary Eliza Duncan'), 'Mary Eliza D.')
-  assert.equal(shortName('Mary Ward McGee'), 'Mary Ward M.')
+  assert.equal(shortName('Rowan Hayes'), 'Rowan H.')
+  // A capital inside the first name is left where it is.
+  assert.equal(shortName('MacKenzie Ford'), 'MacKenzie F.')
+  assert.equal(shortName('Anna Grace Fielding'), 'Anna Grace F.')
+  assert.equal(shortName('Ruth Ann Calloway'), 'Ruth Ann C.')
 })
 
 test('a one word name is left alone', () => {
-  assert.equal(shortName('Adalyn'), 'Adalyn')
+  assert.equal(shortName('Marlowe'), 'Marlowe')
 })
 
 test('a surname is spelled out rather than abbreviated to itself', () => {
   // Two letters of a two letter surname is the surname, and "Li L." would be a
   // lie about how much was left off.
-  assert.equal(shortName('Joyce Li', 2), 'Joyce Li')
+  assert.equal(shortName('Quinn Li', 2), 'Quinn Li')
 })
 
 test('the whole team gets a label', () => {
-  const labels = shortNames(['Emma Richard', 'Emma Leipold', 'Karen Izumi'])
-  assert.deepEqual(labels, ['Emma R.', 'Emma L.', 'Karen I.'])
+  const labels = shortNames(['Rowan Hayes', 'Rowan Lindgren', 'Priya Whitaker'])
+  assert.deepEqual(labels, ['Rowan H.', 'Rowan L.', 'Priya W.'])
 })
 
 test('two runners never get the same label', () => {
-  const labels = shortNames(['Emma Richard', 'Emma Rowe', 'Karen Izumi'])
-  assert.deepEqual(labels, ['Emma Ri.', 'Emma Ro.', 'Karen I.'])
+  const labels = shortNames(['Rowan Hayes', 'Rowan Hensley', 'Priya Whitaker'])
+  assert.deepEqual(labels, ['Rowan Ha.', 'Rowan He.', 'Priya W.'])
   assert.equal(new Set(labels).size, 3)
 })
 
 test('a clash only costs letters for the runners in it', () => {
-  const labels = shortNames(['Addie Smith', 'Addie Snow', 'Zoe Wong'])
-  assert.equal(labels[2], 'Zoe W.', 'an unrelated name keeps its initial')
+  const labels = shortNames(['Jordan Blake', 'Jordan Brandt', 'Quinn Delgado'])
+  assert.equal(labels[2], 'Quinn D.', 'an unrelated name keeps its initial')
 })
 
 test('two labels never differ by only a period', () => {
-  // "Ella Hu" and "Ella Hu." are the same button as far as a thumb is
+  // "Marlowe Ho" and "Marlowe Ho." are the same button as far as a thumb is
   // concerned, so the clash keeps growing until they read differently.
-  const labels = shortNames(['Ella Hu', 'Ella Hugley'])
-  assert.deepEqual(labels, ['Ella Hu', 'Ella Hug.'])
+  const labels = shortNames(['Marlowe Ho', 'Marlowe Holloway'])
+  assert.deepEqual(labels, ['Marlowe Ho', 'Marlowe Hol.'])
 })
 
 test('two runners with the same name both get it in full', () => {
   // Rare, and there is nothing better to show. The list order still tells them
   // apart, and neither button claims to be the other runner.
-  assert.deepEqual(shortNames(['Addie Smith', 'Addie Smith']), ['Addie Smith', 'Addie Smith'])
+  assert.deepEqual(shortNames(['Jordan Blake', 'Jordan Blake']), ['Jordan Blake', 'Jordan Blake'])
 })
 
 test('an empty list is not a problem', () => {
@@ -73,21 +77,21 @@ test('an empty list is not a problem', () => {
 
 test('labels come back by id', () => {
   const team: Athlete[] = [
-    { id: 'a1', name: 'Niamh Novak' },
-    { id: 'a2', name: 'Nasly Segura' },
+    { id: 'a1', name: 'Priya Whitaker' },
+    { id: 'a2', name: 'Marlowe Holloway' },
   ]
   const labels = displayNames(team)
-  assert.equal(labels.get('a1'), 'Niamh N.')
-  assert.equal(labels.get('a2'), 'Nasly S.')
+  assert.equal(labels.get('a1'), 'Priya W.')
+  assert.equal(labels.get('a2'), 'Marlowe H.')
   assert.equal(labels.get('nobody'), undefined)
 })
 
 test('a lineup summary names a few and counts the rest', () => {
   assert.equal(summarize([]), 'nobody yet')
-  assert.equal(summarize(['Caroline K.']), 'Caroline K.')
-  assert.equal(summarize(['Caroline K.', 'Emma R.']), 'Caroline K. and Emma R.')
+  assert.equal(summarize(['Marlowe H.']), 'Marlowe H.')
+  assert.equal(summarize(['Marlowe H.', 'Rowan H.']), 'Marlowe H. and Rowan H.')
   assert.equal(
-    summarize(['Caroline K.', 'Emma R.', 'Karen I.', 'Niamh N.', 'Sasha C.']),
-    'Caroline K., Emma R., Karen I. and 2 more',
+    summarize(['Marlowe H.', 'Rowan H.', 'Jordan B.', 'Priya W.', 'Quinn D.']),
+    'Marlowe H., Rowan H., Jordan B. and 2 more',
   )
 })

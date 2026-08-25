@@ -31,8 +31,8 @@ function race(over: Partial<Race> = {}): Race {
     gunSessionId: SESSION,
     createdWallMs: GUN_WALL,
     athletes: [
-      { id: 'a1', name: 'Caroline King' },
-      { id: 'a2', name: 'Emma Richard' },
+      { id: 'a1', name: 'Marlowe Holloway' },
+      { id: 'a2', name: 'Rowan Hayes' },
     ],
     ...over,
   }
@@ -45,9 +45,9 @@ test('named and unnamed crossings come back interlaced, in crossing order', () =
   assert.deepEqual(
     rows.map((r) => [r.place, r.athlete?.name]),
     [
-      [1, 'Caroline King'],
+      [1, 'Marlowe Holloway'],
       [2, undefined],
-      [3, 'Emma Richard'],
+      [3, 'Rowan Hayes'],
     ],
   )
 })
@@ -131,14 +131,14 @@ test('a name can come back off a crossing without losing the time', () => {
 
 test('a waiting crossing offers the runners who have none here yet', () => {
   const athletes = [
-    { id: 'a1', name: 'Caroline King' },
-    { id: 'a2', name: 'Emma Richard' },
-    { id: 'a3', name: 'Karen Izumi' },
+    { id: 'a1', name: 'Marlowe Holloway' },
+    { id: 'a2', name: 'Rowan Hayes' },
+    { id: 'a3', name: 'Jordan Blake' },
   ]
   const taps = [tap(1, 400, 'a2'), tap(2, 410)]
   assert.deepEqual(
     stillOut(athletes, taps).map((a) => a.name),
-    ['Caroline King', 'Karen Izumi'],
+    ['Marlowe Holloway', 'Jordan Blake'],
   )
   // Roster order is kept, because it is the order the coach expects them to pass.
   assert.deepEqual(stillOut(athletes, []), athletes)
@@ -147,10 +147,10 @@ test('a waiting crossing offers the runners who have none here yet', () => {
 
 test('the name grid puts the runners still out on the course first', () => {
   const athletes = [
-    { id: 'a1', name: 'Wilma Rudolph' },
-    { id: 'a2', name: 'Grete Waitz' },
-    { id: 'a3', name: 'Joan Benoit' },
-    { id: 'a4', name: 'Lynn Jennings' },
+    { id: 'a1', name: 'Marlowe Holloway' },
+    { id: 'a2', name: 'Rowan Hayes' },
+    { id: 'a3', name: 'Jordan Blake' },
+    { id: 'a4', name: 'Priya Whitaker' },
   ]
   // Second and fourth have crossed, in that order.
   assert.deepEqual(
@@ -169,8 +169,8 @@ test('the name grid puts the runners still out on the course first', () => {
 
 test('the name grid never repeats or invents a runner', () => {
   const athletes = [
-    { id: 'a1', name: 'Wilma Rudolph' },
-    { id: 'a2', name: 'Grete Waitz' },
+    { id: 'a1', name: 'Marlowe Holloway' },
+    { id: 'a2', name: 'Rowan Hayes' },
   ]
   // An id twice is still one button, and an id for somebody taken out of the
   // lineup is dropped rather than rendered as a hole.

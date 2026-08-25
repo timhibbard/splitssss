@@ -212,7 +212,7 @@ export function Roster({
           value={paste}
           onChange={(e) => setPaste(e.target.value)}
           rows={5}
-          placeholder={'Avery Collins\nRowan Hayes\nJordan Blake'}
+          placeholder={'Marlowe Holloway\nRowan Hayes\nJordan Blake'}
           autoComplete="off"
         />
       </label>

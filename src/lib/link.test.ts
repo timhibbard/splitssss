@@ -4,7 +4,7 @@ import { decodeRoster, encodeRoster, rosterFromHash, rosterLink } from './link.t
 import type { Athlete } from './types.ts'
 
 const team: Athlete[] = [
-  { id: 'a1', name: 'Avery Collins' },
+  { id: 'a1', name: 'Marlowe Holloway' },
   { id: 'a2', name: 'Rowan Hayes' },
   { id: 'a3', name: "Bex O'Neal-Ruiz" },
 ]
@@ -13,7 +13,7 @@ test('a roster survives the round trip through a link', () => {
   const back = decodeRoster(encodeRoster(team))
   assert.deepEqual(
     back.map((a) => a.name),
-    ['Avery Collins', 'Rowan Hayes', "Bex O'Neal-Ruiz"],
+    ['Marlowe Holloway', 'Rowan Hayes', "Bex O'Neal-Ruiz"],
   )
 })
 
@@ -24,8 +24,8 @@ test('ids are minted fresh, because they are local to a device', () => {
 })
 
 test('accented names come through intact', () => {
-  const back = decodeRoster(encodeRoster([{ id: 'x', name: 'Zoë Ramírez' }]))
-  assert.equal(back[0].name, 'Zoë Ramírez')
+  const back = decodeRoster(encodeRoster([{ id: 'x', name: 'Chloë Ramírez' }]))
+  assert.equal(back[0].name, 'Chloë Ramírez')
 })
 
 test('the payload is URL safe', () => {

@@ -3,7 +3,7 @@ import type { Athlete } from './types'
 /**
  * What a name looks like on a button.
  *
- * A phone has room for "Caroline K." and not much more, and a volunteer picking a
+ * A phone has room for "Rowan H." and not much more, and a volunteer picking a
  * runner out of a field of a hundred does not read a surname to know who is
  * coming. Full names stay in storage and in the export, which is the coach's
  * record and the thing that gets filed.
@@ -13,7 +13,7 @@ export type NameParts = { first: string; last: string }
 
 /**
  * Splits on the last space, so everything before it is the first name.
- * "Mary Eliza Duncan" is Mary Eliza, because that is what the team calls out.
+ * "Anna Grace Fielding" is Anna Grace, because that is what the team calls out.
  */
 export function nameParts(full: string): NameParts {
   const words = full.trim().split(/\s+/).filter(Boolean)
@@ -22,7 +22,7 @@ export function nameParts(full: string): NameParts {
 }
 
 /**
- * "Caroline King" becomes "Caroline K." A one word name is left alone, and a
+ * "Rowan Hayes" becomes "Rowan H." A one word name is left alone, and a
  * surname shorter than the letters asked for is spelled out rather than
  * abbreviated to itself with a dot on the end.
  */
@@ -36,8 +36,8 @@ export function shortName(full: string, letters = 1): string {
 
 /**
  * What counts as the same label to someone glancing at a button. The trailing
- * dot goes, so "Ella Hu" and "Ella Hu." are treated as a clash rather than as
- * two labels that differ by a speck of punctuation.
+ * dot goes, so "Marlowe Ho" and "Marlowe Ho." are treated as a clash rather
+ * than as two labels that differ by a speck of punctuation.
  */
 function sameLabel(label: string): string {
   return label.replace(/\.$/, '').toLowerCase()
@@ -57,9 +57,9 @@ function repeated(keys: string[]): Set<string> {
 /**
  * Short names for a whole team, grown a letter at a time wherever two of them
  * would read the same. Two buttons with the same label is a split on the wrong
- * runner, so a clash costs letters until it is gone: Emma R. and Emma Ri. before
- * Emma Richard. Twenty letters in, two people share a name, and then both get it
- * in full.
+ * runner, so a clash costs letters until it is gone: Rowan H. and Rowan Ha.
+ * before Rowan Hayes. Twenty letters in, two people share a name, and then both
+ * get it in full.
  */
 export function shortNames(names: string[]): string[] {
   const full = names.map((name) => name.trim())
@@ -83,7 +83,7 @@ export function displayNames(athletes: Athlete[]): Map<string, string> {
 
 /**
  * A few names and a count, for confirming a lineup without reading all of it.
- * "Caroline K., Emma R., Karen I. and 4 more"
+ * "Marlowe H., Rowan H., Jordan B. and 4 more"
  */
 export function summarize(labels: string[], shown = 3): string {
   if (labels.length === 0) return 'nobody yet'
