@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { elapsedMs, formatElapsed, formatMinSec, formatWallClock } from './clock.ts'
+import {
+  elapsedMs,
+  formatElapsed,
+  formatIsoDate,
+  formatMinSec,
+  formatWallClock,
+  todayIsoDate,
+} from './clock.ts'
 import type { Stamp } from './types.ts'
 
 const gun: Stamp = { wallMs: 1_756_000_000_000, monoMs: 500_000 }
@@ -48,4 +55,24 @@ test('derived times format without tenths', () => {
 test('wall clock formats to tenths in local time', () => {
   const d = new Date(2026, 7, 24, 9, 4, 17, 340)
   assert.equal(formatWallClock(d.getTime()), '9:04:17.3')
+})
+
+test('a stored date reads as a day, in the timezone the phone is in', () => {
+  // The bug this guards: new Date('2026-08-15') is UTC midnight, which is the
+  // 14th anywhere in the Americas, so a race would be filed under the day before.
+  const label = formatIsoDate('2026-08-15')
+  assert.match(label, /Aug/, 'the month is spelled short')
+  assert.match(label, /15/, 'the day is the stored day, not the one before it')
+  assert.match(label, /Sat/, 'August 15 2026 is a Saturday, which is when meets are')
+})
+
+test('a date label never throws on something that is not a date', () => {
+  assert.equal(formatIsoDate(''), '')
+  assert.equal(formatIsoDate('whenever'), 'whenever')
+  assert.equal(formatIsoDate('2026-08'), '2026-08')
+})
+
+test("today's date round trips through the label", () => {
+  assert.match(todayIsoDate(), /^\d{4}-\d{2}-\d{2}$/)
+  assert.notEqual(formatIsoDate(todayIsoDate()), todayIsoDate(), 'formatted, not passed through')
 })

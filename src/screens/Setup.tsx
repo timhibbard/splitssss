@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { formatIsoDate } from '../lib/clock'
 import { distanceLabel, toMeters, type Unit } from '../lib/distance'
 import { defaultLineup, lineupOf } from '../lib/lineup'
 import { displayNames, summarize } from '../lib/names'
@@ -9,7 +10,9 @@ type Props = {
   /** Emits form values only. Identity and timestamps belong to whoever persists them. */
   onStart: (draft: RaceDraft) => void
   existing: Race[]
-  /** Opens a race stored earlier today. Looking at one does not restart it. */
+  /** Races from before today, still on the phone and still exportable. */
+  earlier: Race[]
+  /** Opens a stored race. Looking at one does not restart it. */
   onOpen: (raceId: string) => void
   /** Everyone on the phone. A race takes its lineup out of this. */
   team: Athlete[]
@@ -65,6 +68,7 @@ function describe(stored: { races: number; taps: number }): string {
 export function Setup({
   onStart,
   existing,
+  earlier,
   onOpen,
   team,
   rememberedLineup,
@@ -76,6 +80,12 @@ export function Setup({
   onClearRaces,
 }: Props) {
   const [meet, setMeet] = useState('')
+  /**
+   * Earlier meets, folded away. Reaching last Saturday's race is a real need and
+   * a rare one, and by November the list is long enough to bury the race being
+   * set up now.
+   */
+  const [showEarlier, setShowEarlier] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
   const clearTimer = useRef<number | undefined>(undefined)
 
@@ -172,10 +182,17 @@ export function Setup({
         <p className="tagline">Splits, saved, sorted, sent.</p>
       </header>
 
-      {/* Opened mid race, so getting back to the clock comes before anything else. */}
+      {/*
+        Opened mid race, so getting back to the clock comes before anything else.
+        It says when a race is stopped, because opening one from the lists below
+        makes it the race this button points at, and "back to timing" would be a
+        lie about a clock that is frozen.
+      */}
       {active && (
         <button type="button" className="primary" onClick={onBackToTiming}>
-          Back to timing {active.race} at {active.station.label}
+          {active.stoppedAt
+            ? `Back to ${active.race} at ${active.station.label}, stopped`
+            : `Back to timing ${active.race} at ${active.station.label}`}
         </button>
       )}
 
@@ -362,6 +379,36 @@ export function Setup({
               </span>
             </button>
           ))}
+        </section>
+      )}
+
+      {/*
+        Before today. A meet nobody exported before the date changed used to be
+        unreachable: the app only ever listed today's races, so the times were on
+        the phone with no way to open them and no way to send them.
+      */}
+      {earlier.length > 0 && (
+        <section className="prior">
+          {showEarlier ? (
+            <>
+              <h2>Earlier meets</h2>
+              {earlier.map((r) => (
+                <button key={r.id} type="button" className="prior-race" onClick={() => onOpen(r.id)}>
+                  <strong>{r.race}</strong> at {r.station.label}
+                  <span className="prior-meta">
+                    {formatIsoDate(r.date)}, {r.meet}
+                    {r.stoppedAt ? '' : ', never stopped'}
+                  </span>
+                </button>
+              ))}
+            </>
+          ) : (
+            <p className="setup-link">
+              <button type="button" className="link" onClick={() => setShowEarlier(true)}>
+                Show {earlier.length} race{earlier.length === 1 ? '' : 's'} from before today
+              </button>
+            </p>
+          )}
         </section>
       )}
 

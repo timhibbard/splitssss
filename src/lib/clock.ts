@@ -65,6 +65,22 @@ export function isoStamp(wallMs: number): string {
   return new Date(wallMs).toISOString()
 }
 
+/**
+ * A stored date the way a coach says it: "Sat, Aug 15". Parsed at local noon
+ * rather than by Date's ISO path, which reads a bare date as UTC midnight and
+ * would show the day before to everybody west of Greenwich. Anything that is not
+ * a date comes back untouched, because a label is not worth throwing over.
+ */
+export function formatIsoDate(iso: string): string {
+  const [year, month, day] = iso.split('-').map(Number)
+  if (!year || !month || !day) return iso
+  return new Date(year, month - 1, day, 12).toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
 export function todayIsoDate(): string {
   const d = new Date()
   return [

@@ -20,10 +20,23 @@ type Screen = 'setup' | 'roster' | 'capture' | 'export'
  * render rather than in an effect so a volunteer whose page was discarded or
  * refreshed mid race never sees a flash of the setup screen before their taps
  * come back.
+ *
+ * Only a race from today. A volunteer who never tapped Stop leaves a race active
+ * forever, so opening the app at the next meet landed on the last one, with an
+ * hour on its clock and this morning's crossings going into it. The race is not
+ * touched, and it is still there to export under earlier meets. It just stops
+ * being the race this phone is timing.
+ *
+ * Clearing the pointer here rather than leaving it is deliberate: nothing else
+ * would clear it, and a stale pointer would keep the setup screen offering to go
+ * back to a race from last Saturday.
  */
 function restore(): { race: Race | null; taps: Tap[]; roster: Athlete[] } {
   const activeId = store.getActiveRaceId()
-  const race = activeId ? store.loadRace(activeId) : null
+  const found = activeId ? store.loadRace(activeId) : null
+  const stale = found !== null && found.date !== todayIsoDate()
+  if (stale) store.setActiveRaceId(null)
+  const race = stale ? null : found
   return {
     race,
     taps: race ? store.loadTaps(race.id) : [],
@@ -450,9 +463,15 @@ export default function App() {
   const showSetup = !race || screen === 'setup'
   // The race in progress gets its own button at the top, so it is not also
   // listed as something to resume.
-  const todaysRaces = showSetup
-    ? store.loadAllRaces().filter((r) => r.date === todayIsoDate() && r.id !== race?.id)
-    : []
+  const others = showSetup ? store.loadAllRaces().filter((r) => r.id !== race?.id) : []
+  const todaysRaces = others.filter((r) => r.date === todayIsoDate())
+  /**
+   * Races from before today. Listed rather than filtered away, because a race
+   * nobody exported is the one thing on this phone with no copy anywhere else,
+   * and it used to be unreachable the moment the date changed: the only way it
+   * ever left was Clear all races.
+   */
+  const earlierRaces = others.filter((r) => r.date !== todayIsoDate())
 
   /**
    * What a wipe would destroy, read straight from storage so it cannot drift
@@ -486,6 +505,7 @@ export default function App() {
         onStart={startRace}
         onOpen={openRace}
         existing={todaysRaces}
+        earlier={earlierRaces}
         team={roster}
         rememberedLineup={store.loadLineup}
         hasPublished={vault !== null}

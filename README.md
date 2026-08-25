@@ -70,6 +70,11 @@ Live at **https://timhibbard.github.io/splitssss/**
 - **The buttons stay put.** The name grid and the running list each hold a fixed
   share of the screen, so nine crossings look like two, and the list never grows
   over the names or pushes Stop and Export off the bottom.
+- **A new meet starts fresh.** A race from an earlier day is never picked back up
+  as the one you are timing, even if nobody ever tapped Stop on it.
+- **Earlier meets are still there.** Anything from a previous day is one tap away
+  under "Earlier meets", with the day and the meet on it, so a race nobody
+  exported is not stranded by the date changing.
 - **Clear all races.** At the bottom of the home screen, with the counts it would
   destroy spelled out and two taps to confirm. It clears races and crossings only.
   The runners stay, since they are the part with no copy on the phone to rebuild

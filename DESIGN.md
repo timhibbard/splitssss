@@ -246,6 +246,22 @@ Opening setup mid race puts "Back to timing" at the top, and the race in
 progress is left out of the "Earlier today" list so it appears in exactly one
 place.
 
+### Earlier meets are reachable
+
+The setup screen used to list only today's races. A race nobody exported before
+the date changed was then the one thing on the phone with no copy anywhere else,
+with no way to open it and no way to send it. The only thing that ever removed it
+was Clear all races.
+
+So races from before today get their own list, with the day and the meet on each
+one and ", never stopped" where that applies. It is folded behind a link by
+default: reaching last Saturday's race is a real need and a rare one, and by
+November the list is long enough to bury the race being set up now.
+
+Opening one makes it the race this phone points at, which is what makes the
+button at the top of setup describe a stopped race rather than claim to be timing
+it: "Back to JV Girls at Mile 1, stopped".
+
 ### Editing the team list is a link, not a panel
 
 For a while the roster was a bordered panel above the race fields, on the theory
@@ -406,6 +422,19 @@ therefore falls back to the wall clock across a refresh, which is accurate to
 the millisecond and only vulnerable to a clock correction landing inside the
 race. Within one page session, monotonic time is preferred and such a
 correction is ignored entirely. Both paths are covered by tests.
+
+### Only today's race is still being timed
+
+Restoring the race in progress is right within a meet and wrong across meets. A
+volunteer who never tapped Stop leaves a race active forever, so opening the app
+at the next meet landed on the last one, with an hour on its clock, and the first
+crossings of the morning went into it.
+
+So a stored race is restored only if its date is today. The race itself is not
+touched and it is still there to export under earlier meets. It just stops being
+the race this phone is timing, and the pointer to it is cleared rather than left,
+because nothing else would clear it and a stale pointer would keep offering to go
+back to last Saturday.
 
 ### A runner is a name, not a number
 
