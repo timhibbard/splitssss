@@ -3,10 +3,11 @@
  *
  *   npm run roster-encrypt -- roster.txt
  *
- * One runner per line, bib numbers optional and stripped. Writes
- * public/roster.enc, which is ciphertext and is meant to be committed. The names
- * file is not: roster*.txt is gitignored, and it should stay off this machine's
- * repo entirely if you can help it.
+ * One runner per line, with that runner's 5K best after the name if there is one.
+ * Bib numbers optional and stripped. Writes public/roster.enc, which is
+ * ciphertext and is meant to be committed. The names file is not: roster*.txt is
+ * gitignored, and it should stay off this machine's repo entirely if you can help
+ * it.
  *
  * The passphrase is prompted for, not passed as an argument, so it stays out of
  * shell history and out of the process list. Set SPLITS_PASSPHRASE instead if you
@@ -20,7 +21,8 @@
 import { execFileSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { createInterface } from 'node:readline'
-import { parseRoster } from '../src/lib/roster.ts'
+import { formatPr } from '../src/lib/clock.ts'
+import { parseRoster, rosterText } from '../src/lib/roster.ts'
 import { isVault, ITERATIONS, openRoster, sealRoster, VAULT_FILE } from '../src/lib/vault.ts'
 
 const OUT = `public/${VAULT_FILE}`
@@ -108,7 +110,9 @@ if (athletes.length === 0) {
 
 const plural = athletes.length === 1 ? 'runner' : 'runners'
 console.error(`${athletes.length} ${plural}:`)
-console.error(athletes.map((a) => `  ${a.name}`).join('\n'))
+console.error(
+  athletes.map((a) => `  ${a.name}${a.pr == null ? '' : `  ${formatPr(a.pr)}`}`).join('\n'),
+)
 console.error('')
 
 let passphrase = process.env.SPLITS_PASSPHRASE ?? ''
@@ -144,13 +148,13 @@ writeFileSync(OUT, `${JSON.stringify(vault, null, 2)}\n`)
 // format mistake is caught here rather than by a volunteer at the starting line.
 const written: unknown = JSON.parse(readFileSync(OUT, 'utf8'))
 const check = isVault(written) ? await openRoster(written, passphrase) : null
-if (check?.map((a) => a.name).join('\n') !== athletes.map((a) => a.name).join('\n')) {
+if (check == null || rosterText(check) !== rosterText(athletes)) {
   console.error(`${OUT} did not open back to the same list. Do not publish it.`)
   process.exit(1)
 }
 
 console.error(`Wrote ${OUT}, ${athletes.length} ${plural}, ${ITERATIONS.toLocaleString()} rounds.`)
-console.error('Read it back and opened it. The names match.')
+console.error('Read it back and opened it. The names and best times match.')
 console.error('')
 console.error(`Commit ${OUT}. Do not commit ${file}.`)
 console.error('Text the passphrase separately. The app asks for it once per phone.')

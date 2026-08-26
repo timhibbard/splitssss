@@ -59,6 +59,49 @@ test('each row carries its split and its projected finish', () => {
   assert.equal(rows[0].projected, 1_200_000)
 })
 
+test("a row says where that pace stands against the runner's best", () => {
+  // 8:00 at 2K projects to 20:00, against a 19:48 best, so twelve seconds behind.
+  const team = [{ id: 'a1', name: 'Marlowe Holloway', pr: 19 * 60_000 + 48_000 }]
+  const rows = splitRows(race({ athletes: team }), [tap(1, 480, 'a1')], SESSION)
+  assert.equal(rows[0].vsPr, 12_000)
+})
+
+test('a runner ahead of their best gets a negative gap', () => {
+  const team = [{ id: 'a1', name: 'Marlowe Holloway', pr: 20 * 60_000 + 30_000 }]
+  const rows = splitRows(race({ athletes: team }), [tap(1, 480, 'a1')], SESSION)
+  assert.equal(rows[0].vsPr, -30_000)
+})
+
+test('no best time, no projection, or the wrong distance means no gap at all', () => {
+  const withPr = [{ id: 'a1', name: 'Marlowe Holloway', pr: 20 * 60_000 }]
+
+  assert.equal(
+    splitRows(race(), [tap(1, 480, 'a1')], SESSION)[0].vsPr,
+    undefined,
+    'a runner with no best has nothing to be compared to',
+  )
+  const noMeters = race({ athletes: withPr, station: { label: 'Finish' } })
+  assert.equal(
+    splitRows(noMeters, [tap(1, 480, 'a1')], SESSION)[0].vsPr,
+    undefined,
+    'and with no station distance there is no projection to compare',
+  )
+  // A 4K projection against a 5K best is two different numbers subtracted, which
+  // would be a twenty second lie in the one place a coach would believe it.
+  assert.equal(
+    splitRows(race({ athletes: withPr, raceMeters: 4000 }), [tap(1, 480, 'a1')], SESSION)[0].vsPr,
+    undefined,
+    'a race that is not the PR distance gets no comparison',
+  )
+})
+
+test('an unnamed crossing has nobody to compare, and says so rather than guessing', () => {
+  const team = [{ id: 'a1', name: 'Marlowe Holloway', pr: 20 * 60_000 }]
+  const rows = splitRows(race({ athletes: team }), [tap(1, 480)], SESSION)
+  assert.equal(rows[0].projected, 1_200_000, 'the time is still a time')
+  assert.equal(rows[0].vsPr, undefined)
+})
+
 test('a station with no distance still gives a split, just no projection', () => {
   const rows = splitRows(race({ station: { label: 'Finish' } }), [tap(1, 480)], SESSION)
   assert.equal(rows[0].elapsed, 480_000)

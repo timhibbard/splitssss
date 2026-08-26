@@ -30,6 +30,30 @@ test('one changed name changes the file', () => {
   assert.notEqual(scrambleTeam(TEAM), scrambleTeam([...TEAM, 'Quinn D.']))
 })
 
+test('a best time survives the scramble with the label it belongs to', () => {
+  // A PR that only arrived with a passphrase would never reach a volunteer's
+  // phone, so the shipped file carries the numbers too.
+  const lines = ['Marlowe H.\t21:34.60', 'Rowan H.', 'Jordan B.\t24:00.00']
+  const back = unscrambleTeam(scrambleTeam(lines))
+  assert.deepEqual(
+    back?.map((a) => [a.name, a.pr]),
+    [
+      ['Marlowe H.', 21 * 60_000 + 34_600],
+      ['Rowan H.', undefined],
+      ['Jordan B.', 24 * 60_000],
+    ],
+  )
+})
+
+test('a changed best time changes the fingerprint, so the phone picks it up', () => {
+  // The app compares the shipped text against what it already has. A rebuild that
+  // only moved a PR has to read as a change or nobody ever sees the new one.
+  const before = [{ id: 'x1', name: 'Marlowe H.', pr: 21 * 60_000 + 34_600 }]
+  const after = [{ id: 'x1', name: 'Marlowe H.', pr: 20 * 60_000 + 51_240 }]
+  assert.notEqual(teamText(before), teamText(after))
+  assert.notEqual(teamText(before), teamText([{ id: 'x1', name: 'Marlowe H.' }]))
+})
+
 test('blank lines and stray spaces do not become runners', () => {
   const back = unscrambleTeam(scrambleTeam(['  Marlowe H.  ', '', 'Rowan H.']))
   assert.deepEqual(back?.map((a) => a.name), ['Marlowe H.', 'Rowan H.'])

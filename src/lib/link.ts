@@ -1,7 +1,7 @@
 // Explicit extension so `node --test` can load this module's graph without a
 // build step. Vite resolves it identically.
 import { base64UrlToText, textToBase64Url } from './base64.ts'
-import { parseRoster } from './roster.ts'
+import { parseRoster, rosterText } from './roster.ts'
 import type { Athlete } from './types'
 
 /**
@@ -12,15 +12,15 @@ import type { Athlete } from './types'
  * texted link *is* the data transfer.
  *
  * The payload is base64url of the same one-runner-per-line text a coach would
- * paste, so a link and a paste decode through identical code. Base64 is not
- * secrecy, it just keeps a list of names out of a text message preview and
- * survives every mail client and messaging app that would otherwise mangle
- * spaces, commas, and accents.
+ * paste, best times included, so a link and a paste decode through identical
+ * code. Base64 is not secrecy, it just keeps a list of names out of a text
+ * message preview and survives every mail client and messaging app that would
+ * otherwise mangle spaces, commas, and accents.
  */
 const KEY = 'r='
 
 export function encodeRoster(athletes: Athlete[]): string {
-  return textToBase64Url(athletes.map((a) => a.name).join('\n'))
+  return textToBase64Url(rosterText(athletes))
 }
 
 export function decodeRoster(encoded: string): Athlete[] {

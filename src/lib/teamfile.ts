@@ -1,6 +1,6 @@
 // Explicit extensions: see the note in link.ts.
 import { base64UrlToBytes, bytesToBase64Url } from './base64.ts'
-import { parseRoster } from './roster.ts'
+import { parseRoster, rosterText } from './roster.ts'
 import type { Athlete } from './types'
 
 /**
@@ -22,6 +22,12 @@ import type { Athlete } from './types'
  *   the same thing the buttons say. Decoded, it is first names and an initial for
  *   a team whose roster a meet program prints anyway, rather than a file of full
  *   names.
+ * - Each line carries that runner's best time, because a PR on the button is
+ *   useless if it only arrives with a passphrase somebody has to be texted. A 5K
+ *   best is already published, next to a full name, on the meet's own results
+ *   page. Attached here to a first name and an initial it is less than what the
+ *   results already say, and it is what makes a split mean something at the
+ *   course.
  * - Full names never travel this way. They go by roster link or by the encrypted
  *   `roster.enc`, both of which need something a person has to supply.
  *
@@ -73,9 +79,13 @@ function mask(bytes: Uint8Array): Uint8Array {
   return out
 }
 
-/** The file body: one line of base64url, so it is a plain text file in git. */
-export function scrambleTeam(names: string[]): string {
-  const clean = names.map((name) => name.trim()).filter(Boolean)
+/**
+ * The file body: one line of base64url, so it is a plain text file in git. Each
+ * line in is one runner, in the same format everything else here uses, which is a
+ * label and optionally a tab and a best time.
+ */
+export function scrambleTeam(lines: string[]): string {
+  const clean = lines.map((line) => line.trim()).filter(Boolean)
   const text = [HEADER, ...clean, FOOTER].join('\n')
   return bytesToBase64Url(mask(new TextEncoder().encode(text)))
 }
@@ -112,9 +122,13 @@ export async function fetchTeam(url: string): Promise<Athlete[] | null> {
 }
 
 /**
- * How a phone recognizes the list it already has. Names only, in order, so a
- * rebuild that changes nothing is not mistaken for a new roster.
+ * How a phone recognizes the list it already has: the same text the file itself
+ * carries, so a rebuild that changes nothing is not mistaken for a new roster.
+ *
+ * Best times are part of it, so a rebuild that only updates a PR does reach the
+ * phones. A runner who set one on Saturday should not need a coach to explain to
+ * twelve volunteers why the button still says last week's number.
  */
 export function teamText(athletes: Athlete[]): string {
-  return athletes.map((a) => a.name).join('\n')
+  return rosterText(athletes)
 }

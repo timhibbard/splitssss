@@ -425,8 +425,10 @@
 
 .name-chip {
   /* Centres a wrapped name in the button instead of letting the second line run
-     out through the bottom border, which is what truncation was doing. */
+     out through the bottom border, which is what truncation was doing. A column,
+     because the best time sits under the name. */
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
@@ -442,8 +444,29 @@
   overflow-wrap: break-word;
 }
 
+/* A column flex item is sized to its content, so the name needs the button's
+   width as a ceiling or a long one would push out through the border instead of
+   wrapping inside it. */
+.chip-name {
+  max-width: 100%;
+}
+
+/* The runner's best, under the name. Quiet on purpose: the name is what the
+   thumb is aiming at, and the number is what the eye picks up on the way. */
+.chip-pr {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
 .name-chip:active {
   background: var(--navy);
+  color: #fff;
+}
+
+.name-chip:active .chip-pr {
   color: #fff;
 }
 
@@ -513,8 +536,11 @@
 .splits-head,
 .split-row {
   display: grid;
-  grid-template-columns: 2em 5.6em 1fr 3.4em;
-  gap: 8px;
+  /* Place, split, runner, projection, and the gap against that runner's best.
+     The name column is the one that flexes: the four numbers are all fixed
+     widths and a shortened label fits what is left. */
+  grid-template-columns: 2em 5.4em 1fr 3.4em 3.2em;
+  gap: 7px;
   align-items: baseline;
 }
 
@@ -528,7 +554,9 @@
   border-bottom: 1px solid var(--line);
 }
 
+/* The number columns, right aligned so the digits under them line up. */
 .splits-head span:first-child,
+.splits-head span:nth-child(4),
 .splits-head span:last-child {
   text-align: right;
 }
@@ -588,6 +616,28 @@
   font-size: 15px;
   font-weight: 600;
   color: var(--navy);
+}
+
+/* Against that runner's own best. Ahead is green, behind is the amber that
+   already means "look at this", never the red that means "this destroys
+   something". */
+.split-vs {
+  text-align: right;
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.split-vs.ahead {
+  color: var(--ahead);
+}
+
+.split-vs.behind {
+  color: var(--warn);
+}
+
+.split-vs.even {
+  color: var(--ink-soft);
 }
 
 /* Where the next name tap will land. Marked on the row itself, so the answer to
@@ -924,7 +974,18 @@
 
 .roster-name {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   font-size: 17px;
+}
+
+/* The full best time here, hundredths and all, because this is the screen where
+   somebody checks whether the number that came in is the number they meant. */
+.roster-pr {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
 }
 
 .remove {

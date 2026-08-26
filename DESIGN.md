@@ -414,6 +414,51 @@ It needs both a station distance and a race distance, so a custom split point
 entered without a distance shows the clock and no projection rather than a
 wrong number.
 
+### A best time on the button, and a gap in the list
+
+A projected finish answers "how fast is this". The question a coach actually
+asks at 2K is "how fast is this *for this runner*", and that needs their own
+best next to it. So a runner carries an optional `pr`, in milliseconds, and the
+whole feature is one number and one comparison.
+
+The button shows the best time itself, `21:34`, under the name. Not a target
+split for this station, which would be the more useful number in the abstract:
+a 112px button already holds a name, and a second number that is neither the
+runner's PR nor the clock on the screen is a number a volunteer has to be
+taught. A PR is a number the team already says out loud. It is truncated to
+seconds on the button and never rounded up, because 18:40 is a time that runner
+has not run.
+
+The running list carries the comparison instead, one column, the projected
+finish minus that runner's best: `+0:12` behind, `-0:08` ahead, `0:00` with no
+sign when it rounds to level. Amber for behind and green for ahead, and behind
+is deliberately not the red used to confirm erasing a race, because being
+twelve seconds off your PR at 2K is a fact and not a warning. A screen reader
+gets it in words, "twelve seconds behind PR pace", since "+0:12" reads as "zero
+twelve".
+
+The comparison is suppressed unless the race distance equals the PR distance,
+which is 5000m for both. A 4K projection against a 5K best is two
+different numbers subtracted, and the answer would be about twenty seconds
+wrong in the one place a coach would believe it. Nothing shown beats a
+confident lie. Same for a runner with no best, an unnamed crossing, and a
+station with no distance: the column is simply empty. `prGap` in `lib/splits.ts`
+holds that rule with tests, and the CSV calls the same function, so the file and
+the screen cannot disagree.
+
+Best times travel in the roster text itself, `Name<tab>m:ss.hh`, one line per
+runner, which is the format a paste, a link, `roster.enc` and `team.dat` already
+share. So all four channels gained best times at once, and there is no fifth
+format to keep in sync. `rosterText` is the inverse of `parseRoster` and there
+is a round trip test, because that pair is now load bearing in four places. A
+time is recognised by its colon, which is what distinguishes it from the bib
+number that an entry list paste puts at the *front* of the same line.
+
+The export carries four columns rather than one: the best time and the gap, each
+printed and in signed seconds, because a column of `+0:12` cannot be sorted. The
+text summary appends the gap to each line and explains the number in a legend,
+but only when at least one row has one.
+
 ### Stop takes two taps
 
 The stop button sits inches from a target being hit repeatedly under pressure,
@@ -489,11 +534,12 @@ Two reasons this is the right call and not just the lazy one:
 below is the one exception, and it is ciphertext.
 
 The payload is base64url of the same one-runner-per-line text a coach would
-paste, so a link and a paste decode through identical code and there is one
-format to get right rather than two. Base64 is not secrecy. It keeps a list of
-names out of a message preview and survives clients that would otherwise mangle
-spaces, commas, and accents. A twenty eight name roster makes a link of about
-600 characters, which texts fine and leaves room for a QR code later.
+paste, best times included, so a link and a paste decode through identical code
+and there is one format to get right rather than two. Base64 is not secrecy. It
+keeps a list of names out of a message preview and survives clients that would
+otherwise mangle spaces, commas, and accents. A twenty eight name roster with
+every best time makes a link of about 900 characters, which texts fine and
+leaves room for a QR code later.
 
 Three rules the implementation follows:
 
@@ -534,8 +580,8 @@ passphrase            in the coach's head, texted separately, never written here
 ```
 
 `npm run roster-encrypt -- roster.txt` seals the same one-runner-per-line text a
-paste or a link would carry, then reads the file back and opens it before saying
-it worked. The app fetches the file at startup, and the roster screen offers an
+paste or a link would carry, best times and all, then reads the file back and
+opens it before saying it worked. The app fetches the file at startup, and the roster screen offers an
 unlock. Decryption is in the browser, so the passphrase never leaves the phone,
 and the decrypted names persist locally, which makes this once per phone rather
 than once per race. A wrong passphrase and a tampered file both fail, since GCM
@@ -578,16 +624,23 @@ typed is a list anyone can read, because the way to read it has to ship in the
 JavaScript. There is no arrangement of files and keys that changes this. So the
 choice is not how to hide the file, it is what goes in it.
 
-What goes in it is the short label a button already says:
+What goes in it is the short label a button already says, and that runner's best
+time:
 
 ```
-public/team.dat    "Rowan H.", scrambled, committed
+public/team.dat    "Rowan H.  21:34.60", scrambled, committed
 ```
 
 First name and an initial, never a surname. That is what a meet program prints
 next to a time anyway, and what a spectator hears called across a field. Full
 names still cost a link or a passphrase, and plaintext still never gets
 committed.
+
+The best times ship for the same reason the labels do. A PR that only arrives
+with a passphrase somebody has to be texted is a PR that never reaches the
+volunteer holding the phone, which is the one person the feature is for. And a
+5K best is already published next to a *full* name on the meet's own results
+page, so next to "Rowan H." it says less than the results already say.
 
 `npm run team-file -- roster.txt` writes it, through the same `shortNames` the
 buttons use, so what it writes is what a volunteer reads. The scramble is a
@@ -598,6 +651,8 @@ someone glancing at the file listing. What it does not buy is confidentiality
 from anyone who spends a minute on it, and the tool says so on every run.
 
 Because output is deterministic, a rebuild with no roster change is not a diff.
+A rebuild that only moved a best time *is* a diff, and reads as a change the
+phone should adopt, which is the point: PRs move during a season.
 
 Adopting it is where the care goes, since a file that arrives on its own can
 destroy work nobody asked it to touch:
@@ -658,7 +713,10 @@ race day. A wrong split is not.
 The split tests cover the pieces of the running list that could lose a name
 without saying so: which clock each row is measured against, a station with no
 distance, a crossing pointing at an athlete who has since been deleted, and
-naming a runner onto a second crossing freeing the first.
+naming a runner onto a second crossing freeing the first. They also pin the four
+ways a comparison against a best time has to come back empty rather than wrong:
+no best on file, no projection to compare, a race that is not the PR distance,
+and a crossing with nobody's name on it.
 
 The name tests cover what a button says: a three word first name, a surname
 shorter than the letters asked for, and a clash growing only for the pair that
@@ -687,6 +745,13 @@ would be worst: every truncation point of a good file is rejected, so a partial
 download cannot become a short list ending in half a name. They also pin the
 determinism a clean rebuild depends on, and that a missing file, a tampered file
 and garbage all read as no shipped team.
+
+Because best times now ride the same one-runner-per-line text through all four
+channels, each channel's tests carry a case for them, plus a round trip between
+`parseRoster` and `rosterText` and a check that a loosely written time comes back
+in one canonical shape. A wrong best time would be worse than none, since every
+comparison on the screen is measured against it, so the clock tests reject a bib
+number, a one digit second, a sixtieth second and thousandths.
 
 ### Install to the home screen
 

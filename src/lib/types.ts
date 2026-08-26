@@ -32,6 +32,12 @@ export type Station = {
 export type Athlete = {
   id: string
   name: string
+  /**
+   * Personal best in ms, at the race distance: a 5K best, since that is every
+   * race this team runs. Optional, because a freshman's first meet has no best
+   * to beat and a typed in name has nothing behind it at all.
+   */
+  pr?: number
 }
 
 /** What the setup form collects. Everything else about a race is assigned on save. */

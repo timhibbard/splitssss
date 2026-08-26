@@ -4,9 +4,9 @@ import { fetchVault, isVault, ITERATIONS, open, openRoster, sealRoster } from '.
 import type { Athlete } from './types.ts'
 
 const team: Athlete[] = [
-  { id: 'a1', name: 'Marlowe Holloway' },
+  { id: 'a1', name: 'Marlowe Holloway', pr: 21 * 60_000 + 34_600 },
   { id: 'a2', name: 'Chloë Ramírez' },
-  { id: 'a3', name: "Bex O'Neal-Ruiz" },
+  { id: 'a3', name: "Bex O'Neal-Ruiz", pr: 24 * 60_000 },
 ]
 
 const PASS = 'crimson-anvil-otter-lagoon'
@@ -20,6 +20,11 @@ test('the roster comes back out with the right passphrase', async () => {
     back?.map((a) => a.name),
     ['Marlowe Holloway', 'Chloë Ramírez', "Bex O'Neal-Ruiz"],
     'accents and apostrophes included',
+  )
+  assert.deepEqual(
+    back?.map((a) => a.pr),
+    [21 * 60_000 + 34_600, undefined, 24 * 60_000],
+    'and each best time with the runner it belongs to',
   )
 })
 
@@ -44,6 +49,7 @@ test('no name appears anywhere in the published file', async () => {
   for (const name of ['marlowe', 'holloway', 'ramírez', 'ramirez', "o'neal", 'neal', 'ruiz']) {
     assert.equal(onDisk.includes(name), false, `${name} leaked into the file`)
   }
+  assert.equal(onDisk.includes('21:34'), false, 'nor a best time in the clear')
 })
 
 test('a tampered file fails to open rather than decrypting to something else', async () => {

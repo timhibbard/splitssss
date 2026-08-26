@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { mergeLineup, parseRoster } from './roster.ts'
+import { mergeLineup, parseRoster, rosterText } from './roster.ts'
 import type { Athlete } from './types.ts'
 
 const marlowe: Athlete = { id: 'a1', name: 'Marlowe Holloway' }
@@ -117,6 +117,57 @@ test('bib numbers on a pasted entry list are stripped, not stored', () => {
 
 test('a name that is only a number is not a runner', () => {
   assert.deepEqual(parseRoster('42\n\n  \n'), [])
+})
+
+test('a best time after the name comes in with the runner', () => {
+  const parsed = parseRoster(
+    'Marlowe Holloway\t21:34.60\nRowan Hayes  22:29.15\nJordan Blake, 24:00\nPriya Whitaker',
+  )
+  assert.deepEqual(
+    parsed.map((a) => a.name),
+    ['Marlowe Holloway', 'Rowan Hayes', 'Jordan Blake', 'Priya Whitaker'],
+    'a tab, spaces or a comma all separate a name from a time',
+  )
+  assert.deepEqual(
+    parsed.map((a) => a.pr),
+    [21 * 60_000 + 34_600, 22 * 60_000 + 29_150, 24 * 60_000, undefined],
+    'and a runner with no best time simply has none',
+  )
+})
+
+test('a bib is still a bib and a time is still a time', () => {
+  // The colon is what tells them apart, and a line can carry both.
+  const parsed = parseRoster('14 Rowan Hayes 21:34.60\nJordan Blake, 22\n7 Priya Whitaker')
+  assert.deepEqual(
+    parsed.map((a) => a.name),
+    ['Rowan Hayes', 'Jordan Blake', 'Priya Whitaker'],
+  )
+  assert.deepEqual(parsed.map((a) => a.pr), [21 * 60_000 + 34_600, undefined, undefined])
+})
+
+test('a line that is only a time is not a runner', () => {
+  assert.deepEqual(parseRoster('21:34.60\n\n  \n'), [])
+})
+
+test('the list is text, and the text parses back to the list', () => {
+  // One format for a paste, a link, the encrypted roster and the shipped file, so
+  // no two of them can drift into disagreeing about what a line means.
+  const text = 'Marlowe Holloway\t21:34.60\nRowan Hayes\t22:29.15\nPriya Whitaker'
+  const back = parseRoster(text)
+  assert.equal(rosterText(back), text)
+  assert.equal(
+    rosterText(parseRoster('Rowan Hayes  22:29.1')),
+    'Rowan Hayes\t22:29.10',
+    'a time given loosely comes back in one canonical shape',
+  )
+})
+
+test('an edited best time reaches a runner who already crossed', () => {
+  // A PR set on Saturday morning, typed in before the afternoon race, on a runner
+  // who already has a time at this station.
+  const faster: Athlete = { id: 'a1', name: 'Marlowe Holloway', pr: 20 * 60_000 }
+  const merged = mergeLineup([marlowe], [marlowe], [faster], new Set(['a1']))
+  assert.deepEqual(merged, [faster])
 })
 
 test('hyphenated and apostrophe names are left alone', () => {

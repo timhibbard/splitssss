@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { formatPr } from '../lib/clock'
 import { rosterLink } from '../lib/link'
 import { parseRoster } from '../lib/roster'
 import type { Athlete } from '../lib/types'
@@ -203,16 +204,17 @@ export function Roster({
 
       <p className="hint">
         These names become the buttons you tap during a race. The list stays on
-        this phone for the whole season.
+        this phone for the whole season. A 5K best after the name is optional: it
+        goes on the button and every split gets compared to it.
       </p>
 
       <label>
-        Paste a list, one runner per line
+        Paste a list, one runner per line, best time optional
         <textarea
           value={paste}
           onChange={(e) => setPaste(e.target.value)}
           rows={5}
-          placeholder={'Marlowe Holloway\nRowan Hayes\nJordan Blake'}
+          placeholder={'Marlowe Holloway  21:34.60\nRowan Hayes  22:29.15\nJordan Blake'}
           autoComplete="off"
         />
       </label>
@@ -228,7 +230,7 @@ export function Roster({
           onKeyDown={(e) => {
             if (e.key === 'Enter') addSingle()
           }}
-          placeholder="Runner's name"
+          placeholder="Runner's name, and a best time if there is one"
           autoComplete="off"
         />
       </label>
@@ -244,6 +246,7 @@ export function Roster({
               <div key={a.id} className="roster-row">
                 <span className="roster-name">
                   {a.name}
+                  {a.pr != null && <span className="roster-pr">{formatPr(a.pr)}</span>}
                 </span>
                 <button type="button" className="remove" onClick={() => remove(a.id)}>
                   Remove

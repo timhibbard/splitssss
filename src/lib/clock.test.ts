@@ -2,10 +2,14 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   elapsedMs,
+  formatDelta,
   formatElapsed,
   formatIsoDate,
   formatMinSec,
+  formatPr,
+  formatPrShort,
   formatWallClock,
+  parsePr,
   todayIsoDate,
 } from './clock.ts'
 import type { Stamp } from './types.ts'
@@ -50,6 +54,44 @@ test('derived times format without tenths', () => {
   assert.equal(formatMinSec(12 * 60_000), '12:00')
   assert.equal(formatMinSec(1_121_400), '18:41')
   assert.equal(formatMinSec(59_600), '1:00', 'rounds to the nearest second')
+})
+
+test('a best time reads and prints as it is written on a results page', () => {
+  assert.equal(parsePr('21:34.60'), 21 * 60_000 + 34_600)
+  assert.equal(formatPr(21 * 60_000 + 34_600), '21:34.60')
+  // A whole second best comes back with the hundredths spelled out, so the text
+  // every channel carries has one shape rather than two.
+  assert.equal(parsePr('24:00'), 24 * 60_000)
+  assert.equal(formatPr(24 * 60_000), '24:00.00')
+  assert.equal(parsePr('18:42.5'), 18 * 60_000 + 42_500, 'one decimal is tenths, not hundredths')
+  assert.equal(formatPr(41 * 60_000), '41:00.00')
+})
+
+test('a best time is only a best time if it looks like one', () => {
+  // A wrong PR is worse than none: every comparison on the screen would be
+  // measured against it.
+  assert.equal(parsePr('101'), undefined, 'a bib number is not a time')
+  assert.equal(parsePr('21:6'), undefined, 'seconds are always two digits')
+  assert.equal(parsePr('21:60'), undefined, 'sixty seconds is not a time')
+  assert.equal(parsePr('21:34.607'), undefined, 'hundredths, not thousandths')
+  assert.equal(parsePr(''), undefined)
+  assert.equal(parsePr('  20:03.41  '), 20 * 60_000 + 3410, 'stray spaces are not a problem')
+})
+
+test('a button drops the hundredths and never rounds up', () => {
+  // 18:40 is a time that runner has not run.
+  assert.equal(formatPrShort(18 * 60_000 + 39_820), '18:39')
+  assert.equal(formatPrShort(29 * 60_000 + 3440), '29:03')
+  assert.equal(formatPrShort(24 * 60_000), '24:00')
+})
+
+test('a gap against a best time carries its sign, and level carries none', () => {
+  assert.equal(formatDelta(12_000), '+0:12', 'behind the best is the plus')
+  assert.equal(formatDelta(-8000), '-0:08')
+  assert.equal(formatDelta(64_000), '+1:04')
+  assert.equal(formatDelta(0), '0:00', 'dead even is not behind')
+  assert.equal(formatDelta(400), '0:00', 'and neither is four tenths of a second')
+  assert.equal(formatDelta(Number.NaN), '')
 })
 
 test('wall clock formats to tenths in local time', () => {

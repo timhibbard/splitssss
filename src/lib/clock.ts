@@ -50,6 +50,63 @@ export function formatMinSec(ms: number): string {
   return `${sign}${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
 }
 
+/**
+ * A best time as a results page prints it: m:ss.hh.
+ *
+ * Hundredths here, unlike anything this app measures, because a PR is not a
+ * measurement this app took. It is a number off a results page that a runner
+ * knows to the hundredth, and rounding somebody's 18:39.82 to 18:40 in the one
+ * place it appears would be this app inventing a time nobody ran.
+ */
+export function formatPr(ms: number): string {
+  if (!Number.isFinite(ms) || ms < 0) return ''
+  const total = Math.round(ms / 10)
+  const hundredths = total % 100
+  const secs = Math.floor(total / 100) % 60
+  const mins = Math.floor(total / 6000)
+  return `${mins}:${String(secs).padStart(2, '0')}.${String(hundredths).padStart(2, '0')}`
+}
+
+/**
+ * A best time with the hundredths dropped, for a button that has room for one
+ * number. Truncated rather than rounded: 18:39.82 reads as 18:39, because 18:40
+ * is a time that runner has never run and this is the number they know.
+ */
+export function formatPrShort(ms: number): string {
+  if (!Number.isFinite(ms) || ms < 0) return ''
+  const total = Math.floor(ms / 1000)
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
+}
+
+/**
+ * Reads a best time out of text, as m:ss or m:ss.hh. Undefined for anything
+ * else, so a bib number, a note, or a half typed time is not mistaken for a PR:
+ * a wrong best time is worse than none, since every comparison on the screen
+ * would be measured against it.
+ */
+export function parsePr(text: string): number | undefined {
+  const m = /^(\d{1,3}):([0-5]\d)(?:\.(\d{1,2}))?$/.exec(text.trim())
+  if (!m) return undefined
+  const hundredths = m[3] ? Number(m[3].padEnd(2, '0')) : 0
+  return Number(m[1]) * 60_000 + Number(m[2]) * 1000 + hundredths * 10
+}
+
+/**
+ * A gap against a best time, signed, as +m:ss or -m:ss. Behind the best carries
+ * the plus, because the projection is the bigger number and the sign is just the
+ * sign of the subtraction.
+ *
+ * To the second, and no sign at all when it rounds to zero, because "0:00" with
+ * a plus in front of it reads as behind when it means dead even.
+ */
+export function formatDelta(ms: number): string {
+  if (!Number.isFinite(ms)) return ''
+  const total = Math.round(Math.abs(ms) / 1000)
+  const body = `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
+  if (total === 0) return body
+  return `${ms < 0 ? '-' : '+'}${body}`
+}
+
 /** Format a wall clock time as h:mm:ss.t in the device's local timezone. */
 export function formatWallClock(wallMs: number): string {
   const d = new Date(wallMs)

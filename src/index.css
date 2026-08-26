@@ -23,6 +23,10 @@
   --warn-bg: #fff5da;
   /* Erase only. Amber warns, red destroys, and the two should not look alike. */
   --danger: #a3241a;
+  /* Ahead of a best time. Behind one reuses the amber above: being twelve
+     seconds off your best at Mile 2 is worth seeing, and it is not a failure and
+     not destructive, so it must not be the red that erases races. */
+  --ahead: #17663a;
 
   color-scheme: light;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;

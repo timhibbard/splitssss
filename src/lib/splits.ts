@@ -1,6 +1,6 @@
 // Explicit extensions: see the note in link.ts.
 import { elapsedMs } from './clock.ts'
-import { projectedFinish } from './distance.ts'
+import { PR_METERS, projectedFinish } from './distance.ts'
 import type { Athlete, Race, Tap } from './types'
 
 /**
@@ -22,6 +22,29 @@ export type SplitRow = {
   elapsed?: number
   /** ms. Absent without an elapsed time or a station distance. */
   projected?: number
+  /**
+   * How this pace projects against that runner's best, in ms. Positive is behind
+   * the PR, since the projection is the bigger number. Absent when the runner has
+   * no best, when there is no projection, or when the race is not the distance a
+   * PR is a best at.
+   */
+  vsPr?: number
+}
+
+/**
+ * The gap between what this pace projects to and the runner's best.
+ *
+ * Only over the distance the PR was run at. A projection is what a pace works out
+ * to at *this* race's finish, and comparing a 4K projection to a 5K best would
+ * hand a coach a twenty second lie in the one place they would believe it.
+ */
+export function prGap(
+  projected: number | undefined,
+  pr: number | undefined,
+  raceMeters: number | undefined,
+): number | undefined {
+  if (projected == null || pr == null || raceMeters !== PR_METERS) return undefined
+  return projected - pr
 }
 
 /**
@@ -38,17 +61,20 @@ export function splitRows(race: Race, taps: Tap[], sessionId: string): SplitRow[
     const elapsed = race.gun
       ? elapsedMs(race.gun, tap, gunSameSession && tap.sessionId === sessionId)
       : undefined
+    // A missing athlete reads as unnamed rather than throwing. The list is what
+    // a volunteer uses to fix things, so it has to render whatever is stored.
+    const athlete = tap.athleteId ? byId.get(tap.athleteId) : undefined
+    const projected =
+      elapsed == null
+        ? undefined
+        : projectedFinish(race.station.meters, race.raceMeters, elapsed)
     return {
       tap,
       place: tap.seq,
-      // A missing athlete reads as unnamed rather than throwing. The list is what
-      // a volunteer uses to fix things, so it has to render whatever is stored.
-      athlete: tap.athleteId ? byId.get(tap.athleteId) : undefined,
+      athlete,
       elapsed,
-      projected:
-        elapsed == null
-          ? undefined
-          : projectedFinish(race.station.meters, race.raceMeters, elapsed),
+      projected,
+      vsPr: prGap(projected, athlete?.pr, race.raceMeters),
     }
   })
 }

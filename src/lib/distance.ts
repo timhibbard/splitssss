@@ -2,6 +2,14 @@ export type Unit = 'm' | 'km' | 'mi'
 
 export const METERS_PER_MILE = 1609.344
 
+/**
+ * What a personal best is a best at. High school cross country is a 5K, so a PR
+ * on this team is a 5K PR, and a projection is only worth comparing to it when
+ * the race is over the same ground. A 4K projection against a 5K best is not a
+ * gap, it is two different numbers subtracted, so nothing is shown instead.
+ */
+export const PR_METERS = 5000
+
 export function toMeters(value: number, unit: Unit): number {
   if (!Number.isFinite(value) || value <= 0) return 0
   switch (unit) {

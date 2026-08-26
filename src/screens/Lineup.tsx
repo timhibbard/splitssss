@@ -1,3 +1,4 @@
+import { formatPr } from '../lib/clock'
 import { restOfList, toggle, topOfList, VARSITY_SIZE } from '../lib/lineup'
 import { displayNames } from '../lib/names'
 import type { Athlete } from '../lib/types'
@@ -120,9 +121,9 @@ export function Lineup({
                     .join(' ')}
                   onClick={() => !held && onChange(toggle(selected, a.id))}
                   aria-pressed={inRace}
-                  aria-label={`${a.name}, ${inRace ? 'in this race' : 'not in this race'}${
-                    held ? ', already has a time here' : ''
-                  }`}
+                  aria-label={`${a.name}, ${a.pr == null ? '' : `best ${formatPr(a.pr)}, `}${
+                    inRace ? 'in this race' : 'not in this race'
+                  }${held ? ', already has a time here' : ''}`}
                 >
                   <span className="lineup-mark" aria-hidden="true">
                     {inRace ? '✓' : ''}
@@ -132,7 +133,16 @@ export function Lineup({
                   </span>
                   <span className="lineup-name">
                     {a.name}
-                    <span className="lineup-label">{labels.get(a.id)}</span>
+                    {/*
+                      The label the button will say, and the best time it will
+                      say under it, so neither is a surprise mid meet. The list is
+                      in PR order, so the times also show at a glance where the
+                      line the coach is drawing actually falls.
+                    */}
+                    <span className="lineup-label">
+                      {labels.get(a.id)}
+                      {a.pr != null && ` · PR ${formatPr(a.pr)}`}
+                    </span>
                   </span>
                   {held && <span className="lineup-held">has a time</span>}
                 </button>

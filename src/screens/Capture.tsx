@@ -8,8 +8,11 @@ import {
 import {
   SESSION_ID,
   elapsedMs,
+  formatDelta,
   formatElapsed,
   formatMinSec,
+  formatPr,
+  formatPrShort,
   formatWallClock,
   stamp,
 } from '../lib/clock'
@@ -31,6 +34,24 @@ import { Lineup } from './Lineup'
  * this behaves exactly as it did before, which is the safe direction to fail in.
  */
 const REORDER_AFTER_MS = 3000
+
+/**
+ * Ahead of the best, behind it, or level with it. Level is its own case rather
+ * than a rounding artefact of behind: a runner dead on their best pace has not
+ * lost anything, and colouring that as behind would say they had.
+ */
+function vsPrClass(ms: number | undefined): string {
+  if (ms == null) return 'split-vs'
+  if (Math.round(ms / 1000) === 0) return 'split-vs even'
+  return ms < 0 ? 'split-vs ahead' : 'split-vs behind'
+}
+
+/** The same gap in words, since a screen reader gets "+0:12" as "zero twelve". */
+function prSpoken(ms: number): string {
+  if (Math.round(ms / 1000) === 0) return 'Level with the PR'
+  const gap = formatDelta(ms).replace(/^[+-]/, '')
+  return `${gap} ${ms < 0 ? 'ahead of' : 'behind'} PR pace`
+}
 
 type Props = {
   race: Race
@@ -148,6 +169,16 @@ export function Capture({
    */
   const labels = displayNames(race.athletes)
   const labelOf = (a: Athlete) => labels.get(a.id) ?? a.name
+  /**
+   * The runner's best under their name on the button.
+   *
+   * The number a volunteer wants at the moment a runner comes into view is what
+   * that runner is capable of, and it is the same number the coach and the runner
+   * both know by heart. A derived "through here at 13:05" would be more
+   * arithmetic and a fourth number on a button 112 pixels wide. The comparison
+   * belongs in the list, where the split already is.
+   */
+  const prOf = (a: Athlete) => (a.pr == null ? '' : formatPrShort(a.pr))
 
   /**
    * The wait before the grid rearranges, restarted by any crossing at all rather
@@ -401,9 +432,17 @@ export function Capture({
                 // Struck through once this runner has a crossing here, and not
                 // tappable, because a runner passes one point once.
                 disabled={done || stopped}
-                aria-label={done ? `${a.name}, already recorded` : a.name}
+                aria-label={
+                  `${a.name}${a.pr == null ? '' : `, best ${formatPr(a.pr)}`}` +
+                  `${done ? ', already recorded' : ''}`
+                }
               >
-                {labelOf(a)}
+                <span className="chip-name">{labelOf(a)}</span>
+                {a.pr != null && (
+                  <span className="chip-pr" aria-hidden="true">
+                    {prOf(a)}
+                  </span>
+                )}
               </button>
             )
           })}
@@ -422,6 +461,7 @@ export function Capture({
           <span>{race.gun ? 'Split' : 'Clock'}</span>
           <span>Runner</span>
           <span>{paceLabel}</span>
+          <span>vs PR</span>
         </div>
         <div className="splits-rows">
           {rows.length === 0 ? (
@@ -454,6 +494,7 @@ export function Capture({
                       `Crossing ${row.place} at ${at}, ` +
                       `${row.athlete ? row.athlete.name : 'not named yet'}. ` +
                       `${row.projected != null ? `On pace for ${formatMinSec(row.projected)}. ` : ''}` +
+                      `${row.vsPr != null ? `${prSpoken(row.vsPr)}. ` : ''}` +
                       `${name ? 'Tap to change the name.' : 'Tap to name it.'}`
                     }
                   >
@@ -464,6 +505,14 @@ export function Capture({
                     </span>
                     <span className="split-proj">
                       {row.projected == null ? '' : formatMinSec(row.projected)}
+                    </span>
+                    {/*
+                      Against that runner's own best, which is the comparison a
+                      coach makes out loud. Behind the best is the plus, since the
+                      projection is the bigger of the two numbers.
+                    */}
+                    <span className={vsPrClass(row.vsPr)}>
+                      {row.vsPr == null ? '' : formatDelta(row.vsPr)}
                     </span>
                   </button>
                 )
@@ -546,9 +595,14 @@ export function Capture({
                     type="button"
                     className="name-chip"
                     onClick={() => pick(a.id)}
-                    aria-label={a.name}
+                    aria-label={a.name + (a.pr == null ? '' : `, best ${formatPr(a.pr)}`)}
                   >
-                    {labelOf(a)}
+                    <span className="chip-name">{labelOf(a)}</span>
+                    {a.pr != null && (
+                      <span className="chip-pr" aria-hidden="true">
+                        {prOf(a)}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>

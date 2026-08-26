@@ -25,9 +25,10 @@ Live at **https://timhibbard.github.io/splitssss/**
   gun opens the app and finds the names on it. Nothing to open, nothing to type.
   A list somebody edited by hand is never overwritten: that gets asked about.
 - **The roster travels by link.** The coach taps "Send this list to a volunteer"
-  and texts a link that loads all the names in one tap. The names ride in the URL
-  fragment, which browsers never send to a server, so they reach no log or cache.
-  The recipient gets a prompt, not a silent overwrite.
+  and texts a link that loads all the names, and their best times, in one tap.
+  The names ride in the URL fragment, which browsers never send to a server, so
+  they reach no log or cache. The recipient gets a prompt, not a silent
+  overwrite.
 - **Or the roster ships encrypted with the app.** `public/roster.enc` is
   AES-GCM ciphertext, so it can sit in a public repo. The app asks for the season
   passphrase once per phone, decrypts in the browser, and keeps the names
@@ -65,6 +66,12 @@ Live at **https://timhibbard.github.io/splitssss/**
 - **Projected finish.** Races are 5K, so the header shows what the current pace
   projects to at the finish, and every row in the list carries its own. Linear,
   to the second, because the number gets said out loud to a runner.
+- **Every runner's best time is on their button.** Put a 5K best after a name
+  when you paste the list, "Rowan Hayes 21:34.60", and the button shows it. Then
+  every crossing says where that pace stands against that runner's own best,
+  `+0:12` behind or `-0:08` ahead, in the list and in the export. A runner with
+  no best time simply has none, and a race that is not a 5K gets no comparison
+  rather than a wrong one.
 - **A refresh loses nothing.** Every tap is on disk before the button springs
   back. Reloading restores the race, the roster, and every crossing in order.
 - **Stop takes two taps**, because an accidental stop mid race is the worst
@@ -105,11 +112,15 @@ ways, and neither one puts a name on a server:
   passphrase over it. See DESIGN.md for what that does and does not protect.
 
 `public/team.dat` is committed too, and it is the one file that carries anything
-about a runner without a passphrase over it. It holds first names and an initial,
-"Rowan H.", scrambled. Scrambled is not encrypted: the app reads it with
-nothing typed, so the way to read it ships in the JavaScript and anyone who wants
-the list can have it. That is the trade for the names being there automatically,
-and it is why the file holds no surnames. See DESIGN.md.
+about a runner without a passphrase over it. It holds first names and an initial
+with a 5K best after each, "Rowan H. 21:34.60", scrambled. Scrambled is not
+encrypted: the app reads it with nothing typed, so the way to read it ships in
+the JavaScript and anyone who wants the list can have it. That is the trade for
+the names being there automatically, and it is why the file holds no surnames.
+The times are in it for the same reason: a best time that only arrives with a
+passphrase never reaches the volunteer holding the phone, and a 5K best is
+already published next to a full name on the meet's own results page. See
+DESIGN.md.
 
 The school's logo file is also not committed. This app uses the school colors
 and the Patriots name and ships its own stopwatch mark rather than
@@ -129,16 +140,23 @@ npm test         # clock, storage, roster, link, vault, team file, distance, spl
 npm run preview  # serve the production build at /splitssss/
 ```
 
-Ship the team with the app, so every phone opens with the names on it:
+Ship the team with the app, so every phone opens with the names on it. One runner
+per line in `roster.txt`, with that runner's 5K best after the name if there is
+one:
+
+```
+Rowan Hayes   21:34.60
+```
 
 ```sh
 npm run team-file -- roster.txt     # writes public/team.dat, prints the list in order
-git add public/team.dat             # short labels only, scrambled, meant to be committed
+git add public/team.dat             # short labels and best times, scrambled, meant to be committed
 ```
 
-Re-run it after adding a runner. Output is deterministic, so a rebuild with no
-name change is not a diff. A phone that already took the last list takes the new
-one on its own; a phone with a hand edited list gets asked.
+Re-run it after adding a runner or after somebody sets a PR. Output is
+deterministic, so a rebuild with no change is not a diff. A phone that already
+took the last list takes the new one on its own; a phone with a hand edited list
+gets asked.
 
 Generate a roster link from a file of names, without the names touching git:
 

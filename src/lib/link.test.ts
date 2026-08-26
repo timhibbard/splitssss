@@ -23,21 +23,45 @@ test('ids are minted fresh, because they are local to a device', () => {
   assert.equal(new Set(back.map((a) => a.id)).size, 3, 'and they are distinct')
 })
 
+test('a best time rides along with the name it belongs to', () => {
+  // The link is how a volunteer's phone gets the full names, so it is also how it
+  // gets the numbers the buttons compare against.
+  const withPrs: Athlete[] = [
+    { id: 'a1', name: 'Marlowe Holloway', pr: 21 * 60_000 + 34_600 },
+    { id: 'a2', name: 'Rowan Hayes' },
+    { id: 'a3', name: "Bex O'Neal-Ruiz", pr: 24 * 60_000 },
+  ]
+  const back = decodeRoster(encodeRoster(withPrs))
+  assert.deepEqual(
+    back.map((a) => [a.name, a.pr]),
+    [
+      ['Marlowe Holloway', 21 * 60_000 + 34_600],
+      ['Rowan Hayes', undefined],
+      ["Bex O'Neal-Ruiz", 24 * 60_000],
+    ],
+  )
+})
+
 test('accented names come through intact', () => {
   const back = decodeRoster(encodeRoster([{ id: 'x', name: 'Chloë Ramírez' }]))
   assert.equal(back[0].name, 'Chloë Ramírez')
 })
 
 test('the payload is URL safe', () => {
-  // 28 names of realistic length, which is this team.
+  // 28 names of realistic length, each with a best time, which is this team.
   const many = Array.from({ length: 28 }, (_, i) => ({
     id: `a${i}`,
     name: `Firstname Lastname${i}`,
+    pr: 21 * 60_000 + i * 1000,
   }))
   const encoded = encodeRoster(many)
   assert.match(encoded, /^[A-Za-z0-9\-_]+$/, 'no +, / or = to be escaped or truncated')
   assert.equal(decodeRoster(encoded).length, 28)
-  assert.ok(encoded.length < 1000, `stays textable at ${encoded.length} characters`)
+  // Under two thousand characters, which is the length every browser and every
+  // messaging app handles without truncating. The best times cost about a third
+  // more than the names alone, and this fixture uses longer names than the team
+  // has, so a real roster comes out well under the number checked here.
+  assert.ok(encoded.length < 1800, `stays textable at ${encoded.length} characters`)
 })
 
 test('the roster rides in the fragment, never the query', () => {

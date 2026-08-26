@@ -1,6 +1,6 @@
 // Explicit extensions: see the note in link.ts.
 import { base64UrlToBytes, bytesToBase64Url } from './base64.ts'
-import { parseRoster } from './roster.ts'
+import { parseRoster, rosterText } from './roster.ts'
 import type { Athlete } from './types'
 
 /**
@@ -133,7 +133,7 @@ export function isVault(value: unknown): value is Vault {
 
 /** Same one-runner-per-line text as a paste or a link, so all three decode alike. */
 export function sealRoster(athletes: Athlete[], passphrase: string): Promise<Vault> {
-  return seal(athletes.map((a) => a.name).join('\n'), passphrase)
+  return seal(rosterText(athletes), passphrase)
 }
 
 export async function openRoster(vault: Vault, passphrase: string): Promise<Athlete[] | null> {
