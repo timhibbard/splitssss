@@ -29,6 +29,13 @@ export type Station = {
   meters?: number
 }
 
+/**
+ * Which of the two teams. Both coaches record with this app, so a phone holds
+ * both lists and a race says which one it is. See DESIGN.md for why this is a
+ * field on a runner rather than a second roster.
+ */
+export type Team = 'boys' | 'girls'
+
 export type Athlete = {
   id: string
   name: string
@@ -38,6 +45,12 @@ export type Athlete = {
    * to beat and a typed in name has nothing behind it at all.
    */
   pr?: number
+  /**
+   * Which team this runner is on. Optional, because a phone that has not yet
+   * taken the two team list holds untagged runners, and an untagged runner
+   * matches any race rather than disappearing out of every one.
+   */
+  team?: Team
 }
 
 /** What the setup form collects. Everything else about a race is assigned on save. */
@@ -48,6 +61,8 @@ export type RaceDraft = {
   timer: string
   /** Full race distance, for projecting a finish time from a split. */
   raceMeters: number
+  /** Which team is racing, so the lineup and the grid show one team's names. */
+  team?: Team
   /** The lineup: who out of the team list is in this race. */
   athletes: Athlete[]
 }
@@ -61,6 +76,11 @@ export type Race = {
   station: Station
   /** Full race distance in meters. 5000 for a high school 5K. */
   raceMeters: number
+  /**
+   * Which team is racing. Absent on races recorded before the phone knew there
+   * were two, which is why it is optional and why absent means no filtering.
+   */
+  team?: Team
   /** Who is holding the phone, so the coach knows whose export this is. */
   timer: string
   /** ISO date, YYYY-MM-DD. */

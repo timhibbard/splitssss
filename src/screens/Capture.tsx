@@ -19,6 +19,7 @@ import {
 import { projectedFinish } from '../lib/distance'
 import { buzz, click, undoClick } from '../lib/feedback'
 import { becameScroll, type Point } from '../lib/gesture'
+import { forTeam } from '../lib/lineup'
 import { displayNames } from '../lib/names'
 import { gridOrder, namedInOrder, splitRows, stillOut } from '../lib/splits'
 import type { Athlete, Race, Stamp, Tap } from '../lib/types'
@@ -56,7 +57,10 @@ function prSpoken(ms: number): string {
 type Props = {
   race: Race
   taps: Tap[]
-  /** Everyone on the phone, so the lineup can be changed at the starting line. */
+  /**
+   * Everyone on the phone, both teams, so the lineup can be changed at the
+   * starting line. Narrowed to this race's team before it reaches the picker.
+   */
   team: Athlete[]
   onLineup: (ids: string[]) => void
   /** Records a crossing, named when an athlete is given, at `at` if one is held. */
@@ -657,10 +661,13 @@ export function Capture({
         moved up to varsity is a fact of a meet morning, and it should not cost a
         restart. Anyone already holding a crossing cannot be taken out, since the
         time would lose its name.
+
+        This race's team only. Twenty eight girls under the boys who are about to
+        run is a list nobody can find a name in.
       */}
       {showLineup && (
         <Lineup
-          team={team}
+          team={forTeam(team, race.team)}
           selected={race.athletes.map((a) => a.id)}
           onChange={onLineup}
           onDone={() => setShowLineup(false)}

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { mergeLineup, parseRoster, rosterText } from './roster.ts'
+import { byTeam, mergeLineup, parseRoster, rosterText } from './roster.ts'
 import type { Athlete } from './types.ts'
 
 const marlowe: Athlete = { id: 'a1', name: 'Marlowe Holloway' }
@@ -176,4 +176,105 @@ test('hyphenated and apostrophe names are left alone', () => {
     parsed.map((a) => a.name),
     ["Bex O'Neal-Ruiz", 'Anne-Marie St. James'],
   )
+})
+
+test('a heading puts the runners under it on that team', () => {
+  const parsed = parseRoster(
+    '# Girls\nMarlowe Holloway\t21:34.60\nRowan Hayes\n\n# Boys\nJordan Blake\t17:12.40\nQuinn Delgado',
+  )
+  assert.deepEqual(
+    parsed.map((a) => [a.name, a.team]),
+    [
+      ['Marlowe Holloway', 'girls'],
+      ['Rowan Hayes', 'girls'],
+      ['Jordan Blake', 'boys'],
+      ['Quinn Delgado', 'boys'],
+    ],
+    'a heading is never a runner, and it holds until the next one',
+  )
+  assert.deepEqual(parsed.map((a) => a.pr), [
+    21 * 60_000 + 34_600,
+    undefined,
+    17 * 60_000 + 12_400,
+    undefined,
+  ])
+})
+
+test('a list with no headings parses exactly as it always did', () => {
+  // The migration case. A link texted last week and a phone holding last
+  // season's paste both have to keep working, untagged.
+  const parsed = parseRoster('Marlowe Holloway\t21:34.60\nRowan Hayes')
+  assert.deepEqual(
+    parsed.map((a) => a.team),
+    [undefined, undefined],
+  )
+  assert.equal(Object.hasOwn(parsed[0], 'team'), false, 'and no empty field rides along')
+})
+
+test('a heading with nobody under it is not an error', () => {
+  assert.deepEqual(parseRoster('# Boys\n\n# Girls\nRowan Hayes').map((a) => [a.name, a.team]), [
+    ['Rowan Hayes', 'girls'],
+  ])
+  assert.deepEqual(parseRoster('# Boys\n'), [], 'and a file of nothing but a heading is empty')
+})
+
+test('a heading naming neither team leaves the runners untagged', () => {
+  // Untagged matches every race, so an unrecognized heading loses the grouping
+  // and never loses the runners.
+  const parsed = parseRoster('# Freshmen\nRowan Hayes\n# Boys\nJordan Blake')
+  assert.deepEqual(
+    parsed.map((a) => [a.name, a.team]),
+    [
+      ['Rowan Hayes', undefined],
+      ['Jordan Blake', 'boys'],
+    ],
+  )
+})
+
+test('a hash on a runner line is still a heading, not a name', () => {
+  // Nothing produces "#14 Rowan Hayes", and reading it as a runner named
+  // "#14 Rowan Hayes" would put that on a button. Dropped instead.
+  assert.deepEqual(parseRoster('#14 Rowan Hayes').length, 0)
+})
+
+test('two teams round trip through the text, grouped', () => {
+  const text = '# Girls\nMarlowe Holloway\t21:34.60\nRowan Hayes\n# Boys\nJordan Blake\t17:12.40'
+  assert.equal(rosterText(parseRoster(text)), text)
+})
+
+test('untagged runners come first, with no heading over them', () => {
+  // What a phone looks like halfway through adopting: a shipped list taken up
+  // alongside a name somebody typed in. The plain lines have to stay plain, or
+  // the next parse would read them as belonging to whichever team came last.
+  const mixed: Athlete[] = [
+    { id: 'b1', name: 'Jordan Blake', team: 'boys' },
+    { id: 'x1', name: 'Someone Else' },
+    { id: 'g1', name: 'Rowan Hayes', team: 'girls' },
+  ]
+  assert.equal(rosterText(mixed), 'Someone Else\n# Boys\nJordan Blake\n# Girls\nRowan Hayes')
+  assert.deepEqual(
+    parseRoster(rosterText(mixed)).map((a) => [a.name, a.team]),
+    [
+      ['Someone Else', undefined],
+      ['Jordan Blake', 'boys'],
+      ['Rowan Hayes', 'girls'],
+    ],
+  )
+})
+
+test('grouping is the same for the text and the screen', () => {
+  const groups = byTeam([
+    { id: 'g1', name: 'Rowan Hayes', team: 'girls' },
+    { id: 'b1', name: 'Jordan Blake', team: 'boys' },
+    { id: 'g2', name: 'Marlowe Holloway', team: 'girls' },
+  ])
+  assert.deepEqual(
+    groups.map((g) => [g.team, g.athletes.map((a) => a.id)]),
+    [
+      ['girls', ['g1', 'g2']],
+      ['boys', ['b1']],
+    ],
+    'first appearance order, and nobody appears twice',
+  )
+  assert.deepEqual(byTeam([]), [], 'an empty list is no groups, not one empty one')
 })

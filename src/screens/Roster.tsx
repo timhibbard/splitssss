@@ -1,8 +1,29 @@
 import { useState } from 'react'
 import { formatPr } from '../lib/clock'
 import { rosterLink } from '../lib/link'
-import { parseRoster } from '../lib/roster'
-import type { Athlete } from '../lib/types'
+import { byTeam, parseRoster } from '../lib/roster'
+import type { Athlete, Team } from '../lib/types'
+
+const TEAM_LABEL: Record<Team, string> = { girls: 'Girls', boys: 'Boys' }
+
+/**
+ * Both counts, because a phone holding one team and not the other is the thing
+ * this screen has to make obvious before a meet rather than at the gun. A list
+ * with no teams on it, which is what a phone that predates the boys holds, reads
+ * the way it always did.
+ */
+function tally(athletes: Athlete[]): string {
+  const counts = byTeam(athletes).map((group) =>
+    group.team == null
+      ? `${group.athletes.length} unassigned`
+      : `${group.athletes.length} ${group.team}`,
+  )
+  if (counts.length === 0) return 'nobody yet'
+  if (counts.length === 1 && !athletes.some((a) => a.team != null)) {
+    return `${athletes.length} on the team`
+  }
+  return counts.join(', ')
+}
 
 type Props = {
   athletes: Athlete[]
@@ -120,7 +141,7 @@ export function Roster({
         </button>
         <div className="bar-where">
           <strong>Runners</strong>
-          <span>{athletes.length} on the team</span>
+          <span>{tally(athletes)}</span>
         </div>
       </header>
 
@@ -205,7 +226,9 @@ export function Roster({
       <p className="hint">
         These names become the buttons you tap during a race. The list stays on
         this phone for the whole season. A 5K best after the name is optional: it
-        goes on the button and every split gets compared to it.
+        goes on the button and every split gets compared to it. A line reading
+        "# Boys" or "# Girls" puts the runners under it on that team, and a race
+        only ever shows one team's names.
       </p>
 
       <label>
@@ -214,7 +237,9 @@ export function Roster({
           value={paste}
           onChange={(e) => setPaste(e.target.value)}
           rows={5}
-          placeholder={'Marlowe Holloway  21:34.60\nRowan Hayes  22:29.15\nJordan Blake'}
+          placeholder={
+            '# Girls\nMarlowe Holloway  21:34.60\nRowan Hayes  22:29.15\n\n# Boys\nJordan Blake  17:12.40'
+          }
           autoComplete="off"
         />
       </label>
@@ -240,20 +265,32 @@ export function Roster({
 
       {athletes.length > 0 && (
         <>
-          <section className="roster-list">
-            <h2>On the team</h2>
-            {athletes.map((a) => (
-              <div key={a.id} className="roster-row">
-                <span className="roster-name">
-                  {a.name}
-                  {a.pr != null && <span className="roster-pr">{formatPr(a.pr)}</span>}
-                </span>
-                <button type="button" className="remove" onClick={() => remove(a.id)}>
-                  Remove
-                </button>
-              </div>
-            ))}
-          </section>
+          {/*
+            One section per team, in the order the list itself groups them, so
+            what is on screen matches what a paste or a shared link carries. A
+            list with no teams on it gets the one heading it always had.
+          */}
+          {byTeam(athletes).map((group) => (
+            <section key={group.team ?? 'all'} className="roster-list">
+              <h2>
+                {group.team == null ? 'On the team' : TEAM_LABEL[group.team]}
+                {group.team != null && (
+                  <span className="roster-count"> {group.athletes.length}</span>
+                )}
+              </h2>
+              {group.athletes.map((a) => (
+                <div key={a.id} className="roster-row">
+                  <span className="roster-name">
+                    {a.name}
+                    {a.pr != null && <span className="roster-pr">{formatPr(a.pr)}</span>}
+                  </span>
+                  <button type="button" className="remove" onClick={() => remove(a.id)}>
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </section>
+          ))}
 
           <button type="button" onClick={share}>
             Send this list to a volunteer

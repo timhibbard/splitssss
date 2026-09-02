@@ -42,6 +42,34 @@ test('a best time rides along with the name it belongs to', () => {
   )
 })
 
+test('the team rides along with the runner it belongs to', () => {
+  // One link carries both teams, because one person keeps the list and a
+  // volunteer may be sent to cover either race.
+  const both: Athlete[] = [
+    { id: 'a1', name: 'Marlowe Holloway', pr: 21 * 60_000 + 34_600, team: 'girls' },
+    { id: 'a2', name: 'Rowan Hayes', team: 'girls' },
+    { id: 'a3', name: 'Jordan Blake', pr: 17 * 60_000 + 12_400, team: 'boys' },
+  ]
+  const back = decodeRoster(encodeRoster(both))
+  assert.deepEqual(
+    back.map((a) => [a.name, a.team, a.pr]),
+    [
+      ['Marlowe Holloway', 'girls', 21 * 60_000 + 34_600],
+      ['Rowan Hayes', 'girls', undefined],
+      ['Jordan Blake', 'boys', 17 * 60_000 + 12_400],
+    ],
+  )
+})
+
+test('a link from before there were two teams still imports', () => {
+  const back = decodeRoster(encodeRoster(team))
+  assert.deepEqual(
+    back.map((a) => a.team),
+    [undefined, undefined, undefined],
+    'untagged, which matches any race',
+  )
+})
+
 test('accented names come through intact', () => {
   const back = decodeRoster(encodeRoster([{ id: 'x', name: 'Chloë Ramírez' }]))
   assert.equal(back[0].name, 'Chloë Ramírez')

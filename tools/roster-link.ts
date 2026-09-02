@@ -4,9 +4,9 @@
  *   node tools/roster-link.ts roster.txt
  *   pbpaste | node tools/roster-link.ts
  *
- * One runner per line, with that runner's 5K best after the name if there is one.
- * A bib number on the line is stripped, so an entry list can go in as it came
- * out.
+ * One runner per line, with that runner's 5K best after the name if there is one,
+ * under a "# Girls" or "# Boys" heading if the file holds both teams. A bib
+ * number on the line is stripped, so an entry list can go in as it came out.
  *
  * The file is never committed: roster*.txt is gitignored, and the names end up
  * in the fragment of the link, which browsers do not send to a server. Uses the
@@ -32,6 +32,11 @@ const url = `${SITE}#r=${encodeRoster(athletes)}`
 
 console.error(`${athletes.length} runners, ${url.length} characters:`)
 console.error(
-  athletes.map((a) => `  ${a.name}${a.pr == null ? '' : `  ${formatPr(a.pr)}`}`).join('\n'),
+  athletes
+    .map(
+      (a) =>
+        `  ${a.name}${a.pr == null ? '' : `  ${formatPr(a.pr)}`}${a.team == null ? '' : `  (${a.team})`}`,
+    )
+    .join('\n'),
 )
 console.log(url)

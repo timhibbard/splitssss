@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { formatIsoDate } from '../lib/clock'
 import { distanceLabel, toMeters, type Unit } from '../lib/distance'
-import { defaultLineup, lineupOf } from '../lib/lineup'
+import { defaultLineup, forTeam, lineupOf, sniffTeam } from '../lib/lineup'
 import { displayNames, summarize } from '../lib/names'
-import type { Athlete, Race, RaceDraft, Station } from '../lib/types'
+import type { Athlete, Race, RaceDraft, Station, Team } from '../lib/types'
 import { Lineup } from './Lineup'
 
 type Props = {
@@ -14,7 +14,7 @@ type Props = {
   earlier: Race[]
   /** Opens a stored race. Looking at one does not restart it. */
   onOpen: (raceId: string) => void
-  /** Everyone on the phone. A race takes its lineup out of this. */
+  /** Everyone on the phone, both teams. A race takes its lineup out of this. */
   team: Athlete[]
   /** Who ran the last race by this name, if anyone did. */
   rememberedLineup: (raceName: string) => string[] | null
@@ -28,10 +28,18 @@ type Props = {
   onClearRaces: () => void
 }
 
-const RACES = ['Varsity Girls', 'JV Girls']
+const TEAMS: Team[] = ['girls', 'boys']
+const TEAM_LABEL: Record<Team, string> = { girls: 'Girls', boys: 'Boys' }
 
 /**
- * Every race this team runs is a 5K, so there is no picker. It stays in the
+ * The two races each team runs, as a kind rather than a name, so the team chips
+ * and the race chips cannot drift into saying "Varsity Girls" for the boys.
+ */
+const KINDS = ['Varsity', 'JV'] as const
+type Kind = (typeof KINDS)[number] | 'other'
+
+/**
+ * Every race either team runs is a 5K, so there is no picker. It stays in the
  * stored race and in the CSV rather than being assumed downstream, so an export
  * still says what it was measured against and a future non 5K would not
  * silently reinterpret old data.
@@ -91,19 +99,32 @@ export function Setup({
 
   useEffect(() => () => window.clearTimeout(clearTimer.current), [])
 
-  const [racePreset, setRacePreset] = useState<string>(RACES[1])
+  const [raceKind, setRaceKind] = useState<Kind>('JV')
   const [raceOther, setRaceOther] = useState('')
+  /**
+   * Which team, once somebody has said. Null follows the race name, which is
+   * what a typed name like "Boys Open" is for. A tap fixes it and keeps it
+   * fixed: showing a volunteer the wrong twenty eight names at the gun is the
+   * failure worth spending a control on.
+   */
+  const [teamPick, setTeamPick] = useState<Team | null>(null)
   /**
    * The lineup, once it has been touched for this race. Null means follow the
    * race: what ran last time under this name, or the usual split if this is the
-   * first time. Picking a different race clears it, since the answer for the JV
-   * race is not the answer for the varsity race.
+   * first time. Picking a different race or a different team clears it, since
+   * the answer for the JV race is not the answer for the varsity race and the
+   * answer for the girls is not a boy.
    */
   const [chosen, setChosen] = useState<string[] | null>(null)
   const [showLineup, setShowLineup] = useState(false)
 
-  function pickRace(name: string) {
-    setRacePreset(name)
+  function pickRace(kind: Kind) {
+    setRaceKind(kind)
+    setChosen(null)
+  }
+
+  function pickTeam(next: Team) {
+    setTeamPick(next)
     setChosen(null)
   }
 
@@ -127,21 +148,34 @@ export function Setup({
     }
   }
 
-  const raceName = racePreset === 'other' ? raceOther.trim() : racePreset
+  /**
+   * A typed race name is the only place the team is not already spelled out, so
+   * it is the only place worth sniffing. A preset carries the team in its own
+   * label, so there is nothing to guess.
+   */
+  const which: Team = teamPick ?? (raceKind === 'other' ? sniffTeam(raceOther) : undefined) ?? 'girls'
+  const raceName = raceKind === 'other' ? raceOther.trim() : `${raceKind} ${TEAM_LABEL[which]}`
   const canStart = raceName.length > 0 && (!customActive || customValid)
+
+  /**
+   * The runners this race can draw from: one team's, since the two never run at
+   * once. A phone still holding an untagged list offers all of them, because
+   * that is the best it has.
+   */
+  const pool = forTeam(team, which)
 
   /**
    * Who is running, as it stands. An untouched lineup follows the race name, so
    * switching from JV to varsity swaps the seven without a trip to the picker.
    * Ids that have since left the team list are dropped rather than trusted.
    */
-  const onTeam = new Set(team.map((a) => a.id))
-  const remembered = rememberedLineup(raceName)?.filter((id) => onTeam.has(id))
+  const inPool = new Set(pool.map((a) => a.id))
+  const remembered = rememberedLineup(raceName)?.filter((id) => inPool.has(id))
   const selected =
     chosen ??
-    (remembered && remembered.length > 0 ? remembered : defaultLineup(team, raceName))
-  const labels = displayNames(team)
-  const running = lineupOf(team, selected)
+    (remembered && remembered.length > 0 ? remembered : defaultLineup(pool, raceName))
+  const labels = displayNames(pool)
+  const running = lineupOf(pool, selected)
 
   function start() {
     if (!canStart) return
@@ -151,6 +185,7 @@ export function Setup({
       station: resolvedStation(),
       timer: timer.trim(),
       raceMeters: RACE_METERS,
+      team: which,
       athletes: running,
     })
   }
@@ -235,28 +270,51 @@ export function Setup({
         />
       </label>
 
+      {/*
+        Both coaches record with this app, so which team is racing is the first
+        thing a volunteer settles: it decides every name on the grid. Explicit
+        rather than inferred, even though the presets below already say it, on
+        the reasoning that the wrong twenty eight names at the gun is the failure
+        worth one tap to rule out.
+      */}
+      <fieldset>
+        <legend>Which team?</legend>
+        <div className="chips">
+          {TEAMS.map((t) => (
+            <button
+              key={t}
+              type="button"
+              className={t === which ? 'chip on' : 'chip'}
+              onClick={() => pickTeam(t)}
+            >
+              {TEAM_LABEL[t]}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+
       <fieldset>
         <legend>Which race?</legend>
         <div className="chips">
-          {RACES.map((r) => (
+          {KINDS.map((kind) => (
             <button
-              key={r}
+              key={kind}
               type="button"
-              className={r === racePreset ? 'chip on' : 'chip'}
-              onClick={() => pickRace(r)}
+              className={kind === raceKind ? 'chip on' : 'chip'}
+              onClick={() => pickRace(kind)}
             >
-              {r}
+              {kind} {TEAM_LABEL[which]}
             </button>
           ))}
           <button
             type="button"
-            className={racePreset === 'other' ? 'chip on' : 'chip'}
+            className={raceKind === 'other' ? 'chip on' : 'chip'}
             onClick={() => pickRace('other')}
           >
             Other
           </button>
         </div>
-        {racePreset === 'other' && (
+        {raceKind === 'other' && (
           <input
             className="reveal"
             value={raceOther}
@@ -280,9 +338,11 @@ export function Setup({
         <section className="team lineup-panel">
           <div className="team-count">
             <strong>
-              {selected.length === 0
-                ? 'Nobody in this race yet'
-                : `${selected.length} of ${team.length} in this race`}
+              {pool.length === 0
+                ? `No ${TEAM_LABEL[which].toLowerCase()} on this phone yet`
+                : selected.length === 0
+                  ? 'Nobody in this race yet'
+                  : `${selected.length} of ${pool.length} in this race`}
             </strong>
             <span>{summarize(running.map((a) => labels.get(a.id) ?? a.name))}</span>
           </div>
@@ -459,7 +519,7 @@ export function Setup({
 
       {showLineup && (
         <Lineup
-          team={team}
+          team={pool}
           selected={selected}
           onChange={setChosen}
           onDone={() => setShowLineup(false)}

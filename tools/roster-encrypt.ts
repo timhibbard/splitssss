@@ -3,7 +3,9 @@
  *
  *   npm run roster-encrypt -- roster.txt
  *
- * One runner per line, with that runner's 5K best after the name if there is one.
+ * One runner per line, with that runner's 5K best after the name if there is one,
+ * under a "# Girls" or "# Boys" heading if the file holds both teams. One file
+ * for both teams, since one person keeps the times.
  * Bib numbers optional and stripped. Writes public/roster.enc, which is
  * ciphertext and is meant to be committed. The names file is not: roster*.txt is
  * gitignored, and it should stay off this machine's repo entirely if you can help

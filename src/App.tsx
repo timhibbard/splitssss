@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import './App.css'
 import { SESSION_ID, stamp, todayIsoDate } from './lib/clock'
 import { rosterFromHash } from './lib/link'
+import { forTeam } from './lib/lineup'
 import { mergeLineup } from './lib/roster'
 import { assignAthlete, clearName } from './lib/splits'
 import * as store from './lib/storage'
@@ -128,6 +129,11 @@ export default function App() {
    *
    * The lineup is respected, so an edit to the team list cannot put back somebody
    * left out of this race. See mergeLineup for the rest of the rules.
+   *
+   * Both lists are narrowed to this race's team first. A new runner joins the
+   * race being timed, which is the rule that makes a late entry work, and it
+   * would otherwise put a whole other team on the grid the moment a phone took
+   * up the two team list mid race.
    */
   const saveRoster = useCallback(
     (next: Athlete[]) => {
@@ -137,7 +143,12 @@ export default function App() {
       const named = new Set(taps.map((t) => t.athleteId).filter((id): id is string => !!id))
       const updated: Race = {
         ...race,
-        athletes: mergeLineup(race.athletes, roster, next, named),
+        athletes: mergeLineup(
+          race.athletes,
+          forTeam(roster, race.team),
+          forTeam(next, race.team),
+          named,
+        ),
       }
       store.saveRace(updated)
       setRace(updated)

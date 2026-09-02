@@ -20,6 +20,10 @@ const COLUMNS = [
   'date',
   'meet',
   'race',
+  // Boys or girls, spelled out rather than left to the race name, so a coach
+  // merging a dozen volunteer files can split them on a column instead of on
+  // whatever each volunteer typed into "Other".
+  'team',
   'station',
   'station_meters',
   'race_meters',
@@ -62,6 +66,7 @@ export function toCsv(race: Race, taps: Tap[]): string {
       race.date,
       race.meet,
       race.race,
+      race.team ?? '',
       race.station.label,
       race.station.meters ?? '',
       race.raceMeters,

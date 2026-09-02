@@ -3,8 +3,9 @@
 **Splits, Saved, Sorted, Sent.**
 
 A hand timing app for cross country splits, for the J.L. Mann Academy Patriots
-girls team. One person stands at a course marker, taps a big button as each of
-our runners passes, attaches names afterward, and texts the coach a CSV.
+boys and girls cross country teams. One person stands at a course marker, taps a
+big button as each of our runners passes, attaches names afterward, and texts the
+coach a CSV.
 
 ## Branding
 
@@ -36,7 +37,9 @@ Two different people, with very different needs:
   before the race and will not read instructions. Their job is to tap
   accurately and export without help.
 - **The coach** assembles texted CSVs from several volunteers into a season
-  record used to help athletes understand their pacing.
+  record used to help athletes understand their pacing. There are two of them now,
+  one per team, and either one's race can be covered by whoever is standing at the
+  marker.
 
 The volunteer is the primary user. Every design tradeoff favors them.
 
@@ -300,7 +303,7 @@ the list is a once a season job sitting on top of the screen a volunteer uses
 every race.
 
 So it is a plain underlined link at the bottom, below Start timing and above Start
-over, and it says what it would open: "Edit the 28 runners on this phone". That
+over, and it says what it would open: "Edit the 37 runners on this phone". That
 label is also the answer to the only question the old panel really answered, which
 is whether the names made it onto this phone. The lineup panel still sits with the
 race, because who is running changes every race and that is the opposite kind of
@@ -334,11 +337,86 @@ storage, to the export, to every `aria-label`, and to the lineup screen, where a
 coach is deciding and a surname is part of deciding. The rules are pure
 functions in `lib/names.ts` with tests, because a wrong label is a wrong split.
 
+### Two teams, one list, with a team on each runner
+
+Both coaches record with this app, so a phone has to hold the boys and the girls
+and a race has to know which one it is. Otherwise a phone serves one team and the
+volunteer at the two mile mark is the wrong volunteer for half the morning.
+
+The shape chosen is one roster where each runner carries a `team`, rather than two
+rosters side by side. The reason is the text format. One
+`Name<tab>m:ss.hh` line is shared by all four channels a roster arrives
+through — a paste, a shared link, `roster.enc`, and `team.dat` — and the shipped
+file has to express two teams whichever shape is picked. So the text grows a
+heading:
+
+```
+# Girls
+Marlowe Holloway  21:34.60
+
+# Boys
+Jordan Blake      17:12.40
+```
+
+Once the text can say it, the parsed runner carries it for free and all four
+channels gain teams from that one change. Two separate rosters would mean
+`parseRoster` stops returning a list of runners, which is a larger change than one
+optional field, and it would double the roster read path at every call site.
+
+A heading is never a runner, a heading with nobody under it is not an error, and a
+heading naming neither team leaves the lines under it untagged rather than dropping
+them. Text with no headings at all parses exactly as it always did.
+
+**An untagged runner matches any team.** That is the migration rule, and it is
+what makes a phone that has not yet taken the two team list keep behaving exactly
+as it does today rather than showing an empty grid. One transient oddity comes
+with it and is accepted: an old phone holding only girls that starts a race marked
+Boys shows the girls, because there is nothing better it could show. It resolves
+the moment that phone adopts the new shipped list.
+
+The two races never overlap, which is what makes the rest of this small. There is
+still one active race pointer and one clock, because nobody records girls and boys
+at the same marker at the same time. Every race is still a 5K, so `PR_METERS` and
+the whole projected-finish-against-PR comparison are untouched. The top seven of
+the order is still varsity, so `defaultLineup` needs no new rules: it is handed one
+team.
+
+Race setup asks which team **explicitly**, as its own control above the race
+chips, even though the presets already spell it out and a typed name like "Boys
+Open" is sniffed the way `lineup.ts` already sniffs for JV. Showing a volunteer the
+wrong twenty eight names at the gun is the failure worth a control to rule out.
+
+Short labels are computed **per team** by `tools/team-file.ts`, not across the
+combined list. The two teams are never on one screen, so a girls "Avery L." and a
+boys "Avery L." cannot be two buttons a volunteer has to tell apart, and making
+each grow a letter would cost both of them the label the team says out loud to
+resolve a clash nobody can see.
+
+The CSV gains one `team` column, so a coach merging a dozen volunteer files can
+split them on a column rather than on whatever each volunteer typed into "Other".
+
+Lineup memory needed nothing: it keys on a slug of the race name, so "Varsity
+Boys" and "Varsity Girls" were already separate keys with separately remembered
+sevens.
+
+The privacy argument needed nothing either. The boys are minors and their 5K times
+are published on milesplit the same way, so the same rule applies unchanged: full
+names live only in the gitignored `roster.txt`, `public/team.dat` ships a first
+name and an initial with a best time, and plaintext full names are never
+committed.
+
 ### The team list is on the device, the lineup is on the race
 
-Two different lists. The team is everyone on the phone, edited once. A lineup is
-who is in one race, and it is what the grid shows: seven buttons for a varsity
-race, not twenty eight.
+Two different lists. The team is everyone on the phone, both teams, edited once. A
+lineup is who is in one race, and it is what the grid shows: seven buttons for a
+varsity race, not one team's whole list and certainly not both teams'.
+
+The narrowing happens in two steps and in that order. `forTeam` cuts the phone's
+list down to the racing team, and the lineup is chosen out of what is left, so the
+rule under the seventh name is that team's seeding rather than a line drawn through
+a combined list. The picker opened mid race from the capture screen narrows the
+same way: twenty eight girls listed under the boys who are about to run is a list
+nobody can find a name in.
 
 Who is running is chosen on its own screen, reachable from setup before the race
 and from the capture screen during it, because a late scratch or a runner moved
@@ -363,6 +441,11 @@ either list says, and cannot be removed by the lineup screen either, because a
 recorded time must never lose its name. That rule lives in `lib/roster.ts` with
 tests, rather than inline in a component, because it fails silently.
 
+Both sides of that merge are narrowed to the race's team first. A runner new to the
+team list joins the race being timed, which is the rule that makes a late entry
+work, and without the narrowing a phone that took up the two team list mid race
+would put a whole other team on the grid.
+
 ### Clear all races, and not the runners
 
 This button used to wipe everything, including the team list, on the theory that
@@ -370,8 +453,8 @@ This button used to wipe everything, including the team list, on the theory that
 
 The names are the part with no copy on the phone to rebuild from, and they are the
 part somebody had to get onto it in the first place. Races are what accumulates:
-last Saturday's meet is clutter by Tuesday, while the twenty eight runners are
-the same twenty eight runners all season. So the button clears races, crossings
+last Saturday's meet is clutter by Tuesday, while the runners on this phone are
+the same runners all season. So the button clears races, crossings
 and the pointer at the race being timed, and touches nothing else. The team list,
 the lineups remembered under each race name, and the record of which shipped list
 this phone has seen all stay.
@@ -537,9 +620,9 @@ The payload is base64url of the same one-runner-per-line text a coach would
 paste, best times included, so a link and a paste decode through identical code
 and there is one format to get right rather than two. Base64 is not secrecy. It
 keeps a list of names out of a message preview and survives clients that would
-otherwise mangle spaces, commas, and accents. A twenty eight name roster with
-every best time makes a link of about 900 characters, which texts fine and
-leaves room for a QR code later.
+otherwise mangle spaces, commas, and accents. Both teams, thirty seven names with
+every best time and a heading over each team, makes a link of about 1,200
+characters, which texts fine and leaves room for a QR code later.
 
 Three rules the implementation follows:
 
@@ -625,10 +708,10 @@ JavaScript. There is no arrangement of files and keys that changes this. So the
 choice is not how to hide the file, it is what goes in it.
 
 What goes in it is the short label a button already says, and that runner's best
-time:
+time, under a heading per team:
 
 ```
-public/team.dat    "Rowan H.  21:34.60", scrambled, committed
+public/team.dat    "# Girls" and "Rowan H.  21:34.60", scrambled, committed
 ```
 
 First name and an initial, never a surname. That is what a meet program prints
@@ -650,9 +733,14 @@ plaintext in a public repo, not indexed by a search engine, and not readable by
 someone glancing at the file listing. What it does not buy is confidentiality
 from anyone who spends a minute on it, and the tool says so on every run.
 
+One file for both teams, written from one `roster.txt` by the same command, because
+one person keeps the times and two sources would drift.
+
 Because output is deterministic, a rebuild with no roster change is not a diff.
 A rebuild that only moved a best time *is* a diff, and reads as a change the
-phone should adopt, which is the point: PRs move during a season.
+phone should adopt, which is the point: PRs move during a season. So does a runner
+moving between teams, since the heading is part of the text the fingerprint is
+taken over.
 
 Adopting it is where the care goes, since a file that arrives on its own can
 destroy work nobody asked it to touch:
@@ -793,7 +881,9 @@ on meet mornings.
 ## Not in scope
 
 - Team scoring.
-- Timing other teams. The list is our team only, about 20 in a JV race.
+- Timing other schools. The list is our two teams only, about 20 in a JV race.
+- Two races at once. The boys and the girls never run together, so there is one
+  clock and one active race, and a volunteer covers one race at a time.
 - Finish line timing, ever. The meet provides it.
 - Central result collection. Volunteers text exports to the coach.
 

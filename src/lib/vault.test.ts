@@ -34,6 +34,23 @@ test('ids are minted fresh on unlock, as with any other import', async () => {
   assert.equal(new Set(back?.map((a) => a.id)).size, 3)
 })
 
+test('both teams come out of one published roster', async () => {
+  // One file, because one person keeps the times, and a volunteer with the
+  // passphrase can be sent to either race.
+  const both: Athlete[] = [
+    { id: 'a1', name: 'Marlowe Holloway', pr: 21 * 60_000 + 34_600, team: 'girls' },
+    { id: 'a2', name: 'Jordan Blake', team: 'boys' },
+  ]
+  const back = await openRoster(await sealRoster(both, PASS), PASS)
+  assert.deepEqual(
+    back?.map((a) => [a.name, a.team, a.pr]),
+    [
+      ['Marlowe Holloway', 'girls', 21 * 60_000 + 34_600],
+      ['Jordan Blake', 'boys', undefined],
+    ],
+  )
+})
+
 test('the wrong passphrase gets nothing, not a guess', async () => {
   assert.equal(await openRoster(sealed, 'crimson-anvil-otter-lagoo'), null)
   assert.equal(await openRoster(sealed, ''), null)

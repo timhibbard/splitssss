@@ -964,6 +964,13 @@
   color: var(--ink-soft);
 }
 
+/* How many are under this heading, so "are the boys on this phone?" is answered
+   by the heading rather than by counting rows. */
+.roster-count {
+  font-weight: 400;
+  opacity: 0.7;
+}
+
 .roster-row {
   display: flex;
   align-items: center;

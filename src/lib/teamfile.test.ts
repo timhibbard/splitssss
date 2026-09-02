@@ -45,6 +45,36 @@ test('a best time survives the scramble with the label it belongs to', () => {
   )
 })
 
+test('one shipped file holds both teams', () => {
+  // The whole point of the headings: one build, one file, and either coach's race
+  // can be covered by whichever phone is at the marker.
+  const lines = ['# Girls', 'Marlowe H.\t21:34.60', 'Rowan H.', '# Boys', 'Jordan B.\t17:12.40']
+  const back = unscrambleTeam(scrambleTeam(lines))
+  assert.deepEqual(
+    back?.map((a) => [a.name, a.team, a.pr]),
+    [
+      ['Marlowe H.', 'girls', 21 * 60_000 + 34_600],
+      ['Rowan H.', 'girls', undefined],
+      ['Jordan B.', 'boys', 17 * 60_000 + 12_400],
+    ],
+  )
+})
+
+test('no heading is readable in the file either', () => {
+  const body = scrambleTeam(['# Girls', 'Rowan H.', '# Boys', 'Jordan B.'])
+  assert.ok(!body.includes('Girls'), 'a heading appears in the clear')
+  assert.ok(!body.includes('Boys'))
+})
+
+test('moving a runner between teams changes the fingerprint', () => {
+  // A phone compares the shipped text against what it holds. A runner who moved
+  // up to the varsity list of the other team has to reach the phones.
+  const girls = [{ id: 'x1', name: 'Rowan H.', team: 'girls' as const }]
+  const boys = [{ id: 'x1', name: 'Rowan H.', team: 'boys' as const }]
+  assert.notEqual(teamText(girls), teamText(boys))
+  assert.notEqual(teamText(girls), teamText([{ id: 'x1', name: 'Rowan H.' }]))
+})
+
 test('a changed best time changes the fingerprint, so the phone picks it up', () => {
   // The app compares the shipped text against what it already has. A rebuild that
   // only moved a PR has to read as a change or nobody ever sees the new one.

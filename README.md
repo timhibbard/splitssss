@@ -2,9 +2,10 @@
 
 **Splits, Saved, Sorted, Sent.**
 
-Hand timing for cross country splits, for the J.L. Mann Academy Patriots girls
-team. A volunteer stands at a course marker, taps a big button as each of our
-runners passes, attaches names afterward, and texts the coach a CSV.
+Hand timing for cross country splits, for the J.L. Mann Academy Patriots boys and
+girls cross country teams. A volunteer stands at a course marker, taps a big
+button as each of our runners passes, attaches names afterward, and texts the
+coach a CSV.
 
 Live at **https://timhibbard.github.io/splitssss/**
 
@@ -24,6 +25,13 @@ Live at **https://timhibbard.github.io/splitssss/**
   short labels the buttons say, so a parent handed a phone ten minutes before the
   gun opens the app and finds the names on it. Nothing to open, nothing to type.
   A list somebody edited by hand is never overwritten: that gets asked about.
+- **Both teams, one phone.** Every phone holds the boys and the girls, so either
+  coach's race can be covered by whoever is standing at the marker. Race setup
+  asks which team before anything else and the grid shows that team only. In the
+  roster text a line reading `# Boys` or `# Girls` puts the runners under it on
+  that team, so a paste, a link, the encrypted roster and the shipped file all
+  carry it the same way. A list with no such line is untagged and shows in either
+  race, which is how a phone that predates the change keeps working.
 - **The roster travels by link.** The coach taps "Send this list to a volunteer"
   and texts a link that loads all the names, and their best times, in one tap.
   The names ride in the URL fragment, which browsers never send to a server, so
@@ -44,11 +52,12 @@ Live at **https://timhibbard.github.io/splitssss/**
   three word name keeps the first two words, so "Anna Grace F." is what the team
   calls out. If two labels would read the same they grow a letter until they do
   not: Rowan Ha. and Rowan He. Full names go to the export and to screen readers.
-- **Pick who is running.** A varsity race is seven buttons, not twenty eight.
-  Choose the lineup before the race or change it mid race, with Top 7, Everyone
-  else, Everyone and Nobody one tap each. The choice is remembered under the race
-  name, so next week's varsity race opens with the seven you picked. Anyone who
-  already has a time cannot be taken out.
+- **Pick who is running.** A varsity race is seven buttons, not one team's whole
+  list and certainly not both teams'. Choose the lineup before the race or change
+  it mid race, with Top 7, Everyone else, Everyone and Nobody one tap each. The
+  choice is remembered under the race name, so next week's varsity race opens with
+  the seven you picked, and "Varsity Boys" and "Varsity Girls" remember their own.
+  Anyone who already has a time cannot be taken out.
 - **Scrolling the names records nothing.** The grid of names scrolls, so a name
   button holds the time from the moment your finger lands and only records it if
   the finger lifts without dragging. A tap is timed to the instant it landed. A
@@ -140,23 +149,35 @@ npm test         # clock, storage, roster, link, vault, team file, distance, spl
 npm run preview  # serve the production build at /splitssss/
 ```
 
-Ship the team with the app, so every phone opens with the names on it. One runner
-per line in `roster.txt`, with that runner's 5K best after the name if there is
-one:
+Ship the teams with the app, so every phone opens with the names on it. One
+runner per line in `roster.txt`, with that runner's 5K best after the name if
+there is one, under a heading per team. Each team in its own PR order, since the
+top seven of the order is that team's varsity:
 
 ```
-Rowan Hayes   21:34.60
+# Girls
+Marlowe Holloway   21:34.60
+Rowan Hayes        22:29.15
+
+# Boys
+Jordan Blake       17:12.40
+Quinn Delgado      18:05.00
 ```
+
+One file for both teams, because one person keeps the times. A file with no
+headings still works and ships everyone untagged.
 
 ```sh
 npm run team-file -- roster.txt     # writes public/team.dat, prints the list in order
 git add public/team.dat             # short labels and best times, scrambled, meant to be committed
 ```
 
-Re-run it after adding a runner or after somebody sets a PR. Output is
-deterministic, so a rebuild with no change is not a diff. A phone that already
-took the last list takes the new one on its own; a phone with a hand edited list
-gets asked.
+Re-run it after adding a runner, after somebody sets a PR, or after a runner
+changes teams. Output is deterministic, so a rebuild with no change is not a diff.
+A phone that already took the last list takes the new one on its own; a phone with
+a hand edited list gets asked. Short labels are worked out within each team, since
+the two never race at once, so a girls "Avery L." and a boys "Avery L." both keep
+the label the team actually calls out.
 
 Generate a roster link from a file of names, without the names touching git:
 
