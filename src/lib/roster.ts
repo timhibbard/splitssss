@@ -18,9 +18,9 @@ const HEADING: Record<Team, string> = { girls: 'Girls', boys: 'Boys' }
 
 /**
  * Parses a list of runners, one per line, each optionally followed by that
- * runner's best time. Also the decoder for a shared roster link, the encrypted
- * roster and the list that ships with the build, so a paste, a link, a vault and
- * a team file cannot disagree about what a line means.
+ * runner's best time. Also the decoder for a shared roster link and for the list
+ * that ships with the build, so a paste, a link and a team file cannot disagree
+ * about what a line means.
  *
  * A line beginning with `#` is a heading, not a runner, and it sets the team for
  * the lines under it:
@@ -95,10 +95,9 @@ export function byTeam(athletes: Athlete[]): { team?: Team; athletes: Athlete[] 
 
 /**
  * The list as text, one runner per line under a heading per team, which is what
- * every channel carries: the fragment of a shared link, the encrypted roster,
- * the file that ships with the build, and the box a coach pastes into.
- * parseRoster reads this back, so the two are one format with one set of rules
- * rather than four that drift.
+ * every channel carries: the fragment of a shared link, the file that ships with
+ * the build, and the box a coach pastes into. parseRoster reads this back, so the
+ * two are one format with one set of rules rather than three that drift.
  *
  * A tab before the time, because a name can hold a space and never a tab.
  *

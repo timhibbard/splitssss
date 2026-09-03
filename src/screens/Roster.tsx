@@ -29,14 +29,11 @@ type Props = {
   athletes: Athlete[]
   onSave: (athletes: Athlete[]) => void
   onBack: () => void
-  /** Runners waiting on a decision, from a link, the published roster, or the build. */
+  /** Runners waiting on a decision, from a shared link or from the build. */
   incoming: Athlete[] | null
-  incomingSource: 'link' | 'published' | 'shipped'
+  incomingSource: 'link' | 'shipped'
   onImport: (mode: 'replace' | 'add') => void
   onDismissImport: () => void
-  /** This build ships an encrypted roster, so a passphrase can load it. */
-  hasPublished: boolean
-  onUnlock: (passphrase: string) => Promise<boolean>
   /** The build came with a team list and this phone is not using it. */
   canLoadShipped: boolean
   onLoadShipped: () => void
@@ -50,46 +47,12 @@ export function Roster({
   incomingSource,
   onImport,
   onDismissImport,
-  hasPublished,
-  onUnlock,
   canLoadShipped,
   onLoadShipped,
 }: Props) {
   const [paste, setPaste] = useState('')
   const [single, setSingle] = useState('')
   const [status, setStatus] = useState('')
-  const [passphrase, setPassphrase] = useState('')
-  const [unlocking, setUnlocking] = useState(false)
-  const [unlockError, setUnlockError] = useState('')
-  const [showUnlock, setShowUnlock] = useState(false)
-
-  /**
-   * An empty phone is the case the published roster exists for, so the prompt is
-   * open. Once there are names on the list it folds down to one quiet line: still
-   * reachable when the coach adds a runner and re-publishes, not in the way.
-   */
-  const unlockOpen = hasPublished && !incoming && (athletes.length === 0 || showUnlock)
-
-  /**
-   * Key derivation takes a moment on purpose, so the button has to say what is
-   * happening. A failure is a wrong passphrase far more often than a bad file,
-   * and the message leads with that.
-   */
-  async function unlock() {
-    if (passphrase.trim() === '' || unlocking) return
-    setUnlocking(true)
-    setUnlockError('')
-    const ok = await onUnlock(passphrase)
-    setUnlocking(false)
-    if (ok) {
-      setPassphrase('')
-      setShowUnlock(false)
-      return
-    }
-    setUnlockError(
-      'That passphrase did not work. Check for a capital letter, and mind autocorrect.',
-    )
-  }
 
   function addPasted() {
     const parsed = parseRoster(paste)
@@ -150,9 +113,7 @@ export function Roster({
           <p>
             {incomingSource === 'link'
               ? 'This link has '
-              : incomingSource === 'shipped'
-                ? 'The list that came with the app has '
-                : 'The team roster has '}
+              : 'The list that came with the app has '}
             <strong>{incoming.length} runners</strong>.
             {athletes.length > 0 ? ` You already have ${athletes.length} on this phone.` : ''}
           </p>
@@ -178,49 +139,9 @@ export function Roster({
         holding full names and wants the short ones back.
       */}
       {canLoadShipped && !incoming && (
-        <button type="button" className="vault-toggle" onClick={onLoadShipped}>
+        <button type="button" className="quiet-offer" onClick={onLoadShipped}>
           Load the team list that came with the app
         </button>
-      )}
-
-      {hasPublished && !incoming && !unlockOpen && (
-        <button type="button" className="vault-toggle" onClick={() => setShowUnlock(true)}>
-          Load the published team roster, with full names
-        </button>
-      )}
-
-      {unlockOpen && (
-        <section className="vault">
-          <p>
-            <strong>The team roster is published with this app.</strong> It is
-            encrypted, so it takes the season passphrase once on this phone. Ask
-            the coach for it.
-          </p>
-          <label>
-            Season passphrase
-            <input
-              type="password"
-              value={passphrase}
-              onChange={(e) => setPassphrase(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void unlock()
-              }}
-              autoComplete="off"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-            />
-          </label>
-          <button
-            type="button"
-            className="primary"
-            onClick={() => void unlock()}
-            disabled={unlocking || passphrase.trim() === ''}
-          >
-            {unlocking ? 'Unlocking...' : 'Load the team'}
-          </button>
-          {unlockError && <p className="warn">{unlockError}</p>}
-        </section>
       )}
 
       <p className="hint">

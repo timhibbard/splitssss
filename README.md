@@ -29,19 +29,15 @@ Live at **https://timhibbard.github.io/splitssss/**
   coach's race can be covered by whoever is standing at the marker. Race setup
   asks which team before anything else and the grid shows that team only. In the
   roster text a line reading `# Boys` or `# Girls` puts the runners under it on
-  that team, so a paste, a link, the encrypted roster and the shipped file all
-  carry it the same way. A list with no such line is untagged and shows in either
-  race, which is how a phone that predates the change keeps working.
+  that team, so a paste, a link and the shipped file all carry it the same way. A
+  list with no such line is untagged and shows in either race, which is how a
+  phone that predates the change keeps working.
 - **The roster travels by link.** The coach taps "Send this list to a volunteer"
   and texts a link that loads all the names, and their best times, in one tap.
   The names ride in the URL fragment, which browsers never send to a server, so
   they reach no log or cache. The recipient gets a prompt, not a silent
-  overwrite.
-- **Or the roster ships encrypted with the app.** `public/roster.enc` is
-  AES-GCM ciphertext, so it can sit in a public repo. The app asks for the season
-  passphrase once per phone, decrypts in the browser, and keeps the names
-  locally. The passphrase is never in the repo, never in the URL, and never sent
-  anywhere. Plaintext names are still never committed.
+  overwrite. This is the only channel that carries full names, and it is the only
+  one that needs a person to do anything.
 - **Names go on during the race or after.** The team list is already on the
   phone, editable from the link at the bottom of the home screen or from "Who is
   running" mid race. Tapping a name records that runner's crossing at that moment, and the
@@ -110,26 +106,26 @@ limitations.
 
 ## Privacy
 
-Plaintext athlete names are never committed to this repository. They travel two
-ways, and neither one puts a name on a server:
+Plaintext athlete names are never committed to this repository. A full name
+travels exactly one way: in the fragment of a shared link, which browsers do not
+send to the server, so the names of minors never reach a web server log or a CDN
+cache.
 
-- In the fragment of a shared link, which browsers do not send to the server, so
-  the names of minors never reach a web server log or a CDN cache.
-- In `public/roster.enc`, encrypted with a passphrase that lives only in the
-  coach's head and in a text message. This repo is public and the published site
-  is public either way, so a committed roster is only as private as the
-  passphrase over it. See DESIGN.md for what that does and does not protect.
+`public/team.dat` is committed, and it is the one file in the repo that carries
+anything about a runner. It holds first names and an initial with a 5K best after
+each, "Rowan H. 21:34.60", scrambled. Scrambled is not encrypted: the app reads
+it with nothing typed, so the way to read it ships in the JavaScript and anyone
+who wants the list can have it. That is the trade for the names being there
+automatically, and it is why the file holds no surnames. The times are in it for
+the same reason: a best time that has to be sent to a volunteer never reaches the
+one at the two mile mark, and a 5K best is already published next to a full name
+on the meet's own results page. See DESIGN.md.
 
-`public/team.dat` is committed too, and it is the one file that carries anything
-about a runner without a passphrase over it. It holds first names and an initial
-with a 5K best after each, "Rowan H. 21:34.60", scrambled. Scrambled is not
-encrypted: the app reads it with nothing typed, so the way to read it ships in
-the JavaScript and anyone who wants the list can have it. That is the trade for
-the names being there automatically, and it is why the file holds no surnames.
-The times are in it for the same reason: a best time that only arrives with a
-passphrase never reaches the volunteer holding the phone, and a 5K best is
-already published next to a full name on the meet's own results page. See
-DESIGN.md.
+There is no season passphrase and no encrypted roster. There used to be an
+AES-GCM `public/roster.enc` for publishing full names with the app; it is gone,
+because first name plus last initial is what the buttons and the export say, so
+nothing on a volunteer's phone needed a full name badly enough to be worth a
+secret. DESIGN.md keeps the reasoning.
 
 The school's logo file is also not committed. This app uses the school colors
 and the Patriots name and ships its own stopwatch mark rather than
@@ -145,7 +141,7 @@ npm run dev
 ```sh
 npm run build    # type check and build
 npm run lint
-npm test         # clock, storage, roster, link, vault, team file, distance, split, gesture, name, and lineup logic, via node --test
+npm test         # clock, storage, roster, link, team file, distance, split, gesture, name, and lineup logic, via node --test
 npm run preview  # serve the production build at /splitssss/
 ```
 
@@ -179,24 +175,13 @@ a hand edited list gets asked. Short labels are worked out within each team, sin
 the two never race at once, so a girls "Avery L." and a boys "Avery L." both keep
 the label the team actually calls out.
 
-Generate a roster link from a file of names, without the names touching git:
+Generate a roster link from a file of names, without the names touching git. This
+is how full names reach a phone, and the only way they do:
 
 ```sh
 npm run roster-link roster.txt     # roster*.txt is gitignored
 pbpaste | npm run roster-link
 ```
-
-Publish the roster with the app instead, encrypted:
-
-```sh
-npm run roster-encrypt -- roster.txt   # prompts for the passphrase, twice
-git add public/roster.enc              # ciphertext, and the only roster file that gets committed
-```
-
-Run `npm run dev` first and unlock it on localhost to confirm the passphrase
-before pushing. Re-running the tool re-encrypts the whole list, which is how a
-runner gets added and how the passphrase gets rotated. Old ciphertext stays in
-git history forever, so rotating means a new passphrase *and* a new file.
 
 Pushing to `main` deploys to GitHub Pages via `.github/workflows/deploy.yml`.
 

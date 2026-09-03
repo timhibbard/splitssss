@@ -24,12 +24,12 @@
  * nothing from a human, so the way to read it ships in the JavaScript, so anyone
  * who wants the list can have it. See src/lib/teamfile.ts for the whole argument.
  * The tradeoff was chosen on purpose: automatic beats secret for a list a meet
- * program prints anyway, and full names still need a link or a passphrase.
+ * program prints anyway, and full names still need a link somebody sends.
  *
  * The best times ride along for the same reason the names do: a PR on the button
- * is no use if it only arrives with a passphrase somebody has to be texted. A 5K
- * best is already public next to a full name on the meet's own results page, so
- * next to a first name and an initial it says less than the results already do.
+ * is no use if it only arrives with something somebody has to be sent. A 5K best
+ * is already public next to a full name on the meet's own results page, so next
+ * to a first name and an initial it says less than the results already do.
  *
  * Two names that would abbreviate the same way grow a letter until they do not,
  * because two identical buttons is a split on the wrong runner. That is the same
@@ -123,6 +123,6 @@ console.error('Every phone that loads the app gets these names, with nothing to 
 console.error('')
 console.error('This file is scrambled, not encrypted. Anyone who wants the list can')
 console.error('decode it, which is why it holds first names and an initial and not')
-console.error('full names. Full names go by link or by roster.enc.')
+console.error('full names. Full names travel only in a link you send yourself.')
 console.error('')
 console.error(`Commit ${OUT}. Do not commit ${file}.`)

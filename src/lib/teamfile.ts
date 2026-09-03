@@ -5,7 +5,7 @@ import type { Athlete } from './types'
 
 /**
  * The team list that ships with the build, so a phone opens with the names
- * already on it. No link to text, no passphrase to type, nothing to explain to a
+ * already on it. No link to text, nothing to type, nothing to explain to a
  * parent who got handed the job ten minutes ago.
  *
  * What this is and is not, stated plainly, because the difference matters and the
@@ -22,14 +22,14 @@ import type { Athlete } from './types'
  *   the same thing the buttons say. Decoded, it is first names and an initial for
  *   a team whose roster a meet program prints anyway, rather than a file of full
  *   names.
- * - Each line carries that runner's best time, because a PR on the button is
- *   useless if it only arrives with a passphrase somebody has to be texted. A 5K
- *   best is already published, next to a full name, on the meet's own results
- *   page. Attached here to a first name and an initial it is less than what the
- *   results already say, and it is what makes a split mean something at the
- *   course.
- * - Full names never travel this way. They go by roster link or by the encrypted
- *   `roster.enc`, both of which need something a person has to supply.
+ * - Each line carries that runner's best time, because a PR that only arrives
+ *   with something a person has to be sent is a PR that never reaches the phone.
+ *   A 5K best is already published, next to a full name, on the meet's own
+ *   results page. Attached here to a first name and an initial it is less than
+ *   what the results already say, and it is what makes a split mean something at
+ *   the course.
+ * - Full names never travel this way. The only channel that carries them is a
+ *   shared link, which a person has to send on purpose.
  *
  * The keystream is a fixed xorshift, which is why this file is deterministic: the
  * same list rebuilds byte for byte, so a rebuild with no roster change is not a

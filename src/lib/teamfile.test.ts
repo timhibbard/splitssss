@@ -31,8 +31,8 @@ test('one changed name changes the file', () => {
 })
 
 test('a best time survives the scramble with the label it belongs to', () => {
-  // A PR that only arrived with a passphrase would never reach a volunteer's
-  // phone, so the shipped file carries the numbers too.
+  // A PR that had to be sent to a volunteer would never reach their phone, so
+  // the shipped file carries the numbers too.
   const lines = ['Marlowe H.\t21:34.60', 'Rowan H.', 'Jordan B.\t24:00.00']
   const back = unscrambleTeam(scrambleTeam(lines))
   assert.deepEqual(
