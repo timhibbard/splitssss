@@ -20,29 +20,15 @@ type Step = {
 }
 
 /**
- * The workflow as three jobs rather than one list, because they belong to
- * different people on different days: the coach sets the phones up once, whoever
- * is holding one sets up a race, and then there is a race on.
+ * The workflow as three lists rather than one, because they are three different
+ * moments for the person holding the phone: setting a race up, timing it, and
+ * sending it.
+ *
+ * Nothing here is addressed to the coach. Getting the names onto the phones and
+ * handing them out is the coach's own job and the coach does not need instructions
+ * for it, so this page is only ever the volunteer's side of the morning.
  */
 const WORKFLOW: { title: string; lead?: string; steps: Step[] }[] = [
-  {
-    title: 'Once, before the season',
-    lead: 'The coach does this. A volunteer never has to.',
-    steps: [
-      {
-        act: 'Open the app.',
-        note: 'The team list comes with it, so the names are already on the phone. The link near the bottom of the home screen says how many, and that is how you check.',
-      },
-      {
-        act: 'Add it to the home screen.',
-        note: 'Do it at home, not at the course. Everything the app needs is stored on the phone the first time it loads, and after that it works with no signal at all.',
-      },
-      {
-        act: 'Send this list to a volunteer.',
-        note: 'On the runners screen. Texts a link that loads every name and best time in one tap. Only needed for a phone that should show full names: a phone that just opens the app already has first names and initials.',
-      },
-    ],
-  },
   {
     title: 'Before each race',
     lead: 'Top to bottom on the home screen. It takes about twenty seconds.',
@@ -141,7 +127,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'There is no signal at the two mile mark.',
-    a: 'It all works with no signal. The app, the names and the best times are stored on the phone, nothing is ever sent to a server, and nothing here needs the internet until you send the CSV at the end.',
+    a: 'It all works with no signal, as long as the app was opened once somewhere that had one. After that the app, the names and the best times are all on the phone, nothing is ever sent to a server, and nothing here needs the internet until you send the CSV at the end.',
   },
   {
     q: 'The phone locked, or the screen reloaded. Did I lose my taps?',

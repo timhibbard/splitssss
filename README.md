@@ -99,7 +99,7 @@ Live at **https://timhibbard.github.io/splitssss/**
   The runners stay, since they are the part with no copy on the phone to rebuild
   from. Take someone off the team from the roster screen instead.
 - **The instructions are in the app.** "How this works, and the questions people
-  ask" at the top of the home screen: the workflow as four short lists, then the
+  ask" at the top of the home screen: the workflow as three short lists, then the
   questions a volunteer actually has, with an answer each. It is offline like
   everything else, so it is readable standing at the marker, and it is the thing
   to point a new parent at instead of briefing them.
