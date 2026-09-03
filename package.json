@@ -10,7 +10,6 @@
     "test": "node --test",
     "preview": "vite preview",
     "roster-link": "node tools/roster-link.ts",
-    "roster-encrypt": "node tools/roster-encrypt.ts",
     "team-file": "node tools/team-file.ts"
   },
   "dependencies": {

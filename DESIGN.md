@@ -3,8 +3,9 @@
 **Splits, Saved, Sorted, Sent.**
 
 A hand timing app for cross country splits, for the J.L. Mann Academy Patriots
-girls team. One person stands at a course marker, taps a big button as each of
-our runners passes, attaches names afterward, and texts the coach a CSV.
+boys and girls cross country teams. One person stands at a course marker, taps a
+big button as each of our runners passes, attaches names afterward, and texts the
+coach a CSV.
 
 ## Branding
 
@@ -36,7 +37,9 @@ Two different people, with very different needs:
   before the race and will not read instructions. Their job is to tap
   accurately and export without help.
 - **The coach** assembles texted CSVs from several volunteers into a season
-  record used to help athletes understand their pacing.
+  record used to help athletes understand their pacing. There are two of them now,
+  one per team, and either one's race can be covered by whoever is standing at the
+  marker.
 
 The volunteer is the primary user. Every design tradeoff favors them.
 
@@ -300,7 +303,7 @@ the list is a once a season job sitting on top of the screen a volunteer uses
 every race.
 
 So it is a plain underlined link at the bottom, below Start timing and above Start
-over, and it says what it would open: "Edit the 28 runners on this phone". That
+over, and it says what it would open: "Edit the 37 runners on this phone". That
 label is also the answer to the only question the old panel really answered, which
 is whether the names made it onto this phone. The lineup panel still sits with the
 race, because who is running changes every race and that is the opposite kind of
@@ -334,11 +337,85 @@ storage, to the export, to every `aria-label`, and to the lineup screen, where a
 coach is deciding and a surname is part of deciding. The rules are pure
 functions in `lib/names.ts` with tests, because a wrong label is a wrong split.
 
+### Two teams, one list, with a team on each runner
+
+Both coaches record with this app, so a phone has to hold the boys and the girls
+and a race has to know which one it is. Otherwise a phone serves one team and the
+volunteer at the two mile mark is the wrong volunteer for half the morning.
+
+The shape chosen is one roster where each runner carries a `team`, rather than two
+rosters side by side. The reason is the text format. One
+`Name<tab>m:ss.hh` line is shared by every channel a roster arrives
+through — a paste, a shared link, and `team.dat` — and the shipped file has to
+express two teams whichever shape is picked. So the text grows a heading:
+
+```
+# Girls
+Marlowe Holloway  21:34.60
+
+# Boys
+Jordan Blake      17:12.40
+```
+
+Once the text can say it, the parsed runner carries it for free and every channel
+gains teams from that one change. Two separate rosters would mean
+`parseRoster` stops returning a list of runners, which is a larger change than one
+optional field, and it would double the roster read path at every call site.
+
+A heading is never a runner, a heading with nobody under it is not an error, and a
+heading naming neither team leaves the lines under it untagged rather than dropping
+them. Text with no headings at all parses exactly as it always did.
+
+**An untagged runner matches any team.** That is the migration rule, and it is
+what makes a phone that has not yet taken the two team list keep behaving exactly
+as it does today rather than showing an empty grid. One transient oddity comes
+with it and is accepted: an old phone holding only girls that starts a race marked
+Boys shows the girls, because there is nothing better it could show. It resolves
+the moment that phone adopts the new shipped list.
+
+The two races never overlap, which is what makes the rest of this small. There is
+still one active race pointer and one clock, because nobody records girls and boys
+at the same marker at the same time. Every race is still a 5K, so `PR_METERS` and
+the whole projected-finish-against-PR comparison are untouched. The top seven of
+the order is still varsity, so `defaultLineup` needs no new rules: it is handed one
+team.
+
+Race setup asks which team **explicitly**, as its own control above the race
+chips, even though the presets already spell it out and a typed name like "Boys
+Open" is sniffed the way `lineup.ts` already sniffs for JV. Showing a volunteer the
+wrong twenty eight names at the gun is the failure worth a control to rule out.
+
+Short labels are computed **per team** by `tools/team-file.ts`, not across the
+combined list. The two teams are never on one screen, so a girls "Avery L." and a
+boys "Avery L." cannot be two buttons a volunteer has to tell apart, and making
+each grow a letter would cost both of them the label the team says out loud to
+resolve a clash nobody can see.
+
+The CSV gains one `team` column, so a coach merging a dozen volunteer files can
+split them on a column rather than on whatever each volunteer typed into "Other".
+
+Lineup memory needed nothing: it keys on a slug of the race name, so "Varsity
+Boys" and "Varsity Girls" were already separate keys with separately remembered
+sevens.
+
+The privacy argument needed nothing either. The boys are minors and their 5K times
+are published on milesplit the same way, so the same rule applies unchanged: full
+names live only in the gitignored `roster.txt`, `public/team.dat` ships a first
+name and an initial with a best time, and plaintext full names are never
+committed.
+
 ### The team list is on the device, the lineup is on the race
 
-Two different lists. The team is everyone on the phone, edited once. A lineup is
-who is in one race, and it is what the grid shows: seven buttons for a varsity
-race, not twenty eight.
+Two different lists. The team is everyone on the phone, both teams, edited once. A
+lineup is who is in one race, and it is what the grid shows: seven buttons for a
+varsity race, not one team's whole list and certainly not both teams'.
+
+The narrowing happens in two steps and in that order. `forTeam` cuts the phone's
+list down to the racing team, and the lineup is chosen out of what is left, so the
+rule under the seventh name is that team's seeding rather than a line drawn through
+a combined list. The picker opened mid race from the capture screen narrows the
+same way: twenty eight girls listed under the boys who are about to run is a list
+nobody can find a name in.
 
 Who is running is chosen on its own screen, reachable from setup before the race
 and from the capture screen during it, because a late scratch or a runner moved
@@ -363,6 +440,11 @@ either list says, and cannot be removed by the lineup screen either, because a
 recorded time must never lose its name. That rule lives in `lib/roster.ts` with
 tests, rather than inline in a component, because it fails silently.
 
+Both sides of that merge are narrowed to the race's team first. A runner new to the
+team list joins the race being timed, which is the rule that makes a late entry
+work, and without the narrowing a phone that took up the two team list mid race
+would put a whole other team on the grid.
+
 ### Clear all races, and not the runners
 
 This button used to wipe everything, including the team list, on the theory that
@@ -370,8 +452,8 @@ This button used to wipe everything, including the team list, on the theory that
 
 The names are the part with no copy on the phone to rebuild from, and they are the
 part somebody had to get onto it in the first place. Races are what accumulates:
-last Saturday's meet is clutter by Tuesday, while the twenty eight runners are
-the same twenty eight runners all season. So the button clears races, crossings
+last Saturday's meet is clutter by Tuesday, while the runners on this phone are
+the same runners all season. So the button clears races, crossings
 and the pointer at the race being timed, and touches nothing else. The team list,
 the lineups remembered under each race name, and the record of which shipped list
 this phone has seen all stay.
@@ -447,10 +529,10 @@ holds that rule with tests, and the CSV calls the same function, so the file and
 the screen cannot disagree.
 
 Best times travel in the roster text itself, `Name<tab>m:ss.hh`, one line per
-runner, which is the format a paste, a link, `roster.enc` and `team.dat` already
-share. So all four channels gained best times at once, and there is no fifth
-format to keep in sync. `rosterText` is the inverse of `parseRoster` and there
-is a round trip test, because that pair is now load bearing in four places. A
+runner, which is the format a paste, a link and `team.dat` already share. So
+every channel gained best times at once, and there is no separate format to keep
+in sync. `rosterText` is the inverse of `parseRoster` and there is a round trip
+test, because that pair is load bearing everywhere a roster arrives. A
 time is recognised by its colon, which is what distinguishes it from the bib
 number that an entry list paste puts at the *front* of the same line.
 
@@ -530,16 +612,16 @@ Two reasons this is the right call and not just the lazy one:
    touch a web server log or a CDN cache. The published site is public
    regardless of repository visibility.
 
-**Plaintext names are never committed to this repository.** The encrypted form
-below is the one exception, and it is ciphertext.
+**Plaintext names are never committed to this repository.** A shared link is the
+only channel that carries a full name anywhere.
 
 The payload is base64url of the same one-runner-per-line text a coach would
 paste, best times included, so a link and a paste decode through identical code
 and there is one format to get right rather than two. Base64 is not secrecy. It
 keeps a list of names out of a message preview and survives clients that would
-otherwise mangle spaces, commas, and accents. A twenty eight name roster with
-every best time makes a link of about 900 characters, which texts fine and
-leaves room for a QR code later.
+otherwise mangle spaces, commas, and accents. Both teams, thirty seven names with
+every best time and a heading over each team, makes a link of about 1,200
+characters, which texts fine and leaves room for a QR code later.
 
 Three rules the implementation follows:
 
@@ -558,13 +640,14 @@ One caveat worth stating in the UI, because it will otherwise waste somebody's
 morning: on iOS a site added to the home screen keeps storage separate from
 Safari. Open the link in the same place you intend to time.
 
-### The encrypted roster, and what a public repo can and cannot keep
+### What a public repo can and cannot keep, and the encrypted roster that is gone
 
 The link works, but it has to be re-sent, and a coach who wants the team already
 in the app on any phone asked the obvious question: can the names be secret in
 the repo and still load on the page?
 
-Only one way, and it is worth being exact about why.
+Only one way, and it is worth being exact about why, because the answer is what
+shaped `team.dat` below.
 
 The repo has to be public for free GitHub Pages, and the published site is public
 regardless. Anything the page can read without a human supplying something,
@@ -572,52 +655,31 @@ anyone can read: a base64 file, an obscure filename, a key shipped in the
 JavaScript. Those are speed bumps. Worse, they read as protection, and git
 history keeps the file after it is deleted.
 
-So the only real option is a passphrase that never enters the repo:
+So the only real option was a passphrase that never enters the repo, and that got
+built: `public/roster.enc`, AES-256-GCM, PBKDF2-SHA256 at 1,200,000 rounds,
+committed as ciphertext, unlocked in the browser once per phone, with the
+passphrase living in the coach's head and a text message.
 
-```
-public/roster.enc     AES-256-GCM ciphertext, committed
-passphrase            in the coach's head, texted separately, never written here
-```
+**It has been removed, and no `roster.enc` was ever published.** What settled it
+is that nothing on a volunteer's phone actually needs a surname. The buttons say
+"Rowan H.", the CSV says "Rowan H.", and the coach reading the export knows which
+Rowan. A passphrase is a thing to remember, to text, to mistype at a starting
+line, and to rotate — paid every season by every phone, to deliver a last name
+nobody was going to read. So the feature is gone rather than dormant: an unlock
+prompt for a file that will never exist is worse than no prompt, and crypto
+nobody uses is crypto nobody checks.
 
-`npm run roster-encrypt -- roster.txt` seals the same one-runner-per-line text a
-paste or a link would carry, best times and all, then reads the file back and
-opens it before saying it worked. The app fetches the file at startup, and the roster screen offers an
-unlock. Decryption is in the browser, so the passphrase never leaves the phone,
-and the decrypted names persist locally, which makes this once per phone rather
-than once per race. A wrong passphrase and a tampered file both fail, since GCM
-authenticates: no version of this ever decrypts to the wrong names.
-
-Choices worth defending:
-
-- **PBKDF2-SHA256 at 1,200,000 rounds**, twice OWASP's 2023 floor. The count is
-  stored in the file, so it can rise later without stranding a published roster.
-  It measures at a fraction of a second, paid once per device, and the ciphertext
-  is public forever, so the rounds are cheap here and expensive for anyone
-  guessing offline. A count above four million is rejected rather than attempted,
-  so a corrupt file cannot hang a phone at the starting line.
-- **The encrypt tool refuses a passphrase under sixteen characters.** The file it
-  protects can be attacked offline for years. Four random words is easy to text
-  and far past anything worth grinding for a JV roster.
-- **Unlocking routes through the same prompt a link does.** Both channels stage
-  the names and ask before touching what is on the phone, so a volunteer who
-  typed a few by hand does not lose them.
-- **No published roster means no prompt.** A fresh clone has no `roster.enc`, the
-  fetch 404s, and the feature is simply invisible. A 404 page, an offline phone
-  and a malformed file all read as absent rather than as an error.
-- **The file is precached** with the rest of the build, so an unlock works with no
-  signal, and its revision is a content hash, so re-publishing a roster reaches
-  every phone on the next load.
-
-What this does not do: it does not make the names secret from anyone holding the
-passphrase, and it does not unpublish the ciphertext already in git history.
-Rotating means a new passphrase and a new file. Plaintext names still never get
-committed, which is the rule the gitignore enforces.
+The reasoning above is kept because it still decides things. It is why the shipped
+list holds no surnames, and it is the answer to the next person who proposes
+hiding names behind an obscure filename. If full names are ever wanted on a phone
+again, the honest options are the same two as before: a link somebody sends, or a
+passphrase somebody keeps. Not a third one that only looks like the second.
 
 ### The team list that ships with the app
 
-The link works and the vault works, and both still ask something of a human. The
-coach asked for the case where nobody does anything: hand a parent a phone ten
-minutes before the gun, they open the app, and the names are on it.
+The link works, and it still asks something of a human. The coach asked for the
+case where nobody does anything: hand a parent a phone ten minutes before the
+gun, they open the app, and the names are on it.
 
 That request settles the tradeoff by itself. A list the page reads with nothing
 typed is a list anyone can read, because the way to read it has to ship in the
@@ -625,22 +687,21 @@ JavaScript. There is no arrangement of files and keys that changes this. So the
 choice is not how to hide the file, it is what goes in it.
 
 What goes in it is the short label a button already says, and that runner's best
-time:
+time, under a heading per team:
 
 ```
-public/team.dat    "Rowan H.  21:34.60", scrambled, committed
+public/team.dat    "# Girls" and "Rowan H.  21:34.60", scrambled, committed
 ```
 
 First name and an initial, never a surname. That is what a meet program prints
 next to a time anyway, and what a spectator hears called across a field. Full
-names still cost a link or a passphrase, and plaintext still never gets
-committed.
+names still cost a link somebody sends, and plaintext still never gets committed.
 
 The best times ship for the same reason the labels do. A PR that only arrives
-with a passphrase somebody has to be texted is a PR that never reaches the
-volunteer holding the phone, which is the one person the feature is for. And a
-5K best is already published next to a *full* name on the meet's own results
-page, so next to "Rowan H." it says less than the results already say.
+with something somebody has to be sent is a PR that never reaches the volunteer
+holding the phone, which is the one person the feature is for. And a 5K best is
+already published next to a *full* name on the meet's own results page, so next
+to "Rowan H." it says less than the results already say.
 
 `npm run team-file -- roster.txt` writes it, through the same `shortNames` the
 buttons use, so what it writes is what a volunteer reads. The scramble is a
@@ -650,9 +711,14 @@ plaintext in a public repo, not indexed by a search engine, and not readable by
 someone glancing at the file listing. What it does not buy is confidentiality
 from anyone who spends a minute on it, and the tool says so on every run.
 
+One file for both teams, written from one `roster.txt` by the same command, because
+one person keeps the times and two sources would drift.
+
 Because output is deterministic, a rebuild with no roster change is not a diff.
 A rebuild that only moved a best time *is* a diff, and reads as a change the
-phone should adopt, which is the point: PRs move during a season.
+phone should adopt, which is the point: PRs move during a season. So does a runner
+moving between teams, since the heading is part of the text the fingerprint is
+taken over.
 
 Adopting it is where the care goes, since a file that arrives on its own can
 destroy work nobody asked it to touch:
@@ -734,11 +800,6 @@ durability claim rests on `setItem` being synchronous. They cover the refresh
 path, out of order and past ten sequence numbers, corrupt records, and races
 not leaking taps into each other.
 
-The vault tests assert the claim the whole feature rests on: that no name appears
-anywhere in the published file, that a wrong passphrase and a tampered file both
-yield nothing rather than a plausible wrong list, and that a missing or malformed
-file reads as no prompt rather than as an error.
-
 The team file tests hold it to the one thing it does claim, that no name is
 readable in it, including with the spaces taken out, and to the failure that
 would be worst: every truncation point of a good file is rejected, so a partial
@@ -746,8 +807,8 @@ download cannot become a short list ending in half a name. They also pin the
 determinism a clean rebuild depends on, and that a missing file, a tampered file
 and garbage all read as no shipped team.
 
-Because best times now ride the same one-runner-per-line text through all four
-channels, each channel's tests carry a case for them, plus a round trip between
+Because best times ride the same one-runner-per-line text through every channel,
+each channel's tests carry a case for them, plus a round trip between
 `parseRoster` and `rosterText` and a check that a loosely written time comes back
 in one canonical shape. A wrong best time would be worse than none, since every
 comparison on the screen is measured against it, so the clock tests reject a bib
@@ -793,7 +854,9 @@ on meet mornings.
 ## Not in scope
 
 - Team scoring.
-- Timing other teams. The list is our team only, about 20 in a JV race.
+- Timing other schools. The list is our two teams only, about 20 in a JV race.
+- Two races at once. The boys and the girls never run together, so there is one
+  clock and one active race, and a volunteer covers one race at a time.
 - Finish line timing, ever. The meet provides it.
 - Central result collection. Volunteers text exports to the coach.
 
@@ -803,8 +866,8 @@ on meet mornings.
 2. **Name** (done). Roster on the device, name buttons that record a crossing as
    each runner passes, and a running list where any crossing can be named or
    renamed.
-3. **Share** (roster links and the encrypted published roster done). A QR code
-   next, and a link that also carries
-   the meet and the split point so a volunteer opens straight into position.
+3. **Share** (roster links and the shipped team list done). A QR code next, and a
+   link that also carries the meet and the split point so a volunteer opens
+   straight into position.
 4. **Records.** Long format export, stable split distances per course, season
    over season comparison.

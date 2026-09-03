@@ -1,21 +1,39 @@
 import { useState } from 'react'
 import { formatPr } from '../lib/clock'
 import { rosterLink } from '../lib/link'
-import { parseRoster } from '../lib/roster'
-import type { Athlete } from '../lib/types'
+import { byTeam, parseRoster } from '../lib/roster'
+import type { Athlete, Team } from '../lib/types'
+
+const TEAM_LABEL: Record<Team, string> = { girls: 'Girls', boys: 'Boys' }
+
+/**
+ * Both counts, because a phone holding one team and not the other is the thing
+ * this screen has to make obvious before a meet rather than at the gun. A list
+ * with no teams on it, which is what a phone that predates the boys holds, reads
+ * the way it always did.
+ */
+function tally(athletes: Athlete[]): string {
+  const counts = byTeam(athletes).map((group) =>
+    group.team == null
+      ? `${group.athletes.length} unassigned`
+      : `${group.athletes.length} ${group.team}`,
+  )
+  if (counts.length === 0) return 'nobody yet'
+  if (counts.length === 1 && !athletes.some((a) => a.team != null)) {
+    return `${athletes.length} on the team`
+  }
+  return counts.join(', ')
+}
 
 type Props = {
   athletes: Athlete[]
   onSave: (athletes: Athlete[]) => void
   onBack: () => void
-  /** Runners waiting on a decision, from a link, the published roster, or the build. */
+  /** Runners waiting on a decision, from a shared link or from the build. */
   incoming: Athlete[] | null
-  incomingSource: 'link' | 'published' | 'shipped'
+  incomingSource: 'link' | 'shipped'
   onImport: (mode: 'replace' | 'add') => void
   onDismissImport: () => void
-  /** This build ships an encrypted roster, so a passphrase can load it. */
-  hasPublished: boolean
-  onUnlock: (passphrase: string) => Promise<boolean>
   /** The build came with a team list and this phone is not using it. */
   canLoadShipped: boolean
   onLoadShipped: () => void
@@ -29,46 +47,12 @@ export function Roster({
   incomingSource,
   onImport,
   onDismissImport,
-  hasPublished,
-  onUnlock,
   canLoadShipped,
   onLoadShipped,
 }: Props) {
   const [paste, setPaste] = useState('')
   const [single, setSingle] = useState('')
   const [status, setStatus] = useState('')
-  const [passphrase, setPassphrase] = useState('')
-  const [unlocking, setUnlocking] = useState(false)
-  const [unlockError, setUnlockError] = useState('')
-  const [showUnlock, setShowUnlock] = useState(false)
-
-  /**
-   * An empty phone is the case the published roster exists for, so the prompt is
-   * open. Once there are names on the list it folds down to one quiet line: still
-   * reachable when the coach adds a runner and re-publishes, not in the way.
-   */
-  const unlockOpen = hasPublished && !incoming && (athletes.length === 0 || showUnlock)
-
-  /**
-   * Key derivation takes a moment on purpose, so the button has to say what is
-   * happening. A failure is a wrong passphrase far more often than a bad file,
-   * and the message leads with that.
-   */
-  async function unlock() {
-    if (passphrase.trim() === '' || unlocking) return
-    setUnlocking(true)
-    setUnlockError('')
-    const ok = await onUnlock(passphrase)
-    setUnlocking(false)
-    if (ok) {
-      setPassphrase('')
-      setShowUnlock(false)
-      return
-    }
-    setUnlockError(
-      'That passphrase did not work. Check for a capital letter, and mind autocorrect.',
-    )
-  }
 
   function addPasted() {
     const parsed = parseRoster(paste)
@@ -120,7 +104,7 @@ export function Roster({
         </button>
         <div className="bar-where">
           <strong>Runners</strong>
-          <span>{athletes.length} on the team</span>
+          <span>{tally(athletes)}</span>
         </div>
       </header>
 
@@ -129,9 +113,7 @@ export function Roster({
           <p>
             {incomingSource === 'link'
               ? 'This link has '
-              : incomingSource === 'shipped'
-                ? 'The list that came with the app has '
-                : 'The team roster has '}
+              : 'The list that came with the app has '}
             <strong>{incoming.length} runners</strong>.
             {athletes.length > 0 ? ` You already have ${athletes.length} on this phone.` : ''}
           </p>
@@ -157,55 +139,17 @@ export function Roster({
         holding full names and wants the short ones back.
       */}
       {canLoadShipped && !incoming && (
-        <button type="button" className="vault-toggle" onClick={onLoadShipped}>
+        <button type="button" className="quiet-offer" onClick={onLoadShipped}>
           Load the team list that came with the app
         </button>
-      )}
-
-      {hasPublished && !incoming && !unlockOpen && (
-        <button type="button" className="vault-toggle" onClick={() => setShowUnlock(true)}>
-          Load the published team roster, with full names
-        </button>
-      )}
-
-      {unlockOpen && (
-        <section className="vault">
-          <p>
-            <strong>The team roster is published with this app.</strong> It is
-            encrypted, so it takes the season passphrase once on this phone. Ask
-            the coach for it.
-          </p>
-          <label>
-            Season passphrase
-            <input
-              type="password"
-              value={passphrase}
-              onChange={(e) => setPassphrase(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void unlock()
-              }}
-              autoComplete="off"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-            />
-          </label>
-          <button
-            type="button"
-            className="primary"
-            onClick={() => void unlock()}
-            disabled={unlocking || passphrase.trim() === ''}
-          >
-            {unlocking ? 'Unlocking...' : 'Load the team'}
-          </button>
-          {unlockError && <p className="warn">{unlockError}</p>}
-        </section>
       )}
 
       <p className="hint">
         These names become the buttons you tap during a race. The list stays on
         this phone for the whole season. A 5K best after the name is optional: it
-        goes on the button and every split gets compared to it.
+        goes on the button and every split gets compared to it. A line reading
+        "# Boys" or "# Girls" puts the runners under it on that team, and a race
+        only ever shows one team's names.
       </p>
 
       <label>
@@ -214,7 +158,9 @@ export function Roster({
           value={paste}
           onChange={(e) => setPaste(e.target.value)}
           rows={5}
-          placeholder={'Marlowe Holloway  21:34.60\nRowan Hayes  22:29.15\nJordan Blake'}
+          placeholder={
+            '# Girls\nMarlowe Holloway  21:34.60\nRowan Hayes  22:29.15\n\n# Boys\nJordan Blake  17:12.40'
+          }
           autoComplete="off"
         />
       </label>
@@ -240,20 +186,32 @@ export function Roster({
 
       {athletes.length > 0 && (
         <>
-          <section className="roster-list">
-            <h2>On the team</h2>
-            {athletes.map((a) => (
-              <div key={a.id} className="roster-row">
-                <span className="roster-name">
-                  {a.name}
-                  {a.pr != null && <span className="roster-pr">{formatPr(a.pr)}</span>}
-                </span>
-                <button type="button" className="remove" onClick={() => remove(a.id)}>
-                  Remove
-                </button>
-              </div>
-            ))}
-          </section>
+          {/*
+            One section per team, in the order the list itself groups them, so
+            what is on screen matches what a paste or a shared link carries. A
+            list with no teams on it gets the one heading it always had.
+          */}
+          {byTeam(athletes).map((group) => (
+            <section key={group.team ?? 'all'} className="roster-list">
+              <h2>
+                {group.team == null ? 'On the team' : TEAM_LABEL[group.team]}
+                {group.team != null && (
+                  <span className="roster-count"> {group.athletes.length}</span>
+                )}
+              </h2>
+              {group.athletes.map((a) => (
+                <div key={a.id} className="roster-row">
+                  <span className="roster-name">
+                    {a.name}
+                    {a.pr != null && <span className="roster-pr">{formatPr(a.pr)}</span>}
+                  </span>
+                  <button type="button" className="remove" onClick={() => remove(a.id)}>
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </section>
+          ))}
 
           <button type="button" onClick={share}>
             Send this list to a volunteer

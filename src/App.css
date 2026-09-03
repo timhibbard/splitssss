@@ -907,34 +907,14 @@
   border-color: var(--line);
 }
 
-/* The published roster, waiting on a passphrase. Styled like the incoming panel
-   because it is the same job: the fast way to get 28 names onto a phone. */
-.vault {
-  background: var(--panel);
-  border: 2px solid var(--navy);
-  border-radius: 12px;
-  padding: 14px;
-  display: grid;
-  gap: 10px;
-}
-
-/* Folded away once the phone has a list. Quiet, because a roster is already
-   loaded and this is only here for a re-publish. */
-.vault-toggle {
+/* Offering the shipped list to a phone that already has a list of its own.
+   Quiet, because a roster is loaded and this is only here for the phone that
+   dismissed it or edited it by hand. */
+.quiet-offer {
   font-size: 14px;
   font-weight: 600;
   color: var(--ink-soft);
   background: transparent;
-}
-
-.vault p {
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.4;
-}
-
-.vault .warn {
-  font-size: 14px;
 }
 
 .roster label {
@@ -962,6 +942,13 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--ink-soft);
+}
+
+/* How many are under this heading, so "are the boys on this phone?" is answered
+   by the heading rather than by counting rows. */
+.roster-count {
+  font-weight: 400;
+  opacity: 0.7;
 }
 
 .roster-row {

@@ -1,7 +1,16 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 // Explicit extensions: see the note in link.ts.
-import { defaultLineup, lineupOf, restOfList, toggle, topOfList, VARSITY_SIZE } from './lineup.ts'
+import {
+  defaultLineup,
+  forTeam,
+  lineupOf,
+  restOfList,
+  sniffTeam,
+  toggle,
+  topOfList,
+  VARSITY_SIZE,
+} from './lineup.ts'
 import type { Athlete } from './types.ts'
 
 const team: Athlete[] = Array.from({ length: 10 }, (_, i) => ({
@@ -68,5 +77,63 @@ test('an id that is no longer on the team drops out of the lineup', () => {
   assert.deepEqual(
     lineupOf(team, ['a1', 'gone']).map((a) => a.id),
     ['a1'],
+  )
+})
+
+test('a race name says which team it is', () => {
+  assert.equal(sniffTeam('Varsity Boys'), 'boys')
+  assert.equal(sniffTeam('JV Girls'), 'girls')
+  assert.equal(sniffTeam('boys open'), 'boys')
+  assert.equal(sniffTeam(' Girls '), 'girls')
+  assert.equal(sniffTeam('Boy 5K'), 'boys', 'singular counts')
+  assert.equal(sniffTeam('# Girls'), 'girls', 'the roster heading is read the same way')
+})
+
+test('a race name that names no team gets none, not a guess', () => {
+  assert.equal(sniffTeam('Eye Opener Invitational'), undefined)
+  assert.equal(sniffTeam(''), undefined)
+  assert.equal(sniffTeam('Cowboys'), undefined, 'a word that merely contains it does not count')
+})
+
+const mixed: Athlete[] = [
+  { id: 'g1', name: 'Rowan Hayes', team: 'girls' },
+  { id: 'b1', name: 'Jordan Blake', team: 'boys' },
+  { id: 'x1', name: 'Someone Else' },
+]
+
+test('a race draws from its own team, and from anyone untagged', () => {
+  assert.deepEqual(
+    forTeam(mixed, 'boys').map((a) => a.id),
+    ['b1', 'x1'],
+  )
+  assert.deepEqual(
+    forTeam(mixed, 'girls').map((a) => a.id),
+    ['g1', 'x1'],
+  )
+})
+
+test('a race with no team on it draws from everyone', () => {
+  // Races recorded before the phone knew there were two teams, and a phone whose
+  // whole list predates the boys. Filtering either of those to nothing would take
+  // away the names a volunteer actually has.
+  assert.deepEqual(forTeam(mixed, undefined), mixed)
+  assert.deepEqual(forTeam(team, 'boys'), team, 'an untagged list is offered whole')
+})
+
+test('the varsity default is drawn inside one team', () => {
+  // Seven of the nine boys, not seven of the thirty seven names on the phone.
+  const boys: Athlete[] = Array.from({ length: 9 }, (_, i) => ({
+    id: `b${i + 1}`,
+    name: `Boy ${i + 1}`,
+    team: 'boys' as const,
+  }))
+  const both = [...team, ...boys]
+  assert.deepEqual(defaultLineup(forTeam(both, 'boys'), 'Varsity Boys'), [
+    'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7',
+  ], 'the untagged legacy names still count, since they match any team')
+  assert.deepEqual(
+    defaultLineup(boys, 'Varsity Boys'),
+    ['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7'],
+    'and on a fully tagged phone it is that team\'s top seven',
   )
 })

@@ -2,12 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import './App.css'
 import { SESSION_ID, stamp, todayIsoDate } from './lib/clock'
 import { rosterFromHash } from './lib/link'
+import { forTeam } from './lib/lineup'
 import { mergeLineup } from './lib/roster'
 import { assignAthlete, clearName } from './lib/splits'
 import * as store from './lib/storage'
 import { fetchTeam, TEAM_FILE, teamText } from './lib/teamfile'
 import type { Athlete, Race, RaceDraft, Stamp, Tap } from './lib/types'
-import { fetchVault, openRoster, VAULT_FILE, type Vault } from './lib/vault'
 import { Capture } from './screens/Capture'
 import { ExportScreen } from './screens/ExportScreen'
 import { Roster } from './screens/Roster'
@@ -75,11 +75,9 @@ export default function App() {
   const [roster, setRoster] = useState<Athlete[]>(restored.roster)
   const [incoming, setIncoming] = useState<Athlete[] | null>(LINKED_ROSTER)
   /** Which channel the pending list arrived through, so the prompt can say so. */
-  const [incomingSource, setIncomingSource] = useState<'link' | 'published' | 'shipped'>('link')
+  const [incomingSource, setIncomingSource] = useState<'link' | 'shipped'>('link')
   /** The team list that came with this build, if it has one. */
   const [shipped, setShipped] = useState<Athlete[] | null>(null)
-  /** The published roster, if this build has one. Absent is normal. */
-  const [vault, setVault] = useState<Vault | null>(null)
   // A shared link opens on the roster, because deciding about it comes first.
   const [screen, setScreen] = useState<Screen>(
     LINKED_ROSTER ? 'roster' : restored.race ? 'capture' : 'setup',
@@ -92,21 +90,6 @@ export default function App() {
    * that is already gone. The value itself is never read.
    */
   const [, setWiped] = useState(0)
-
-  /**
-   * Looks for a roster published with this build. One request, at startup, to a
-   * file that is precached, so it also resolves with no signal at the course.
-   * Nothing is decrypted until somebody types the passphrase.
-   */
-  useEffect(() => {
-    let live = true
-    void fetchVault(`${import.meta.env.BASE_URL}${VAULT_FILE}`).then((found) => {
-      if (live) setVault(found)
-    })
-    return () => {
-      live = false
-    }
-  }, [])
 
   const editRoster = useCallback((from: Screen) => {
     setRosterReturn(from)
@@ -128,6 +111,11 @@ export default function App() {
    *
    * The lineup is respected, so an edit to the team list cannot put back somebody
    * left out of this race. See mergeLineup for the rest of the rules.
+   *
+   * Both lists are narrowed to this race's team first. A new runner joins the
+   * race being timed, which is the rule that makes a late entry work, and it
+   * would otherwise put a whole other team on the grid the moment a phone took
+   * up the two team list mid race.
    */
   const saveRoster = useCallback(
     (next: Athlete[]) => {
@@ -137,7 +125,12 @@ export default function App() {
       const named = new Set(taps.map((t) => t.athleteId).filter((id): id is string => !!id))
       const updated: Race = {
         ...race,
-        athletes: mergeLineup(race.athletes, roster, next, named),
+        athletes: mergeLineup(
+          race.athletes,
+          forTeam(roster, race.team),
+          forTeam(next, race.team),
+          named,
+        ),
       }
       store.saveRace(updated)
       setRace(updated)
@@ -156,7 +149,7 @@ export default function App() {
    * It is taken up without asking when there is nothing to lose: an empty phone,
    * or one still holding exactly the list this build replaces. Automatic is the
    * whole point. A parent handed the phone ten minutes before the gun should find
-   * the names already on it, with no link to open and no passphrase to type.
+   * the names already on it, with nothing to open and nothing to type.
    *
    * Anything else is not the app's decision to make, so a hand edited list, or the
    * coach's phone holding full names, gets the same prompt a shared link gets.
@@ -243,32 +236,6 @@ export default function App() {
       setIncoming(null)
     },
     [incoming, roster, saveRoster],
-  )
-
-  /**
-   * Unlocking the published roster. The decrypted names land in the same pending
-   * state a shared link uses, so both channels ask the same question before
-   * touching what is already on the phone.
-   *
-   * False covers a wrong passphrase and a corrupt file alike, which are the same
-   * sentence to the person holding the phone. The passphrase is not kept: the
-   * names persist instead, so this is once per phone rather than once per race.
-   */
-  const unlockRoster = useCallback(
-    async (passphrase: string): Promise<boolean> => {
-      if (!vault) return false
-      let found = await openRoster(vault, passphrase)
-      // A passphrase pasted out of a text message often brings a space or a
-      // newline with it, which is not the volunteer's mistake to debug.
-      if (!found && passphrase.trim() !== passphrase) {
-        found = await openRoster(vault, passphrase.trim())
-      }
-      if (!found || found.length === 0) return false
-      setIncomingSource('published')
-      setIncoming(found)
-      return true
-    },
-    [vault],
   )
 
   const startRace = useCallback((draft: RaceDraft) => {
@@ -491,8 +458,6 @@ export default function App() {
         incomingSource={incomingSource}
         onImport={importRoster}
         onDismissImport={() => setIncoming(null)}
-        hasPublished={vault !== null}
-        onUnlock={unlockRoster}
         canLoadShipped={shipped !== null && teamText(roster) !== teamText(shipped)}
         onLoadShipped={loadShipped}
       />
@@ -508,7 +473,6 @@ export default function App() {
         earlier={earlierRaces}
         team={roster}
         rememberedLineup={store.loadLineup}
-        hasPublished={vault !== null}
         onEditRoster={() => editRoster('setup')}
         active={race}
         onBackToTiming={() => setScreen('capture')}

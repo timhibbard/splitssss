@@ -31,8 +31,8 @@ test('one changed name changes the file', () => {
 })
 
 test('a best time survives the scramble with the label it belongs to', () => {
-  // A PR that only arrived with a passphrase would never reach a volunteer's
-  // phone, so the shipped file carries the numbers too.
+  // A PR that had to be sent to a volunteer would never reach their phone, so
+  // the shipped file carries the numbers too.
   const lines = ['Marlowe H.\t21:34.60', 'Rowan H.', 'Jordan B.\t24:00.00']
   const back = unscrambleTeam(scrambleTeam(lines))
   assert.deepEqual(
@@ -43,6 +43,36 @@ test('a best time survives the scramble with the label it belongs to', () => {
       ['Jordan B.', 24 * 60_000],
     ],
   )
+})
+
+test('one shipped file holds both teams', () => {
+  // The whole point of the headings: one build, one file, and either coach's race
+  // can be covered by whichever phone is at the marker.
+  const lines = ['# Girls', 'Marlowe H.\t21:34.60', 'Rowan H.', '# Boys', 'Jordan B.\t17:12.40']
+  const back = unscrambleTeam(scrambleTeam(lines))
+  assert.deepEqual(
+    back?.map((a) => [a.name, a.team, a.pr]),
+    [
+      ['Marlowe H.', 'girls', 21 * 60_000 + 34_600],
+      ['Rowan H.', 'girls', undefined],
+      ['Jordan B.', 'boys', 17 * 60_000 + 12_400],
+    ],
+  )
+})
+
+test('no heading is readable in the file either', () => {
+  const body = scrambleTeam(['# Girls', 'Rowan H.', '# Boys', 'Jordan B.'])
+  assert.ok(!body.includes('Girls'), 'a heading appears in the clear')
+  assert.ok(!body.includes('Boys'))
+})
+
+test('moving a runner between teams changes the fingerprint', () => {
+  // A phone compares the shipped text against what it holds. A runner who moved
+  // up to the varsity list of the other team has to reach the phones.
+  const girls = [{ id: 'x1', name: 'Rowan H.', team: 'girls' as const }]
+  const boys = [{ id: 'x1', name: 'Rowan H.', team: 'boys' as const }]
+  assert.notEqual(teamText(girls), teamText(boys))
+  assert.notEqual(teamText(girls), teamText([{ id: 'x1', name: 'Rowan H.' }]))
 })
 
 test('a changed best time changes the fingerprint, so the phone picks it up', () => {

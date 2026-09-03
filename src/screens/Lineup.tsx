@@ -4,7 +4,10 @@ import { displayNames } from '../lib/names'
 import type { Athlete } from '../lib/types'
 
 type Props = {
-  /** Everyone on the phone for the season. */
+  /**
+   * The runners this race can draw from: one team's, filtered by whoever opened
+   * this, so the seeding under the seventh name is that team's seeding.
+   */
   team: Athlete[]
   /** Ids in this race. */
   selected: string[]
