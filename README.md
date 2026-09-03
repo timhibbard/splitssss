@@ -27,7 +27,9 @@ Live at **https://timhibbard.github.io/splitssss/**
   A list somebody edited by hand is never overwritten: that gets asked about.
 - **Both teams, one phone.** Every phone holds the boys and the girls, so either
   coach's race can be covered by whoever is standing at the marker. Race setup
-  asks which team before anything else and the grid shows that team only. In the
+  asks which team before anything else and the grid shows that team only, and every
+  phone opens on the same pair, Varsity Girls, so a dozen of them handed out at a
+  meet all say the same thing and either chip is one tap. In the
   roster text a line reading `# Boys` or `# Girls` puts the runners under it on
   that team, so a paste, a link and the shipped file all carry it the same way. A
   list with no such line is untagged and shows in either race, which is how a
@@ -102,8 +104,12 @@ Live at **https://timhibbard.github.io/splitssss/**
   ask" at the top of the home screen: the workflow as four short lists, from
   installing it on the phone through sending the CSV, then the questions a
   volunteer actually has, with an answer each. It is offline like everything else,
-  so it is readable standing at the marker, and it is the thing to point a new
-  parent at instead of briefing them.
+  so it is readable standing at the marker.
+- **The help page can be texted.** It has an address of its own, `#help`, and a
+  button on it that shares the link. A parent who taps that link lands on the
+  instructions, with the app and the names one Back away, so a text message is the
+  whole briefing. A fragment rather than a path because a static site on a subpath
+  has no server to route `/help`, and it can never collide with a roster link.
 - **No backend.** Static site, all state on the device, exports leave by way of
   the share sheet.
 - **Works with no signal.** Fully offline once loaded, which matters at the two

@@ -12,6 +12,9 @@
  * else in this repository.
  */
 
+import { useState } from 'react'
+import { helpLink } from '../lib/link'
+
 type Step = {
   /** The action, in the words that are actually on the button or the label. */
   act: string
@@ -210,6 +213,37 @@ type Props = {
 }
 
 export function Help({ onBack }: Props) {
+  const [status, setStatus] = useState('')
+
+  /**
+   * Texts this page to whoever is about to hold a phone. The link opens the app on
+   * the help page itself, so a parent who has never seen it lands on the
+   * instructions rather than on a race they do not know how to set up, and the app
+   * they need is one tap behind it.
+   *
+   * The share sheet first, since the point is a text message, then the clipboard,
+   * because file and text sharing support varies by phone and nobody is going to
+   * troubleshoot it at a meet.
+   */
+  async function share() {
+    const link = helpLink(window.location.origin, window.location.pathname)
+    const text = `How to time splits at the meet, and the app itself: ${link}`
+    if (navigator.share) {
+      try {
+        await navigator.share({ text })
+        return
+      } catch {
+        // Cancelled or unsupported. Fall through to the clipboard.
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(text)
+      setStatus('Link copied. Paste it into a text message.')
+    } catch {
+      setStatus(`Could not copy it. The link is ${link}`)
+    }
+  }
+
   return (
     <div className="screen help">
       <header className="bar">
@@ -227,6 +261,22 @@ export function Help({ onBack }: Props) {
         so the coach can see how the race was actually run. Tap a name as that
         runner goes by. Everything else on this page is detail.
       </p>
+
+      {/*
+        Near the top, because sending this to somebody is a thing you decide before
+        reading it rather than after. It is the whole briefing in one text message:
+        the link opens on this page and the app is behind it.
+      */}
+      <section className="help-share">
+        <button type="button" onClick={share}>
+          Text this page to someone
+        </button>
+        <p className="hint">
+          Sends a link that opens the app on this page, names and all. Nothing to
+          install first, nothing to type.
+        </p>
+        {status && <p className="status">{status}</p>}
+      </section>
 
       {WORKFLOW.map((block) => (
         <section key={block.title} className="help-block">

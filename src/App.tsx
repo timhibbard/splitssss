@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import './App.css'
 import { SESSION_ID, stamp, todayIsoDate } from './lib/clock'
-import { rosterFromHash } from './lib/link'
+import { HELP_HASH, isHelpHash, rosterFromHash } from './lib/link'
 import { forTeam } from './lib/lineup'
 import { mergeLineup } from './lib/roster'
 import { assignAthlete, clearName } from './lib/splits'
@@ -65,6 +65,16 @@ function takeLinkedRoster(): Athlete[] | null {
 
 const LINKED_ROSTER = takeLinkedRoster()
 
+/**
+ * Opened by way of the texted help link, read once before anything renders.
+ *
+ * After takeLinkedRoster, which leaves a fragment it does not recognize alone, so
+ * these two cannot both be true and a roster link still wins on the reading of its
+ * own hash.
+ */
+const OPENED_ON_HELP =
+  typeof window !== 'undefined' && LINKED_ROSTER == null && isHelpHash(window.location.hash)
+
 function lastSeq(taps: Tap[]): number {
   return taps.length > 0 ? taps[taps.length - 1].seq : 0
 }
@@ -79,9 +89,14 @@ export default function App() {
   const [incomingSource, setIncomingSource] = useState<'link' | 'shipped'>('link')
   /** The team list that came with this build, if it has one. */
   const [shipped, setShipped] = useState<Athlete[] | null>(null)
-  // A shared link opens on the roster, because deciding about it comes first.
+  /**
+   * A shared link opens on the roster, because deciding about it comes first, and
+   * the help link opens on the help page: somebody who taps a link that was sent to
+   * them meant to land where it pointed. A race in progress still gets its way
+   * back, from the button at the top of the home screen.
+   */
   const [screen, setScreen] = useState<Screen>(
-    LINKED_ROSTER ? 'roster' : restored.race ? 'capture' : 'setup',
+    LINKED_ROSTER ? 'roster' : OPENED_ON_HELP ? 'help' : restored.race ? 'capture' : 'setup',
   )
   /** Where Back goes from the roster, so it returns you where you came from. */
   const [rosterReturn, setRosterReturn] = useState<Screen>(restored.race ? 'capture' : 'setup')
@@ -95,6 +110,62 @@ export default function App() {
   const editRoster = useCallback((from: Screen) => {
     setRosterReturn(from)
     setScreen('roster')
+  }, [])
+
+  /**
+   * Whether this page session is the one that opened the help page, as opposed to
+   * having been opened on it by a texted link. It decides what leaving means: going
+   * back, or clearing an address with nothing behind it.
+   */
+  const pushedHelp = useRef(false)
+
+  /**
+   * The help page has an address of its own, so it can be texted and so the phone's
+   * own back gesture works while it is open.
+   *
+   * pushState rather than assigning the hash, because an entry in history is what
+   * makes Android's back button close the page instead of leaving the app.
+   */
+  const openHelp = useCallback(() => {
+    pushedHelp.current = true
+    const here = window.location.pathname + window.location.search
+    window.history.pushState(null, '', `${here}${HELP_HASH}`)
+    setScreen('help')
+  }, [])
+
+  /**
+   * Leaving takes the address with it, so a phone does not sit on /#help with the
+   * home screen showing. Back through history when this session pushed the entry,
+   * so nothing dead is left in it, and a plain replace when the app was opened on
+   * the help page from a link, where there is nothing behind it to go back to.
+   */
+  const closeHelp = useCallback(() => {
+    if (pushedHelp.current) {
+      pushedHelp.current = false
+      window.history.back()
+      return
+    }
+    window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    setScreen('setup')
+  }, [])
+
+  /**
+   * The phone's own back and forward gestures. The address is what says whether the
+   * help page is open, so this reads it rather than trying to remember: forward into
+   * the entry openHelp pushed brings the page back, and back out of it closes it.
+   */
+  useEffect(() => {
+    const onPop = () => {
+      if (isHelpHash(window.location.hash)) {
+        pushedHelp.current = true
+        setScreen('help')
+        return
+      }
+      pushedHelp.current = false
+      setScreen((prev) => (prev === 'help' ? 'setup' : prev))
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
   }, [])
 
   /**
@@ -471,12 +542,12 @@ export default function App() {
    * with no race in progress that check is true, and it would render the home
    * screen over this one.
    *
-   * Back is always the home screen, because that is the only place this is linked
-   * from. A volunteer mid race is not reading a help page, and if that ever
-   * changes this needs the return-to state the roster has.
+   * Back is always the home screen, whether this was reached from the link there or
+   * from a texted address. A volunteer mid race is not reading a help page, and if
+   * that ever changes this needs the return-to state the roster has.
    */
   if (screen === 'help') {
-    return <Help onBack={() => setScreen('setup')} />
+    return <Help onBack={closeHelp} />
   }
 
   if (showSetup) {
@@ -489,7 +560,7 @@ export default function App() {
         team={roster}
         rememberedLineup={store.loadLineup}
         onEditRoster={() => editRoster('setup')}
-        onHelp={() => setScreen('help')}
+        onHelp={openHelp}
         active={race}
         onBackToTiming={() => setScreen('capture')}
         stored={stored}

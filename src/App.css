@@ -1104,3 +1104,15 @@
   margin-top: 20px;
   font-weight: 600;
 }
+
+/* Handing the page on. Boxed so it reads as an action among the reading, and
+   above the workflow because sending it to somebody is decided before the reading
+   rather than after. */
+.help-share {
+  display: grid;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+}

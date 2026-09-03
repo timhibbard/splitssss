@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { decodeRoster, encodeRoster, rosterFromHash, rosterLink } from './link.ts'
+import {
+  decodeRoster,
+  encodeRoster,
+  helpLink,
+  isHelpHash,
+  rosterFromHash,
+  rosterLink,
+} from './link.ts'
 import type { Athlete } from './types.ts'
 
 const team: Athlete[] = [
@@ -131,4 +138,23 @@ test('a truncated link imports nothing rather than junk', () => {
 test('other fragment params do not confuse the reader', () => {
   const encoded = encodeRoster(team)
   assert.equal(rosterFromHash(`#foo=1&r=${encoded}`).length, 3)
+})
+
+test('the help page has an address that can be texted', () => {
+  assert.equal(
+    helpLink('https://example.test', '/splitssss/'),
+    'https://example.test/splitssss/#help',
+  )
+  assert.ok(isHelpHash('#help'))
+  assert.ok(isHelpHash('help'), 'with or without the leading hash')
+})
+
+test('a roster link is never read as a request for the help page', () => {
+  // Both travel in the fragment, so each has to be blind to the other: a texted
+  // roster must not open the help page, and the help link must import nobody.
+  const roster = `#r=${encodeRoster(team)}`
+  assert.equal(isHelpHash(roster), false)
+  assert.deepEqual(rosterFromHash('#help'), [])
+  assert.equal(isHelpHash(''), false)
+  assert.equal(isHelpHash('#helping'), false, 'matched whole, not by prefix')
 })
