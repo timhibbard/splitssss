@@ -20,15 +20,33 @@ type Step = {
 }
 
 /**
- * The workflow as three lists rather than one, because they are three different
- * moments for the person holding the phone: setting a race up, timing it, and
- * sending it.
+ * The workflow as four lists rather than one, because they are four different
+ * moments for the person holding the phone: getting it installed, setting a race
+ * up, timing it, and sending it.
  *
  * Nothing here is addressed to the coach. Getting the names onto the phones and
  * handing them out is the coach's own job and the coach does not need instructions
  * for it, so this page is only ever the volunteer's side of the morning.
  */
 const WORKFLOW: { title: string; lead?: string; steps: Step[] }[] = [
+  {
+    title: 'Once, on the phone you will use',
+    lead: 'At home, the night before. Two minutes, and the meet goes better for it.',
+    steps: [
+      {
+        act: 'Add it to your home screen.',
+        note: 'Share, then "Add to Home Screen" on an iPhone. The menu, then "Install app" or "Add to Home screen" on Android. It opens like any other app after that: no address bar and no tab bar, so the tap button and the names get the whole screen.',
+      },
+      {
+        act: 'Open it once where you have signal.',
+        note: 'Everything it needs is stored on the phone the first time it loads, so after that it opens with no signal at all, which is the situation at most of the markers worth standing at.',
+      },
+      {
+        act: 'Then use the icon, not the browser.',
+        note: 'The installed app keeps its own storage and its own permissions instead of sharing the browser\'s, so the day\'s times cannot be taken out by a closed tab or by clearing browsing data, and anything you allow it once stays allowed. It also keeps its own copy of the runners, so a roster link the coach sends has to be opened here too.',
+      },
+    ],
+  },
   {
     title: 'Before each race',
     lead: 'Top to bottom on the home screen. It takes about twenty seconds.',
@@ -128,6 +146,10 @@ const FAQ: { q: string; a: string }[] = [
   {
     q: 'There is no signal at the two mile mark.',
     a: 'It all works with no signal, as long as the app was opened once somewhere that had one. After that the app, the names and the best times are all on the phone, nothing is ever sent to a server, and nothing here needs the internet until you send the CSV at the end.',
+  },
+  {
+    q: 'Do I have to add it to my home screen?',
+    a: 'It works in a browser tab, but do it anyway. Installed, it runs full screen with no address bar in the way, it opens in one tap with no signal, and it keeps its own storage and permissions rather than sharing the browser\'s, so a closed tab or a cleared history cannot take a race with it.',
   },
   {
     q: 'The phone locked, or the screen reloaded. Did I lose my taps?',
