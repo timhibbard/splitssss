@@ -10,10 +10,11 @@ import { fetchTeam, TEAM_FILE, teamText } from './lib/teamfile'
 import type { Athlete, Race, RaceDraft, Stamp, Tap } from './lib/types'
 import { Capture } from './screens/Capture'
 import { ExportScreen } from './screens/ExportScreen'
+import { Help } from './screens/Help'
 import { Roster } from './screens/Roster'
 import { Setup } from './screens/Setup'
 
-type Screen = 'setup' | 'roster' | 'capture' | 'export'
+type Screen = 'setup' | 'roster' | 'capture' | 'export' | 'help'
 
 /**
  * Read whatever was being timed back out of storage. Done during the first
@@ -464,6 +465,20 @@ export default function App() {
     )
   }
 
+  /**
+   * Reading, not doing, so it goes above the setup screen rather than being one
+   * more thing on it. Above the showSetup check for the same reason the roster is:
+   * with no race in progress that check is true, and it would render the home
+   * screen over this one.
+   *
+   * Back is always the home screen, because that is the only place this is linked
+   * from. A volunteer mid race is not reading a help page, and if that ever
+   * changes this needs the return-to state the roster has.
+   */
+  if (screen === 'help') {
+    return <Help onBack={() => setScreen('setup')} />
+  }
+
   if (showSetup) {
     return (
       <Setup
@@ -474,6 +489,7 @@ export default function App() {
         team={roster}
         rememberedLineup={store.loadLineup}
         onEditRoster={() => editRoster('setup')}
+        onHelp={() => setScreen('help')}
         active={race}
         onBackToTiming={() => setScreen('capture')}
         stored={stored}

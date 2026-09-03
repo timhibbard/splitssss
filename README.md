@@ -98,6 +98,11 @@ Live at **https://timhibbard.github.io/splitssss/**
   destroy spelled out and two taps to confirm. It clears races and crossings only.
   The runners stay, since they are the part with no copy on the phone to rebuild
   from. Take someone off the team from the roster screen instead.
+- **The instructions are in the app.** "How this works, and the questions people
+  ask" at the top of the home screen: the workflow as four short lists, then the
+  questions a volunteer actually has, with an answer each. It is offline like
+  everything else, so it is readable standing at the marker, and it is the thing
+  to point a new parent at instead of briefing them.
 - **No backend.** Static site, all state on the device, exports leave by way of
   the share sheet.
 - **Works with no signal.** Fully offline once loaded, which matters at the two

@@ -19,6 +19,8 @@ type Props = {
   /** Who ran the last race by this name, if anyone did. */
   rememberedLineup: (raceName: string) => string[] | null
   onEditRoster: () => void
+  /** The workflow and the questions, for a volunteer holding this for the first time. */
+  onHelp: () => void
   /** The race being timed right now, if this screen was opened mid race. */
   active: Race | null
   onBackToTiming: () => void
@@ -79,6 +81,7 @@ export function Setup({
   team,
   rememberedLineup,
   onEditRoster,
+  onHelp,
   active,
   onBackToTiming,
   stored,
@@ -242,6 +245,18 @@ export function Setup({
       <p className="instructions">
         Tap a name as each runner passes you, or tap the big button and add names
         after. You do not need to know when the race started.
+      </p>
+
+      {/*
+        Right under the one line version of it, because that is where somebody
+        reading "what do I do with this" is already looking, and quiet enough that
+        it is not competing with the race being set up below. This is the page a
+        coach points a new volunteer at.
+      */}
+      <p className="setup-link">
+        <button type="button" className="link" onClick={onHelp}>
+          How this works, and the questions people ask
+        </button>
       </p>
 
       {/*

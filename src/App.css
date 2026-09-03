@@ -1041,3 +1041,66 @@
   white-space: pre;
   word-break: normal;
 }
+
+/* ---------- help ---------- */
+
+/* The one screen here that is read rather than operated, so it is the one place
+   line length and line height matter more than tap targets. */
+.help {
+  overflow-y: auto;
+}
+
+.help .instructions {
+  font-size: 17px;
+  line-height: 1.4;
+}
+
+.help-block {
+  margin-top: 12px;
+}
+
+.help-block h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  color: var(--navy);
+}
+
+/* Numbered because the order is the point: this is what to do first, then next.
+   The number sits outside the text so a wrapped step stays aligned. */
+.help-steps {
+  margin: 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 10px;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.help-steps strong {
+  color: var(--navy);
+}
+
+.faq {
+  margin-top: 14px;
+}
+
+/* The question carries the weight, since somebody scanning this page is looking
+   for their own question and not reading the answers on the way. */
+.faq h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+.faq p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+/* A second way out where the reading ends, because scrolling back to the header
+   after twenty questions is a chore. */
+.help-back {
+  margin-top: 20px;
+  font-weight: 600;
+}
