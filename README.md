@@ -39,8 +39,8 @@ Live at **https://timhibbard.github.io/splitssss/**
   overwrite. This is the only channel that carries full names, and it is the only
   one that needs a person to do anything.
 - **Names go on during the race or after.** The team list is already on the
-  phone, editable from the link at the bottom of the home screen or from "Who is
-  running" mid race. Tapping a name records that runner's crossing at that moment, and the
+  phone, and it changes by rebuilding the app rather than by anyone editing it at a
+  course. Tapping a name records that runner's crossing at that moment, and the
   big button records anyone you cannot name. A name tap never fills in an older
   crossing, because that would put a stale time on a runner standing in front of
   you.
@@ -96,8 +96,8 @@ Live at **https://timhibbard.github.io/splitssss/**
   exported is not stranded by the date changing.
 - **Clear all races.** At the bottom of the home screen, with the counts it would
   destroy spelled out and two taps to confirm. It clears races and crossings only.
-  The runners stay, since they are the part with no copy on the phone to rebuild
-  from. Take someone off the team from the roster screen instead.
+  The runners stay, since a race is the part of this with no copy anywhere, while
+  the names come back with the next build of the app.
 - **The instructions are in the app.** "How this works, and the questions people
   ask" at the top of the home screen: the workflow as four short lists, from
   installing it on the phone through sending the CSV, then the questions a

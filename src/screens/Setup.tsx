@@ -263,9 +263,9 @@ export function Setup({
         Only when there is nobody on the phone, which is now the rare case: the
         team ships with the app. An empty phone means a wipe, a fresh clone with
         no team file, or a browser that dropped its storage, and then this is the
-        only thing worth doing on this screen. Once names are here the entry point
-        moves to a quiet link at the bottom, because the list is set up once a
-        season and everything else here is set up per race.
+        only thing worth doing on this screen. Once names are here this screen
+        offers nothing about the team list at all, because the way the list changes
+        is a new build of the app.
       */}
       {team.length === 0 && (
         <section className="team">
@@ -492,18 +492,17 @@ export function Setup({
       )}
 
       {/*
-        Down here on purpose. Editing the team list is a once a season job now
-        that the names arrive with the app, so it gets a link at the bottom rather
-        than a panel at the top. The count is in the label so the link doubles as
-        the answer to "are the names on this phone?".
+        No link to the team list from here. The roster is changed by rebuilding the
+        app, which is one person's job and not something anybody does on a phone at
+        a course, so on a phone that has names this was a door onto a screen with
+        nothing to do on it.
+
+        Two ways in remain, both further from the race day path: the panel above,
+        which only appears when the list is missing entirely and typing names is
+        the only way to time anything, and the quiet link inside the lineup picker,
+        which is how a phone that dismissed the "use the list that came with the
+        app" prompt can still ask for it.
       */}
-      {team.length > 0 && (
-        <p className="setup-link">
-          <button type="button" className="link" onClick={onEditRoster}>
-            Edit the {team.length} runner{team.length === 1 ? '' : 's'} on this phone
-          </button>
-        </p>
-      )}
 
       <section className="danger">
         <h2>Clear the races</h2>

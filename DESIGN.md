@@ -294,28 +294,36 @@ Opening one makes it the race this phone points at, which is what makes the
 button at the top of setup describe a stopped race rather than claim to be timing
 it: "Back to JV Girls at Mile 1, stopped".
 
-### Editing the team list is a link, not a panel
+### Editing the team list left the home screen entirely
+
+It went panel, then link, then nothing, and each step was the same argument taken
+one step further.
 
 For a while the roster was a bordered panel above the race fields, on the theory
 that it is the one thing a new user has to find. Shipping the team with the app
-retired that theory. The names are already there, so on a normal phone editing
-the list is a once a season job sitting on top of the screen a volunteer uses
-every race.
+retired that theory: the names are already there, so on a normal phone editing the
+list was a once a season job sitting on top of the screen a volunteer uses every
+race. It became a plain underlined link at the bottom, "Edit the 37 runners on
+this phone", where the count doubled as the answer to whether the names made it.
 
-So it is a plain underlined link at the bottom, below Start timing and above Start
-over, and it says what it would open: "Edit the 37 runners on this phone". That
-label is also the answer to the only question the old panel really answered, which
-is whether the names made it onto this phone. The lineup panel still sits with the
-race, because who is running changes every race and that is the opposite kind of
-setting.
+Then the coach said it plainly: the list changes by rebuilding the app, and if
+that ever stops being enough the answer is a way for coaches to manage their own
+teams, not a text box at a course. So the link is gone too. A phone that has names
+now offers nothing at all about the team list, because that door opened onto a
+screen with nothing to do on it, and one fewer control on the screen a volunteer
+reads under pressure is worth more than an edit nobody was going to make.
 
-The loud panel is not gone, it is conditional. A phone with nobody on it, meaning
-a wipe, a browser that dropped its storage, or a clone with no team file, still
-gets the bordered panel with "Add runners" or "Load them", because then it is the
-only thing on the screen worth doing. Quiet by default, loud when it is the task.
+The loud panel survives, conditional. A phone with nobody on it, meaning a wipe, a
+browser that dropped its storage, or a clone with no team file, still gets the
+bordered panel with "Add runners", because then typing names is the only way to
+time a race at all. Nothing when it is fine, loud when it is broken.
 
-Underlined and grey, but still a real button with 44px of height. Looking
-secondary is not a reason to be hard to hit.
+The quiet link inside the lineup picker stays too, and it is the only other way in.
+It has to: a phone that answered "Not now" to the list that came with the build has
+had that build recorded as seen and will never be asked again, so without it that
+phone could never take up the shipped names. The lineup panel itself still sits
+with the race, because who is running changes every race and that is the opposite
+kind of setting.
 
 ### A button says a first name and an initial
 
