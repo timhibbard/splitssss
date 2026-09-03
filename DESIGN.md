@@ -421,10 +421,23 @@ Who is running is chosen on its own screen, reachable from setup before the race
 and from the capture screen during it, because a late scratch or a runner moved
 up is a fact of a meet morning and should not cost a restart. Top 7, Everyone
 else, Everyone and Nobody are one tap each, and the list is drawn in team order
-with a rule under the seventh name, so the order the coach typed carries the
-seeding. A race whose name contains "JV" defaults to everyone below the seven,
-one containing "varsity" to the top seven, anything else to everyone. Defaults
-only: the tap wins, and `lib/lineup.ts` holds the rules with tests.
+with a rule under the varsity name, so the order the coach typed carries the
+seeding. A race whose name contains "JV" defaults to everyone below that line,
+one containing "varsity" to everyone above it, anything else to everyone.
+Defaults only: the tap wins, and `lib/lineup.ts` holds the rules with tests.
+
+**Where that line falls is per team, because the two lists are not the same kind
+of list.** The girls' list is the whole team, so varsity is the fastest seven of
+it. The boys' list is the varsity squad and nothing else, so varsity is all of
+them. `VARSITY_START` says `'all'` rather than the number nine, because it is
+recording the reason and not a count to keep in step with the roster: a tenth
+varsity boy needs no edit, and the thing that makes `'all'` wrong is putting JV
+boys on the list. When there is no line to draw the screen stops offering one —
+no "Top 9" chip next to "Everyone", and no rule under the last name.
+
+A JV race for a squad with no JV runners on it offers everyone rather than
+nobody. Both answers are wrong and only one of them can be fixed by a volunteer:
+an empty grid is a capture screen with no buttons on it.
 
 A chosen lineup is remembered under the race name, so next Saturday's varsity
 race opens with the seven picked for this one rather than with the top of the

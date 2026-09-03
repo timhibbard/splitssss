@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { formatIsoDate } from '../lib/clock'
 import { distanceLabel, toMeters, type Unit } from '../lib/distance'
-import { defaultLineup, forTeam, lineupOf, sniffTeam } from '../lib/lineup'
+import { defaultLineup, forTeam, lineupOf, sniffTeam, varsitySize } from '../lib/lineup'
 import { displayNames, summarize } from '../lib/names'
 import type { Athlete, Race, RaceDraft, Station, Team } from '../lib/types'
 import { Lineup } from './Lineup'
@@ -84,7 +84,12 @@ export function Setup({
   stored,
   onClearRaces,
 }: Props) {
-  const [meet, setMeet] = useState('')
+  /**
+   * The meet this season opens with, typed once here rather than by every
+   * volunteer at every marker. It is the first field on the screen and it stays
+   * editable, which is what the next meet needs.
+   */
+  const [meet, setMeet] = useState('Eye Opener')
   /**
    * Earlier meets, folded away. Reaching last Saturday's race is a real need and
    * a rare one, and by November the list is long enough to bury the race being
@@ -168,9 +173,15 @@ export function Setup({
    */
   const inPool = new Set(pool.map((a) => a.id))
   const remembered = rememberedLineup(raceName)?.filter((id) => inPool.has(id))
+  /**
+   * Where varsity ends for this team. The boys on the phone are the varsity squad
+   * and nothing else, so their varsity race starts with all of them rather than
+   * with the seven fastest of nine.
+   */
+  const varsity = varsitySize(pool, which)
   const selected =
     chosen ??
-    (remembered && remembered.length > 0 ? remembered : defaultLineup(pool, raceName))
+    (remembered && remembered.length > 0 ? remembered : defaultLineup(pool, raceName, varsity))
   const labels = displayNames(pool)
   const running = lineupOf(pool, selected)
 
@@ -518,6 +529,7 @@ export function Setup({
           onDone={() => setShowLineup(false)}
           onEditTeam={onEditRoster}
           raceName={raceName || 'this race'}
+          varsity={varsity}
         />
       )}
     </div>
