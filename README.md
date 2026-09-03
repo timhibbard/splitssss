@@ -102,8 +102,12 @@ Live at **https://timhibbard.github.io/splitssss/**
   ask" at the top of the home screen: the workflow as four short lists, from
   installing it on the phone through sending the CSV, then the questions a
   volunteer actually has, with an answer each. It is offline like everything else,
-  so it is readable standing at the marker, and it is the thing to point a new
-  parent at instead of briefing them.
+  so it is readable standing at the marker.
+- **The help page can be texted.** It has an address of its own, `#help`, and a
+  button on it that shares the link. A parent who taps that link lands on the
+  instructions, with the app and the names one Back away, so a text message is the
+  whole briefing. A fragment rather than a path because a static site on a subpath
+  has no server to route `/help`, and it can never collide with a roster link.
 - **No backend.** Static site, all state on the device, exports leave by way of
   the share sheet.
 - **Works with no signal.** Fully offline once loaded, which matters at the two

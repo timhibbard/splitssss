@@ -661,6 +661,36 @@ One caveat worth stating in the UI, because it will otherwise waste somebody's
 morning: on iOS a site added to the home screen keeps storage separate from
 Safari. Open the link in the same place you intend to time.
 
+### The help page has an address of its own
+
+The help page is a screen and not a document, so it is precached and readable at a
+marker with no signal. But the whole point of it is that a coach can send it to
+somebody instead of briefing them, and a screen with no address cannot be sent.
+
+So it has one, `#help`, and there is a button on the page that texts it.
+
+A fragment and not a path. This is a static site on a GitHub Pages subpath with no
+server to route anything, so `/splitssss/help` would be a 404 for exactly the person
+being sent the link: the one who has never opened the app, and therefore has no
+service worker to serve the fallback. A fragment always lands on the app itself,
+first visit or hundredth.
+
+It shares the fragment with the roster link and is matched **whole**, so `#r=...`
+never reads as a request for the help page and `#help` never imports a roster.
+Tests assert both directions, because the two features would otherwise be one
+typo apart.
+
+The link points at the help page rather than at the app root on purpose. A parent
+who has never seen this lands on the instructions rather than on a race they do not
+know how to set up, and the app is one Back away with the names already in it. One
+text message is the whole briefing.
+
+Opening it pushes a history entry, so the phone's own back gesture closes the page
+instead of leaving the app, and leaving takes the address back off: `history.back()`
+when this session pushed the entry, a plain replace when the app was opened on the
+help page from a link and there is nothing behind it. A popstate listener reads the
+address rather than remembering, so back and forward both behave.
+
 ### What a public repo can and cannot keep, and the encrypted roster that is gone
 
 The link works, but it has to be re-sent, and a coach who wants the team already

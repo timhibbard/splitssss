@@ -42,3 +42,29 @@ export function rosterFromHash(hash: string): Athlete[] {
   if (!part) return []
   return decodeRoster(part.slice(KEY.length))
 }
+
+/**
+ * The help page's own address, so it can be texted on its own rather than
+ * described over the phone.
+ *
+ * A fragment and not a path, for the same reason the roster is one: this is a
+ * static site on a subpath with no server to route anything, so /splitssss/help
+ * would be a 404 for exactly the person being sent the link, the one who has not
+ * opened the app before. A fragment always lands on the app itself.
+ *
+ * Matched whole rather than by prefix, and it shares the fragment grammar the
+ * roster key uses, so a link carrying a roster is never read as a request for the
+ * help page and a stray fragment is never read as either.
+ */
+const HELP = 'help'
+
+export const HELP_HASH = `#${HELP}`
+
+export function helpLink(origin: string, path: string): string {
+  return `${origin}${path}${HELP_HASH}`
+}
+
+export function isHelpHash(hash: string): boolean {
+  const raw = hash.startsWith('#') ? hash.slice(1) : hash
+  return raw.split('&').some((part) => part === HELP)
+}
