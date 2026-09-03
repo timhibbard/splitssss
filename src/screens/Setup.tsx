@@ -104,7 +104,15 @@ export function Setup({
 
   useEffect(() => () => window.clearTimeout(clearTimer.current), [])
 
-  const [raceKind, setRaceKind] = useState<Kind>('JV')
+  /**
+   * Varsity, which with the girls default below is the pair every phone opens on:
+   * the race splits are most wanted for, and the team whose list is the whole team.
+   *
+   * A fixed default and not the last thing timed, so twelve phones handed out at a
+   * meet all say the same thing and the briefing is the same for all of them. One
+   * tap changes it.
+   */
+  const [raceKind, setRaceKind] = useState<Kind>('Varsity')
   const [raceOther, setRaceOther] = useState('')
   /**
    * Which team, once somebody has said. Null follows the race name, which is
@@ -157,6 +165,10 @@ export function Setup({
    * A typed race name is the only place the team is not already spelled out, so
    * it is the only place worth sniffing. A preset carries the team in its own
    * label, so there is nothing to guess.
+   *
+   * Girls when nothing has been said and nothing can be read off a name, which is
+   * what a phone opens on, so the first chips a volunteer sees read Girls and
+   * Varsity Girls.
    */
   const which: Team = teamPick ?? (raceKind === 'other' ? sniffTeam(raceOther) : undefined) ?? 'girls'
   const raceName = raceKind === 'other' ? raceOther.trim() : `${raceKind} ${TEAM_LABEL[which]}`

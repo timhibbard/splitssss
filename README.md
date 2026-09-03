@@ -27,7 +27,9 @@ Live at **https://timhibbard.github.io/splitssss/**
   A list somebody edited by hand is never overwritten: that gets asked about.
 - **Both teams, one phone.** Every phone holds the boys and the girls, so either
   coach's race can be covered by whoever is standing at the marker. Race setup
-  asks which team before anything else and the grid shows that team only. In the
+  asks which team before anything else and the grid shows that team only, and every
+  phone opens on the same pair, Varsity Girls, so a dozen of them handed out at a
+  meet all say the same thing and either chip is one tap. In the
   roster text a line reading `# Boys` or `# Girls` puts the runners under it on
   that team, so a paste, a link and the shipped file all carry it the same way. A
   list with no such line is untagged and shows in either race, which is how a

@@ -393,6 +393,13 @@ chips, even though the presets already spell it out and a typed name like "Boys
 Open" is sniffed the way `lineup.ts` already sniffs for JV. Showing a volunteer the
 wrong twenty eight names at the gun is the failure worth a control to rule out.
 
+A phone opens on **Girls** and **Varsity**, so the first thing on screen is
+Varsity Girls. The varsity race is the one splits are most wanted for, and the
+girls' list is the whole team rather than a squad. The default is fixed rather than
+the last thing this phone timed, because twelve phones handed out at a meet should
+all say the same thing: then the briefing is one sentence and any wrong one is one
+tap from right. It is not remembered per phone for the same reason.
+
 Short labels are computed **per team** by `tools/team-file.ts`, not across the
 combined list. The two teams are never on one screen, so a girls "Avery L." and a
 boys "Avery L." cannot be two buttons a volunteer has to tell apart, and making
