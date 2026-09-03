@@ -18,14 +18,21 @@ type Props = {
   raceName: string
   /** Runners already holding a crossing here, who cannot be taken out of it. */
   locked?: Set<string>
+  /**
+   * This team's varsity number, which is where the line under the list falls. It
+   * is the whole list for a team whose list is the varsity squad, and then there
+   * is no line to draw and no "Top 7" worth offering next to "Everyone".
+   */
+  varsity?: number
 }
 
 /**
  * Who is running this race.
  *
- * Seven run varsity and the rest run JV, and which seven changes every week, so
- * this is a screen the coach opens often and a volunteer opens rarely. The quick
- * buttons do the usual case in one tap and the rows do the exceptions.
+ * A varsity race is the top of the team's list and JV is the rest, and where that
+ * line falls moves week to week and differs between the two teams, so this is a
+ * screen the coach opens often and a volunteer opens rarely. The quick buttons do
+ * the usual case in one tap and the rows do the exceptions.
  *
  * It covers whatever screen opened it rather than being a route of its own, so
  * the race being set up, or timed, is still there underneath when it closes.
@@ -38,6 +45,7 @@ export function Lineup({
   onEditTeam,
   raceName,
   locked,
+  varsity = VARSITY_SIZE,
 }: Props) {
   const labels = displayNames(team)
   const chosen = new Set(selected)
@@ -53,7 +61,9 @@ export function Lineup({
   }
 
   const everyone = team.map((a) => a.id)
-  const rest = restOfList(team)
+  const rest = restOfList(team, varsity)
+  /** Nothing to offer when the top of the list is the whole list. */
+  const showTop = varsity < team.length
 
   return (
     <div className="screen lineup">
@@ -84,9 +94,11 @@ export function Lineup({
       ) : (
         <>
           <div className="chips lineup-quick">
-            <button type="button" className="chip" onClick={() => set(topOfList(team))}>
-              Top {VARSITY_SIZE}
-            </button>
+            {showTop && (
+              <button type="button" className="chip" onClick={() => set(topOfList(team, varsity))}>
+                Top {varsity}
+              </button>
+            )}
             {rest.length > 0 && (
               <button type="button" className="chip" onClick={() => set(rest)}>
                 Everyone else
@@ -118,7 +130,7 @@ export function Lineup({
                     'lineup-row',
                     inRace ? 'in' : '',
                     held ? 'held' : '',
-                    i === VARSITY_SIZE ? 'after-varsity' : '',
+                    i === varsity ? 'after-varsity' : '',
                   ]
                     .filter(Boolean)
                     .join(' ')}

@@ -13,6 +13,41 @@ import type { Athlete, Team } from './types'
 export const VARSITY_SIZE = 7
 
 /**
+ * Where a varsity race starts, per team, because the two lists are not the same
+ * kind of list.
+ *
+ * The girls' list is the whole team, so varsity starts as the fastest seven of it
+ * and JV gets the rest. The boys' list is the varsity squad and nothing else, so
+ * varsity starts as all of them.
+ *
+ * `'all'` rather than the number nine on purpose: it records the reason, so a
+ * tenth varsity boy does not need this line edited. Putting JV boys on the roster
+ * is what makes this the wrong default, and that is the moment it should say
+ * VARSITY_SIZE again.
+ *
+ * A starting point and nothing more. Every lineup is set by hand before the race
+ * and remembered under the race name afterwards, so this only decides the first
+ * time a race name is used.
+ */
+export const VARSITY_START: Record<Team, number | 'all'> = {
+  girls: VARSITY_SIZE,
+  boys: 'all',
+}
+
+/**
+ * The varsity number for one team's list. `'all'` is resolved against the list
+ * that was passed, so it is whoever is actually on the phone rather than a count
+ * to keep in step with the roster.
+ *
+ * A phone still holding an untagged list gets the plain seven, since there is
+ * nothing there to say which team the names belong to.
+ */
+export function varsitySize(team: Athlete[], which: Team | undefined): number {
+  const rule = which == null ? VARSITY_SIZE : VARSITY_START[which]
+  return rule === 'all' ? team.length : rule
+}
+
+/**
  * Reads a team out of a name: a race name, or a `#` header on the roster text.
  * The same two words in the same order, so "Varsity Boys" the race and
  * "# Boys" the header cannot disagree about which team they mean.
@@ -59,16 +94,21 @@ function isJv(raceName: string): boolean {
  * fourteen taps and wrong often enough that the screen to change it is one tap
  * away.
  *
- * A short team where "the rest" is nobody offers everyone instead: an empty
- * lineup is a capture screen with no buttons on it.
+ * The size is that team's varsity number, so a list which *is* the varsity squad
+ * offers all of it. See varsitySize.
+ *
+ * A team where "the rest" is nobody offers everyone instead: an empty lineup is a
+ * capture screen with no buttons on it, which is the one outcome with nothing a
+ * volunteer can do about it. That is what a JV race for a squad with no JV
+ * runners on the list gets, and the picker is one tap away.
  */
-export function defaultLineup(team: Athlete[], raceName: string): string[] {
+export function defaultLineup(team: Athlete[], raceName: string, size = VARSITY_SIZE): string[] {
   const everyone = team.map((a) => a.id)
   if (isJv(raceName)) {
-    const rest = restOfList(team)
+    const rest = restOfList(team, size)
     return rest.length > 0 ? rest : everyone
   }
-  if (/varsity/i.test(raceName)) return topOfList(team)
+  if (/varsity/i.test(raceName)) return topOfList(team, size)
   return everyone
 }
 

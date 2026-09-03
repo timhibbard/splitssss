@@ -48,12 +48,14 @@ Live at **https://timhibbard.github.io/splitssss/**
   three word name keeps the first two words, so "Anna Grace F." is what the team
   calls out. If two labels would read the same they grow a letter until they do
   not: Rowan Ha. and Rowan He. Full names go to the export and to screen readers.
-- **Pick who is running.** A varsity race is seven buttons, not one team's whole
-  list and certainly not both teams'. Choose the lineup before the race or change
-  it mid race, with Top 7, Everyone else, Everyone and Nobody one tap each. The
-  choice is remembered under the race name, so next week's varsity race opens with
-  the seven you picked, and "Varsity Boys" and "Varsity Girls" remember their own.
-  Anyone who already has a time cannot be taken out.
+- **Pick who is running.** A race is one team's lineup, not the whole phone.
+  Choose it before the race or change it mid race, with Top 7, Everyone else,
+  Everyone and Nobody one tap each. Where varsity ends is per team: the girls'
+  list is the whole team, so a varsity girls race starts with the fastest seven,
+  while the boys on the phone are the varsity squad, so a varsity boys race starts
+  with all of them. The choice is remembered under the race name, so next week's
+  race opens with who you picked, and "Varsity Boys" and "Varsity Girls" remember
+  their own. Anyone who already has a time cannot be taken out.
 - **Scrolling the names records nothing.** The grid of names scrolls, so a name
   button holds the time from the moment your finger lands and only records it if
   the finger lifts without dragging. A tap is timed to the instant it landed. A
@@ -148,7 +150,7 @@ npm run preview  # serve the production build at /splitssss/
 Ship the teams with the app, so every phone opens with the names on it. One
 runner per line in `roster.txt`, with that runner's 5K best after the name if
 there is one, under a heading per team. Each team in its own PR order, since the
-top seven of the order is that team's varsity:
+top of that order is what a varsity race starts with:
 
 ```
 # Girls

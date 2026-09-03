@@ -19,7 +19,7 @@ import {
 import { projectedFinish } from '../lib/distance'
 import { buzz, click, undoClick } from '../lib/feedback'
 import { becameScroll, type Point } from '../lib/gesture'
-import { forTeam } from '../lib/lineup'
+import { forTeam, varsitySize } from '../lib/lineup'
 import { displayNames } from '../lib/names'
 import { gridOrder, namedInOrder, splitRows, stillOut } from '../lib/splits'
 import type { Athlete, Race, Stamp, Tap } from '../lib/types'
@@ -162,6 +162,12 @@ export function Capture({
   const projected = projectedFinish(race.station.meters, race.raceMeters, running ?? 0)
 
   const rows = splitRows(race, taps, SESSION_ID)
+  /**
+   * The runners the lineup picker can draw from: this race's team only. Twenty
+   * eight girls under the boys who are about to run is a list nobody can find a
+   * name in.
+   */
+  const pool = forTeam(team, race.team)
   const assigned = new Set(taps.map((t) => t.athleteId).filter((id): id is string => !!id))
   const unnamed = taps.filter((t) => !t.athleteId).length
   const hasRoster = race.athletes.length > 0
@@ -661,19 +667,17 @@ export function Capture({
         moved up to varsity is a fact of a meet morning, and it should not cost a
         restart. Anyone already holding a crossing cannot be taken out, since the
         time would lose its name.
-
-        This race's team only. Twenty eight girls under the boys who are about to
-        run is a list nobody can find a name in.
       */}
       {showLineup && (
         <Lineup
-          team={forTeam(team, race.team)}
+          team={pool}
           selected={race.athletes.map((a) => a.id)}
           onChange={onLineup}
           onDone={() => setShowLineup(false)}
           onEditTeam={onEditRoster}
           raceName={race.race}
           locked={assigned}
+          varsity={varsitySize(pool, race.team)}
         />
       )}
     </div>

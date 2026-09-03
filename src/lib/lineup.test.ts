@@ -10,6 +10,7 @@ import {
   toggle,
   topOfList,
   VARSITY_SIZE,
+  varsitySize,
 } from './lineup.ts'
 import type { Athlete } from './types.ts'
 
@@ -120,20 +121,57 @@ test('a race with no team on it draws from everyone', () => {
   assert.deepEqual(forTeam(team, 'boys'), team, 'an untagged list is offered whole')
 })
 
+const boys: Athlete[] = Array.from({ length: 9 }, (_, i) => ({
+  id: `b${i + 1}`,
+  name: `Boy ${i + 1}`,
+  team: 'boys' as const,
+}))
+
+const girls: Athlete[] = team.map((a) => ({ ...a, team: 'girls' as const }))
+
 test('the varsity default is drawn inside one team', () => {
-  // Seven of the nine boys, not seven of the thirty seven names on the phone.
-  const boys: Athlete[] = Array.from({ length: 9 }, (_, i) => ({
-    id: `b${i + 1}`,
-    name: `Boy ${i + 1}`,
-    team: 'boys' as const,
-  }))
-  const both = [...team, ...boys]
-  assert.deepEqual(defaultLineup(forTeam(both, 'boys'), 'Varsity Boys'), [
-    'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7',
-  ], 'the untagged legacy names still count, since they match any team')
+  // Seven of the girls, not seven of the names on the whole phone.
+  const both = [...girls, ...boys]
   assert.deepEqual(
-    defaultLineup(boys, 'Varsity Boys'),
-    ['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7'],
-    'and on a fully tagged phone it is that team\'s top seven',
+    defaultLineup(forTeam(both, 'girls'), 'Varsity Girls', varsitySize(forTeam(both, 'girls'), 'girls')),
+    ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7'],
+  )
+})
+
+test('varsity for the boys is all of them, since the list is the varsity squad', () => {
+  // The nine boys on the phone are all varsity, so the varsity race starts with
+  // nine rather than with the seven fastest of nine.
+  assert.equal(varsitySize(boys, 'boys'), 9)
+  assert.deepEqual(
+    defaultLineup(boys, 'Varsity Boys', varsitySize(boys, 'boys')),
+    boys.map((a) => a.id),
+  )
+})
+
+test('varsity for the girls is still the fastest seven of the list', () => {
+  assert.equal(varsitySize(girls, 'girls'), VARSITY_SIZE)
+  assert.deepEqual(defaultLineup(girls, 'Varsity Girls', varsitySize(girls, 'girls')), [
+    'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7',
+  ])
+  assert.deepEqual(
+    defaultLineup(girls, 'JV Girls', varsitySize(girls, 'girls')),
+    ['a8', 'a9', 'a10'],
+    'and JV is the rest of it',
+  )
+})
+
+test('a phone with no teams on its list gets the plain seven', () => {
+  // The migration case: nothing on the list says which team anyone is on, so
+  // there is nothing to look a varsity number up by.
+  assert.equal(varsitySize(team, undefined), VARSITY_SIZE)
+  assert.deepEqual(defaultLineup(team, 'Varsity Girls', varsitySize(team, undefined)), topOfList(team))
+})
+
+test('a JV boys race offers the boys there are rather than nobody', () => {
+  // There are no JV boys on the list, so "the rest" is empty. Everyone is a
+  // grid the coach can fix in one tap; an empty grid is not.
+  assert.deepEqual(
+    defaultLineup(boys, 'JV Boys', varsitySize(boys, 'boys')),
+    boys.map((a) => a.id),
   )
 })
