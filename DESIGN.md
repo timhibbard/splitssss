@@ -945,8 +945,40 @@ entirely.
 Pages serves through a CDN with a short TTL, and the service worker adds a
 second cache layer. The failure mode is a volunteer opening a stale build at the
 starting line. Mitigations: hashed filenames, a service worker that activates
-immediately, a visible version string in the UI, and a rule against deploying
-on meet mornings.
+immediately, a visible version string in the UI, a Refresh button next to that
+version string, and a rule against deploying on meet mornings.
+
+#### Refresh, because standalone has no pull to refresh
+
+Added to the home screen the app runs in `display: standalone`, and standalone has
+no pull to refresh. The one gesture everybody already knows for "try that again" is
+gone on exactly the phones that use the app most, and it is the phones kept in the
+switcher for a week that are most likely to be running something old: `registerSW.js`
+registers on `load` and does nothing afterwards, so an app that never navigates
+again never asks whether there is a newer build.
+
+`location.reload()` alone would not have fixed it, and this is the part worth
+writing down. Everything is precached, so a reload is served *by* the worker out of
+its own cache and hands back the same build it just had. Measured, against a build
+newer than the loaded page: a plain reload showed the old stamp, and one tap of
+Refresh showed the new one. So `lib/update.ts` asks the registration to `update()`,
+waits for a newly installing worker to take over — it claims clients and skips
+waiting, so there is nothing to confirm — and only then reloads.
+
+It always reloads, including when there is no new build and when the check fails
+offline. A tap that appears to do nothing is worse than a reload that was not
+strictly needed, and "no signal at the two mile mark" is the normal case rather
+than an error.
+
+Quiet, next to the build stamp, because that is the line somebody is already
+reading when they wonder whether this phone is current, and because nothing on race
+day needs it. It is safe to hand to a volunteer for the reason the section above
+gives: a refresh loses nothing.
+
+One thing it cannot do is bootstrap itself. A phone running a build from before the
+button existed has no button, so this change reaches phones the old way — a relaunch
+of the app, or the browser's own periodic check — and only afterwards is a stale
+phone one tap from current.
 
 ## Not in scope
 

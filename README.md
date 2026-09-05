@@ -60,6 +60,11 @@ Live at **https://timhibbard.github.io/splitssss/**
   name, so next week's race opens with who you picked, and "Varsity Boys" and
   "Varsity Girls" remember their own. Anyone who already has a time cannot be
   taken out.
+- **A Refresh next to the build date.** Added to the home screen there is no pull
+  to refresh, and everything is precached, so a stale phone cannot get itself
+  current. Refresh looks for a newer build, takes it if there is one, and reloads
+  either way. Nothing is lost: the races and times are on the phone, not in the
+  screen.
 - **Scrolling the names records nothing.** The grid of names scrolls, so a name
   button holds the time from the moment your finger lands and only records it if
   the finger lifts without dragging. A tap is timed to the instant it landed. A

@@ -4,6 +4,7 @@ import { distanceLabel, toMeters, type Unit } from '../lib/distance'
 import { defaultLineup, forTeam, lineupOf, sniffTeam, varsitySize } from '../lib/lineup'
 import { displayNames, summarize } from '../lib/names'
 import type { Athlete, Race, RaceDraft, Station, Team } from '../lib/types'
+import { refreshApp } from '../lib/update'
 import { Lineup } from './Lineup'
 
 type Props = {
@@ -103,6 +104,18 @@ export function Setup({
   const clearTimer = useRef<number | undefined>(undefined)
 
   useEffect(() => () => window.clearTimeout(clearTimer.current), [])
+
+  /**
+   * Refreshing, which ends in a reload, so this only ever goes true. It is here to
+   * say the tap landed: looking for a new build takes a moment on a course, and a
+   * button that sits there is a button somebody taps four more times.
+   */
+  const [refreshing, setRefreshing] = useState(false)
+
+  function refresh() {
+    setRefreshing(true)
+    void refreshApp()
+  }
 
   /**
    * Varsity, which with the girls default below is the pair every phone opens on:
@@ -546,7 +559,21 @@ export function Setup({
         </button>
       </section>
 
-      <p className="build">Build {__BUILD__}</p>
+      {/*
+        Refresh, next to the build stamp because that is the line somebody is
+        already reading when they wonder whether this phone is current. Added to the
+        home screen the app runs standalone and pull to refresh is gone, so without
+        this there is no way to restart it or to pick up a new build at all.
+
+        Quiet on purpose: nothing on race day needs it, and the two buttons that
+        matter on this screen are Start timing and Choose.
+      */}
+      <p className="build">
+        Build {__BUILD__}
+        <button type="button" className="link build-refresh" onClick={refresh} disabled={refreshing}>
+          {refreshing ? 'Refreshing' : 'Refresh'}
+        </button>
+      </p>
 
       {showLineup && (
         <Lineup

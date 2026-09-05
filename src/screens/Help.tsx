@@ -206,6 +206,10 @@ const FAQ: { q: string; a: string }[] = [
     q: 'What is the date at the very bottom?',
     a: 'When this version of the app was built. If two phones seem to behave differently, that is the first thing to compare.',
   },
+  {
+    q: 'The app seems stuck, or older than the other phones.',
+    a: 'Tap Refresh next to that date. It restarts the app and takes the newest version if there is one. Nothing is lost: the races, the times and the names are all on the phone, not in the screen.',
+  },
 ]
 
 type Props = {

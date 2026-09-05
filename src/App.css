@@ -241,6 +241,21 @@
   text-align: center;
 }
 
+/* Standalone has no pull to refresh, so this is the only way to restart the app or
+   take a new build. Kept to the build stamp's weight rather than made a button: it
+   needs to be findable, not noticed. The 44px tap target survives the small type,
+   because a thumb on a course does not care how quiet something looks. */
+.build-refresh {
+  padding: 12px;
+  font-size: 12px;
+  min-height: 44px;
+}
+
+.build-refresh:disabled {
+  text-decoration: none;
+  opacity: 0.6;
+}
+
 /* ---------- capture ---------- */
 
 .capture {
