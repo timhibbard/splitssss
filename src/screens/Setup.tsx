@@ -123,8 +123,8 @@ export function Setup({
   const [teamPick, setTeamPick] = useState<Team | null>(null)
   /**
    * The lineup, once it has been touched for this race. Null means follow the
-   * race: what ran last time under this name, or the usual split if this is the
-   * first time. Picking a different race or a different team clears it, since
+   * race: what ran last time under this name, or what the team list says this week
+   * if this is the first time. Picking a different race or a different team clears it, since
    * the answer for the JV race is not the answer for the varsity race and the
    * answer for the girls is not a boy.
    */
@@ -189,9 +189,10 @@ export function Setup({
   const inPool = new Set(pool.map((a) => a.id))
   const remembered = rememberedLineup(raceName)?.filter((id) => inPool.has(id))
   /**
-   * Where varsity ends for this team. The boys on the phone are the varsity squad
-   * and nothing else, so their varsity race starts with all of them rather than
-   * with the seven fastest of nine.
+   * Where varsity ends for a team whose list does not say which race each runner
+   * is in. The boys on the phone are the varsity squad and nothing else, so their
+   * varsity race starts with all of them rather than with the seven fastest of
+   * nine. Unused for a list that does say: that one is read, not sized.
    */
   const varsity = varsitySize(pool, which)
   const selected =
@@ -361,9 +362,9 @@ export function Setup({
       </fieldset>
 
       {/*
-        The lineup, right under the race it belongs to. Varsity is the top seven
-        of the team list and JV is the rest, which this fills in without being
-        asked, so the common case needs no taps and the exception needs one.
+        The lineup, right under the race it belongs to. The team list says which
+        race each runner is in, so this fills itself in without being asked and a
+        change at the course costs one tap.
       */}
       {team.length > 0 && (
         <section className="team lineup-panel">

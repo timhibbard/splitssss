@@ -262,6 +262,77 @@ test('untagged runners come first, with no heading over them', () => {
   )
 })
 
+test('the race at the end of a line comes in with the runner', () => {
+  const parsed = parseRoster(
+    'Karen Izumi\t20:17.75\tVarsity\nJoyce Chen\t22:40.16\tJV\nPriya Whitaker\t24:00.00',
+  )
+  assert.deepEqual(
+    parsed.map((a) => [a.name, a.squad]),
+    [
+      ['Karen Izumi', 'varsity'],
+      ['Joyce Chen', 'jv'],
+      ['Priya Whitaker', undefined],
+    ],
+  )
+  assert.deepEqual(parsed.map((a) => a.pr), [
+    20 * 60_000 + 17_750,
+    22 * 60_000 + 40_160,
+    24 * 60_000,
+  ])
+})
+
+test('the race and the time come off the line in either order', () => {
+  // A list lives in a spreadsheet and a spreadsheet's columns come out in
+  // whatever order they sit in. The alternative is "Varsity" ending up in a name.
+  assert.deepEqual(
+    parseRoster('Karen Izumi  Varsity  20:17.75').map((a) => [a.name, a.squad, a.pr]),
+    [['Karen Izumi', 'varsity', 20 * 60_000 + 17_750]],
+  )
+  assert.deepEqual(
+    parseRoster('Joyce Chen  JV').map((a) => [a.name, a.squad, a.pr]),
+    [['Joyce Chen', 'jv', undefined]],
+    'and a race with no time is still a race',
+  )
+})
+
+test('junior varsity spelled out on a line is JV', () => {
+  assert.deepEqual(
+    parseRoster('Joyce Chen  22:40.16  Junior Varsity').map((a) => [a.name, a.squad]),
+    [['Joyce Chen', 'jv']],
+    'and the word varsity inside it does not win',
+  )
+})
+
+test('a line with a race and a bib keeps neither in the name', () => {
+  const parsed = parseRoster('14 Karen Izumi 20:17.75 Varsity\nJoyce Chen, 22, JV')
+  assert.deepEqual(
+    parsed.map((a) => [a.name, a.squad]),
+    [
+      ['Karen Izumi', 'varsity'],
+      ['Joyce Chen', 'jv'],
+    ],
+  )
+})
+
+test('a line that is only a race is not a runner', () => {
+  assert.deepEqual(parseRoster('Varsity\nJV\n'), [], 'a header row out of a spreadsheet')
+})
+
+test('the races round trip through the text', () => {
+  // The channel that matters: this is the format the shipped file and a shared
+  // link both carry, so the lineup a coach set on Thursday reaches every phone.
+  const text = '# Girls\nKaren Izumi\t20:17.75\tVarsity\nJoyce Chen\t22:40.16\tJV\nPriya Whitaker'
+  assert.equal(rosterText(parseRoster(text)), text)
+})
+
+test('a list with no races parses and writes exactly as it always did', () => {
+  // The boys' list, and any phone holding one from before. Nothing gains a field.
+  const text = '# Boys\nJordan Blake\t17:12.40\nQuinn Delgado'
+  const parsed = parseRoster(text)
+  assert.equal(Object.hasOwn(parsed[0], 'squad'), false, 'no empty field rides along')
+  assert.equal(rosterText(parsed), text)
+})
+
 test('grouping is the same for the text and the screen', () => {
   const groups = byTeam([
     { id: 'g1', name: 'Rowan Hayes', team: 'girls' },

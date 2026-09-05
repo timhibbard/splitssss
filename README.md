@@ -51,13 +51,15 @@ Live at **https://timhibbard.github.io/splitssss/**
   calls out. If two labels would read the same they grow a letter until they do
   not: Rowan Ha. and Rowan He. Full names go to the export and to screen readers.
 - **Pick who is running.** A race is one team's lineup, not the whole phone.
-  Choose it before the race or change it mid race, with Top 7, Everyone else,
-  Everyone and Nobody one tap each. Where varsity ends is per team: the girls'
-  list is the whole team, so a varsity girls race starts with the fastest seven,
-  while the boys on the phone are the varsity squad, so a varsity boys race starts
-  with all of them. The choice is remembered under the race name, so next week's
-  race opens with who you picked, and "Varsity Boys" and "Varsity Girls" remember
-  their own. Anyone who already has a time cannot be taken out.
+  Nothing works out who is varsity: the team list says, because coach sets it per
+  meet, so Varsity Girls opens with the runners marked varsity this week however
+  fast they are. Choose it before the race or change it mid race, with Varsity, JV,
+  Everyone and Nobody one tap each. A list that says nothing falls back to the
+  coach's order — the top of it for varsity, the rest for JV, and all of it for the
+  boys, whose list is the varsity squad. The choice is remembered under the race
+  name, so next week's race opens with who you picked, and "Varsity Boys" and
+  "Varsity Girls" remember their own. Anyone who already has a time cannot be
+  taken out.
 - **Scrolling the names records nothing.** The grid of names scrolls, so a name
   button holds the time from the moment your finger lands and only records it if
   the finger lifts without dragging. A tap is timed to the instant it landed. A
@@ -159,20 +161,27 @@ npm test         # clock, storage, roster, link, team file, distance, split, ges
 npm run preview  # serve the production build at /splitssss/
 ```
 
-Ship the teams with the app, so every phone opens with the names on it. One
-runner per line in `roster.txt`, with that runner's 5K best after the name if
-there is one, under a heading per team. Each team in its own PR order, since the
-top of that order is what a varsity race starts with:
+Ship the teams with the app, so every phone opens with the names on it and the
+right lineup already picked. One runner per line in `roster.txt`, with that
+runner's 5K best after the name if there is one and the race they are in this week
+after that, under a heading per team:
 
 ```
 # Girls
-Marlowe Holloway   21:34.60
-Rowan Hayes        22:29.15
+Marlowe Holloway   21:34.60   Varsity
+Rowan Hayes        22:29.15   JV
 
 # Boys
 Jordan Blake       17:12.40
 Quinn Delgado      18:05.00
 ```
+
+The race is what changes every week, and it is a decision rather than a
+computation: nobody is put in the varsity race by being fast. Give the runners in
+whatever order suits you — PR order reads best — and mark the race; a runner marked
+neither is on the team and in no race, which is what a scratch looks like. A team
+whose lines say nothing, which is the boys, falls back to the coach's order: the
+top of it for varsity and the rest for JV.
 
 One file for both teams, because one person keeps the times. A file with no
 headings still works and ships everyone untagged.
@@ -182,8 +191,9 @@ npm run team-file -- roster.txt     # writes public/team.dat, prints the list in
 git add public/team.dat             # short labels and best times, scrambled, meant to be committed
 ```
 
-Re-run it after adding a runner, after somebody sets a PR, or after a runner
-changes teams. Output is deterministic, so a rebuild with no change is not a diff.
+Re-run it before each meet, once the lineup is set, and after adding a runner,
+after somebody sets a PR, or after a runner changes teams. Output is
+deterministic, so a rebuild with no change is not a diff.
 A phone that already took the last list takes the new one on its own; a phone with
 a hand edited list gets asked. Short labels are worked out within each team, since
 the two never race at once, so a girls "Avery L." and a boys "Avery L." both keep

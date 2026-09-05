@@ -65,7 +65,7 @@ const WORKFLOW: { title: string; lead?: string; steps: Step[] }[] = [
       },
       {
         act: 'Choose.',
-        note: 'Who is running. It fills itself in: whoever ran the last race by this name, or the usual lineup the first time that name is used. Change it here or at the starting line.',
+        note: 'Who is running. It fills itself in: whoever ran the last race by this name, or the lineup coach set for this meet the first time that name is used. Change it here or at the starting line.',
       },
       {
         act: 'How far into the 5K are you.',

@@ -820,7 +820,8 @@
   background: var(--sky-tint);
 }
 
-/* Where the varsity seven end, so the top of the list reads as the top seven. */
+/* Where varsity ends on a list that only has an order to go by. A list that says
+   which race each runner is in marks the rows instead. */
 .lineup-row.after-varsity {
   border-top: 2px solid var(--navy);
 }
@@ -861,6 +862,20 @@
 .lineup-label {
   font-size: 12px;
   color: var(--ink-soft);
+}
+
+/* Which race the team list puts this runner in. Set apart rather than run into
+   the label, because it is what a coach is scanning this screen for. */
+.lineup-squad {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--sky-tint);
+  color: var(--navy);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .lineup-held {

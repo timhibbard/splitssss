@@ -384,9 +384,8 @@ the moment that phone adopts the new shipped list.
 The two races never overlap, which is what makes the rest of this small. There is
 still one active race pointer and one clock, because nobody records girls and boys
 at the same marker at the same time. Every race is still a 5K, so `PR_METERS` and
-the whole projected-finish-against-PR comparison are untouched. The top seven of
-the order is still varsity, so `defaultLineup` needs no new rules: it is handed one
-team.
+the whole projected-finish-against-PR comparison are untouched. `defaultLineup`
+needed no new rules for the two teams either: it is handed one team.
 
 Race setup asks which team **explicitly**, as its own control above the race
 chips, even though the presets already spell it out and a typed name like "Boys
@@ -422,37 +421,77 @@ committed.
 ### The team list is on the device, the lineup is on the race
 
 Two different lists. The team is everyone on the phone, both teams, edited once. A
-lineup is who is in one race, and it is what the grid shows: seven buttons for a
+lineup is who is in one race, and it is what the grid shows: eight buttons for a
 varsity race, not one team's whole list and certainly not both teams'.
 
 The narrowing happens in two steps and in that order. `forTeam` cuts the phone's
-list down to the racing team, and the lineup is chosen out of what is left, so the
-rule under the seventh name is that team's seeding rather than a line drawn through
-a combined list. The picker opened mid race from the capture screen narrows the
-same way: twenty eight girls listed under the boys who are about to run is a list
+list down to the racing team, and the lineup is chosen out of what is left, so a
+varsity race is drawn from one team's runners rather than from a line through a
+combined list. The picker opened mid race from the capture screen narrows the
+same way: twenty five girls listed under the boys who are about to run is a list
 nobody can find a name in.
 
 Who is running is chosen on its own screen, reachable from setup before the race
 and from the capture screen during it, because a late scratch or a runner moved
-up is a fact of a meet morning and should not cost a restart. Top 7, Everyone
-else, Everyone and Nobody are one tap each, and the list is drawn in team order
-with a rule under the varsity name, so the order the coach typed carries the
-seeding. A race whose name contains "JV" defaults to everyone below that line,
-one containing "varsity" to everyone above it, anything else to everyone.
-Defaults only: the tap wins, and `lib/lineup.ts` holds the rules with tests.
+up is a fact of a meet morning and should not cost a restart. Varsity, JV,
+Everyone and Nobody are one tap each. Defaults only: the tap wins, and
+`lib/lineup.ts` holds the rules with tests.
 
-**Where that line falls is per team, because the two lists are not the same kind
-of list.** The girls' list is the whole team, so varsity is the fastest seven of
-it. The boys' list is the varsity squad and nothing else, so varsity is all of
-them. `VARSITY_START` says `'all'` rather than the number nine, because it is
-recording the reason and not a count to keep in step with the roster: a tenth
-varsity boy needs no edit, and the thing that makes `'all'` wrong is putting JV
-boys on the list. When there is no line to draw the screen stops offering one —
-no "Top 9" chip next to "Everyone", and no rule under the last name.
+### Which race a runner is in is a decision, not a computation
 
-A JV race for a squad with no JV runners on it offers everyone rather than
-nobody. Both answers are wrong and only one of them can be fixed by a volunteer:
-an empty grid is a capture screen with no buttons on it.
+The app used to work it out: varsity was the top of the coach's order and JV was
+the rest, sized per team. It was wrong most weeks. A varsity race is eight runners
+one Saturday and seven the next; a runner comes back off an injury and races JV at
+half her PR pace; a senior with the fourth best time on the team sits a meet out.
+None of that is in a list of times, so no rule over a list of times can find it.
+What the app was really doing was guessing at a decision the coach had already
+made, and then asking a volunteer to correct the guess at the starting line.
+
+So the roster line carries it. `Athlete.squad` is `'varsity' | 'jv'`, set from a
+word at the end of the line, and `defaultLineup` reads it instead of slicing:
+
+```
+# Girls
+Karen Izumi        20:17.75   Varsity
+Joyce Chen         22:40.16   JV
+```
+
+**A tag per runner rather than a second kind of heading**, because that is how the
+coach already keeps the list: a column next to the time, rewritten every week.
+Sorting twenty five lines into two blocks so a file format is happy is work done
+for the app's benefit, and the parser takes the tag on either side of the time for
+the same reason — a spreadsheet's columns come out in whatever order they sit in.
+
+**Marked for neither race means in neither race.** It is the only reading that is
+not a guess, and it is what a scratch or an injury looks like. The roster screen
+and the `team-file` printout both say the count out loud ("8 varsity, 17 JV"), so a
+runner nobody meant to leave out does not go missing quietly.
+
+**The order-based rule stays as the fallback**, live only for a list where nothing
+says: the boys, whose list is the varsity squad and carries no tags, and any phone
+holding a list from before roster lines carried a race. That is what keeps
+`VARSITY_SIZE`, `VARSITY_START` and `varsitySize` in the file. Deleting them would
+have made an old phone open a varsity race with twenty eight names on it. When the
+boys' list starts carrying a race per runner too, they go.
+
+`VARSITY_START` says `'all'` for the boys rather than the number nine, because it
+is recording the reason and not a count to keep in step with the roster: a tenth
+varsity boy needs no edit. When there is no line to draw the screen stops offering
+one — no "Top 9" chip next to "Everyone", and no rule under the last name. On a
+list that says, there is no single line to draw at all: a runner moved down for one
+meet still sits in PR order, so the rows carry the word instead and one line
+drawn across the list would be a line in the wrong place.
+
+A race the list puts nobody in offers everyone rather than nobody — an all-varsity
+week, or a JV race for a squad with no JV runners. Both answers are wrong and only
+one of them can be fixed by a volunteer: an empty grid is a capture screen with no
+buttons on it.
+
+The tag ships. `public/team.dat` carries it because `rosterText` writes it, which
+means a phone that took the list on Thursday opens Varsity Girls on Saturday with
+the eight runners the coach picked and needs no taps at all. That is the whole
+return on the change: the lineup is the thing that moves every week and the thing
+nobody standing at the two mile mark can look up.
 
 A chosen lineup is remembered under the race name, so next Saturday's varsity
 race opens with the seven picked for this one rather than with the top of the

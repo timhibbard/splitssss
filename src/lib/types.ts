@@ -36,6 +36,13 @@ export type Station = {
  */
 export type Team = 'boys' | 'girls'
 
+/**
+ * Which of the two races a runner is in. Not a standing rank and not derived from
+ * anything: the coach sets it per meet, so it arrives on the roster line the same
+ * way the best time does. See DESIGN.md for why this is not read off PR order.
+ */
+export type Squad = 'varsity' | 'jv'
+
 export type Athlete = {
   id: string
   name: string
@@ -51,6 +58,13 @@ export type Athlete = {
    * matches any race rather than disappearing out of every one.
    */
   team?: Team
+  /**
+   * Which race this runner is in this week. Optional: a list from before the
+   * roster said falls back to the order it is in, and on a list that does say, a
+   * runner with nothing here is on the team but in neither race, which is what an
+   * injury or a missed bus looks like. Either way the picker is one tap away.
+   */
+  squad?: Squad
 }
 
 /** What the setup form collects. Everything else about a race is assigned on save. */

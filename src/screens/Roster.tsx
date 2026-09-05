@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { formatPr } from '../lib/clock'
 import { rosterLink } from '../lib/link'
 import { byTeam, parseRoster } from '../lib/roster'
-import type { Athlete, Team } from '../lib/types'
+import type { Athlete, Squad, Team } from '../lib/types'
 
 const TEAM_LABEL: Record<Team, string> = { girls: 'Girls', boys: 'Boys' }
+const SQUAD_LABEL: Record<Squad, string> = { varsity: 'Varsity', jv: 'JV' }
 
 /**
  * Both counts, because a phone holding one team and not the other is the thing
@@ -23,6 +24,25 @@ function tally(athletes: Athlete[]): string {
     return `${athletes.length} on the team`
   }
   return counts.join(', ')
+}
+
+/**
+ * How one team's count reads: the number, and how it divides between the two races
+ * when the list says. "25, 8 varsity, 17 JV" is the check a coach came here to
+ * make, and a wrong number is easier to see than a wrong name.
+ */
+function split(athletes: Athlete[]): string {
+  const varsity = athletes.filter((a) => a.squad === 'varsity').length
+  const jv = athletes.filter((a) => a.squad === 'jv').length
+  if (varsity === 0 && jv === 0) return `${athletes.length}`
+  const parts = [`${athletes.length}`]
+  if (varsity > 0) parts.push(`${varsity} varsity`)
+  if (jv > 0) parts.push(`${jv} JV`)
+  // Anyone the list puts in neither race. Named, because a runner nobody meant to
+  // leave out should not go missing quietly.
+  const neither = athletes.length - varsity - jv
+  if (neither > 0) parts.push(`${neither} in neither`)
+  return parts.join(', ')
 }
 
 type Props = {
@@ -147,19 +167,20 @@ export function Roster({
       <p className="hint">
         These names become the buttons you tap during a race. The list stays on
         this phone for the whole season. A 5K best after the name is optional: it
-        goes on the button and every split gets compared to it. A line reading
-        "# Boys" or "# Girls" puts the runners under it on that team, and a race
-        only ever shows one team's names.
+        goes on the button and every split gets compared to it. "Varsity" or "JV"
+        after that puts the runner in that race, so the race opens with the right
+        names already picked. A line reading "# Boys" or "# Girls" puts the runners
+        under it on that team, and a race only ever shows one team's names.
       </p>
 
       <label>
-        Paste a list, one runner per line, best time optional
+        Paste a list, one runner per line, best time and race optional
         <textarea
           value={paste}
           onChange={(e) => setPaste(e.target.value)}
           rows={5}
           placeholder={
-            '# Girls\nMarlowe Holloway  21:34.60\nRowan Hayes  22:29.15\n\n# Boys\nJordan Blake  17:12.40'
+            '# Girls\nMarlowe Holloway  21:34.60  Varsity\nRowan Hayes  22:29.15  JV\n\n# Boys\nJordan Blake  17:12.40'
           }
           autoComplete="off"
         />
@@ -196,14 +217,25 @@ export function Roster({
               <h2>
                 {group.team == null ? 'On the team' : TEAM_LABEL[group.team]}
                 {group.team != null && (
-                  <span className="roster-count"> {group.athletes.length}</span>
+                  <span className="roster-count"> {split(group.athletes)}</span>
                 )}
               </h2>
               {group.athletes.map((a) => (
                 <div key={a.id} className="roster-row">
                   <span className="roster-name">
                     {a.name}
-                    {a.pr != null && <span className="roster-pr">{formatPr(a.pr)}</span>}
+                    {/*
+                      The best time and the race this runner is in, which together
+                      are everything the line carried. This is the screen where
+                      somebody checks that what came in is what was meant.
+                    */}
+                    {(a.pr != null || a.squad != null) && (
+                      <span className="roster-pr">
+                        {a.pr != null && formatPr(a.pr)}
+                        {a.pr != null && a.squad != null && ' · '}
+                        {a.squad != null && SQUAD_LABEL[a.squad]}
+                      </span>
+                    )}
                   </span>
                   <button type="button" className="remove" onClick={() => remove(a.id)}>
                     Remove

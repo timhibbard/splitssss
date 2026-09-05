@@ -4,8 +4,11 @@ import { test } from 'node:test'
 import {
   defaultLineup,
   forTeam,
+  hasSquads,
+  inSquad,
   lineupOf,
   restOfList,
+  sniffSquad,
   sniffTeam,
   toggle,
   topOfList,
@@ -28,11 +31,11 @@ test('the rest of the list is everyone else', () => {
   assert.deepEqual(restOfList(team), ['a8', 'a9', 'a10'])
 })
 
-test('a varsity race starts with the top of the list', () => {
+test('a varsity race starts with the top of a list that says nothing else', () => {
   assert.deepEqual(defaultLineup(team, 'Varsity Girls'), topOfList(team))
 })
 
-test('a JV race starts with everyone else', () => {
+test('a JV race starts with everyone else on a list that says nothing else', () => {
   assert.deepEqual(defaultLineup(team, 'JV Girls'), restOfList(team))
 })
 
@@ -148,7 +151,7 @@ test('varsity for the boys is all of them, since the list is the varsity squad',
   )
 })
 
-test('varsity for the girls is still the fastest seven of the list', () => {
+test('varsity for a girls list that says nothing is the fastest seven of it', () => {
   assert.equal(varsitySize(girls, 'girls'), VARSITY_SIZE)
   assert.deepEqual(defaultLineup(girls, 'Varsity Girls', varsitySize(girls, 'girls')), [
     'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7',
@@ -165,6 +168,79 @@ test('a phone with no teams on its list gets the plain seven', () => {
   // there is nothing to look a varsity number up by.
   assert.equal(varsitySize(team, undefined), VARSITY_SIZE)
   assert.deepEqual(defaultLineup(team, 'Varsity Girls', varsitySize(team, undefined)), topOfList(team))
+})
+
+/**
+ * The list as the coach sets it each week: a race per runner, and not in one block
+ * per race. a3 is faster than a4 and running JV this week, which is exactly the
+ * case an order-based rule gets wrong.
+ */
+const said: Athlete[] = [
+  { id: 'a1', name: 'One', team: 'girls', squad: 'varsity' },
+  { id: 'a2', name: 'Two', team: 'girls', squad: 'varsity' },
+  { id: 'a3', name: 'Three', team: 'girls', squad: 'jv' },
+  { id: 'a4', name: 'Four', team: 'girls', squad: 'varsity' },
+  { id: 'a5', name: 'Five', team: 'girls', squad: 'jv' },
+  { id: 'a6', name: 'Six', team: 'girls' },
+]
+
+test('a race name says which of the two races it is', () => {
+  assert.equal(sniffSquad('Varsity Girls'), 'varsity')
+  assert.equal(sniffSquad('JV Boys'), 'jv')
+  assert.equal(sniffSquad('jv'), 'jv')
+  assert.equal(sniffSquad('Junior Varsity Girls'), 'jv', 'the word varsity is in it and it is not')
+  assert.equal(sniffSquad('Eye Opener Open'), undefined)
+  assert.equal(sniffSquad(''), undefined)
+})
+
+test('one tagged runner is enough to say the list is the week\'s assignment', () => {
+  assert.equal(hasSquads(said), true)
+  assert.equal(hasSquads(team), false, 'nothing on this list says')
+  assert.equal(hasSquads([]), false)
+})
+
+test('the lineup is read off the list rather than off PR order', () => {
+  // Three is faster than Four and running JV. The only way to get that right is to
+  // read it, which is the whole point of the tag.
+  assert.deepEqual(defaultLineup(said, 'Varsity Girls'), ['a1', 'a2', 'a4'])
+  assert.deepEqual(defaultLineup(said, 'JV Girls'), ['a3', 'a5'])
+})
+
+test('a runner the list puts in neither race starts out of both', () => {
+  // Six is on the team and in nothing, which is what a scratch looks like. The
+  // picker is one tap away if that was a mistake.
+  assert.equal(inSquad(said, 'varsity').includes('a6'), false)
+  assert.equal(inSquad(said, 'jv').includes('a6'), false)
+})
+
+test('the varsity number is ignored once the list says who is in which race', () => {
+  // Eight varsity girls is a legal week. The seven of VARSITY_SIZE is a fallback
+  // for a list with nothing to read, not a cap on what the coach can enter.
+  const eight: Athlete[] = Array.from({ length: 12 }, (_, i) => ({
+    id: `g${i + 1}`,
+    name: `Girl ${i + 1}`,
+    team: 'girls' as const,
+    squad: i < 8 ? ('varsity' as const) : ('jv' as const),
+  }))
+  assert.equal(defaultLineup(eight, 'Varsity Girls', varsitySize(eight, 'girls')).length, 8)
+  assert.equal(defaultLineup(eight, 'JV Girls', varsitySize(eight, 'girls')).length, 4)
+})
+
+test('a race the list puts nobody in offers everyone rather than nobody', () => {
+  // Every girl is varsity this week, so the JV race reads as empty. An empty grid
+  // is a capture screen with no buttons on it; everyone is one tap from right.
+  const allVarsity = said.map((a) => ({ ...a, squad: 'varsity' as const }))
+  assert.deepEqual(
+    defaultLineup(allVarsity, 'JV Girls'),
+    allVarsity.map((a) => a.id),
+  )
+})
+
+test('a race naming neither still offers everyone, tagged list or not', () => {
+  assert.deepEqual(
+    defaultLineup(said, 'Open 5K'),
+    said.map((a) => a.id),
+  )
 })
 
 test('a JV boys race offers the boys there are rather than nobody', () => {
