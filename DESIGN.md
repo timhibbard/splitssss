@@ -48,8 +48,22 @@ The volunteer is the primary user. Every design tradeoff favors them.
 ### Split points are distances, not a fixed list
 
 Course markers are not reliably at whole miles. A station is therefore a label
-plus a distance in meters, with presets for the common points (800m, Mile 1, 2K,
-3K, Mile 2, 4K) and a custom entry that accepts meters, kilometers, or miles.
+plus a distance in meters, with presets for the four points this team stands at
+(0.5 mi, Mile 1, Mile 2, 2.6 mi) and a custom entry that accepts meters,
+kilometers, or miles.
+
+**The presets are this team's markers, not every distance a race could have.**
+They were metric and imperial together — 800m, 2K, 3K, 4K alongside the miles —
+which read as a complete picker and cost a volunteer four extra chips to get past
+on the way to the one they came for. Miles are what the coach and the athletes say
+out loud, so miles are what the chips say.
+
+2.6 is the last one because it is roughly 800 to go, and 800 to go is where the
+athlete is told to start speeding up. A split there is one a runner can still act
+on, which is the difference between a number read out on a course and a number
+read after. Exactly 800 left would be 4200m; the chip carries 4184m, the distance
+the flag claims, and sixteen metres is well inside how accurately a marker paced
+off by a volunteer sits.
 
 Storing meters rather than just a label is what makes pace per mile computable,
 which is the number that actually helps an athlete understand their race.
