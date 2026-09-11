@@ -367,6 +367,23 @@ export function Capture({
         .join(' ')}
     >
       <header className="bar">
+        {/*
+          The way home, in the top left corner where every other screen in the
+          app keeps it. This screen had one already, at the very bottom under the
+          race actions, which is below the fold on a phone and under the last
+          place a volunteer looks: a screen you cannot see your way off of is a
+          screen you are stuck on, whatever the markup says.
+
+          It says "Setup" and not "Back" because "back" from a running race
+          sounds like it might end it, and nothing here does. Leaving costs
+          nothing: the crossings are already on disk, the race stays the active
+          one, and Setup opens with a button that comes straight back to this
+          screen. Safe to hit by accident, which is what earns it a place next to
+          a clock somebody is tapping under.
+        */}
+        <button type="button" className="back" onClick={onSetup}>
+          Setup
+        </button>
         <div className="bar-where">
           <strong>{race.station.label}</strong>
           <span>{race.race}</span>
@@ -560,15 +577,17 @@ export function Capture({
       </footer>
 
       {/*
-        Escape hatches. Leaving this screen never costs anything: taps are
-        already on disk and the race stays the active one, so both of these are
-        safe to hit by accident, which is why they are plain and small rather
-        than styled like the buttons above.
+        The lineup, for a runner who turned up or dropped at the starting line.
+        Plain and small rather than styled like the race actions above, because
+        opening it costs nothing: taps are already on disk and the race stays the
+        active one, so it is safe to hit by accident.
+
+        Setup used to sit here too. It moved to the header, where the rest of the
+        app keeps the way home and where somebody looking for it will find it.
+        One route out of a screen, in the corner it is expected in, beats two in
+        places nobody looks.
       */}
       <nav className="nav-row">
-        <button type="button" className="nav" onClick={onSetup}>
-          Setup
-        </button>
         <button type="button" className="nav" onClick={() => setShowLineup(true)}>
           {hasRoster ? `Who is running: ${race.athletes.length}` : 'Add names'}
         </button>
