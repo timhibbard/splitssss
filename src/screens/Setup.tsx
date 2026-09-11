@@ -267,8 +267,7 @@ export function Setup({
       <header className="brand">
         <p className="school">J.L. Mann Patriots</p>
         <h1>Splitssss</h1>
-        <p className="tagline">Splits, saved, sorted, sent.</p>
-      </header>
+       </header>
 
       {/*
         Opened mid race, so getting back to the clock comes before anything else.
