@@ -48,16 +48,32 @@ type Kind = (typeof KINDS)[number] | 'other'
 const RACE_METERS = 5000
 
 /**
- * Ordered by distance. No finish line: the meet's own timing provides that, so
- * putting a volunteer there would duplicate work we already get for free.
+ * The four points this team actually stands at, ordered by distance. No finish
+ * line: the meet's own timing provides that, so putting a volunteer there would
+ * duplicate work we already get for free.
+ *
+ * Miles all the way down, because that is the unit the coach and the athletes
+ * say out loud. The metric points these replace were never anybody's marker; they
+ * were a picker offering every distance a race could have, and the cost of that
+ * was four extra chips between a volunteer and the one they came for.
+ *
+ * 2.6 is the last one because it is roughly 800 to go, and 800 to go is where the
+ * athlete is told to start speeding up. That makes it the split worth reading out
+ * on a course rather than after: a projection there is a number a runner can still
+ * do something about.
+ *
+ * Exactly 800 left would be 4200m, sixteen metres further on. The chip says the
+ * distance the flag says, and sixteen metres is well inside how accurately a
+ * course marker paced off by a volunteer sits anyway. See pacePerMile.
+ *
+ * A course that marks something else gets the custom entry below, which takes
+ * meters, kilometers or miles.
  */
 const STATIONS: Station[] = [
-  { label: '800m', meters: 800 },
+  { label: '0.5 mi', meters: 805 },
   { label: 'Mile 1', meters: 1609 },
-  { label: '2K', meters: 2000 },
-  { label: '3K', meters: 3000 },
   { label: 'Mile 2', meters: 3219 },
-  { label: '4K', meters: 4000 },
+  { label: '2.6 mi', meters: 4184 },
 ]
 
 const UNITS: Unit[] = ['m', 'km', 'mi']

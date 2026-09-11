@@ -14,8 +14,10 @@ Live at **https://timhibbard.github.io/splitssss/**
 - **Tap now, name later.** A tap records a time and claims the next place
   number. Nothing else is needed in the moment. Runners cross a point in order,
   so finish order is free information.
-- **Split points are distances.** Presets for 800m, Mile 1, 2K, 3K, Mile 2 and
-  4K, plus a custom distance in meters, kilometers, or miles. The distance is
+- **Split points are distances.** Presets for the four points this team stands
+  at — 0.5 mi, Mile 1, Mile 2 and 2.6 mi, the last being roughly 800 to go, where
+  the athlete is told to start speeding up — plus a custom distance in meters,
+  kilometers, or miles. The distance is
   stored so pace per mile can be computed. There is no finish line station,
   because the meet already provides finish times.
 - **The gun time is optional.** Every tap stores an absolute time of day, so
