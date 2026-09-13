@@ -73,7 +73,7 @@ test('no runner with both marks means no allowance at all', () => {
 })
 
 /**
- * A runner who runs even to 2.6 miles and then closes the last 816 m 20 s/mile
+ * A runner who runs even to 2.6 miles and then closes the last half mile 20 s/mile
  * quicker, which is roughly what the girls at Yellow Jacket did.
  */
 function kicker(label: string, evenFinish: number, gainMs: number): Observed {
@@ -137,7 +137,14 @@ test('the splits, nets and paces a coach reads off the table', () => {
 
   close(row.mile2Split, 371_700, 'mile 2 is the two mile less the one mile')
   close(row.net1, 371_700 - 352_900, 'net is mile 2 against mile 1, positive being slower')
-  close(row.last800, 1_148_660 - 958_200, 'the last 800 is the finish less the 2.6 mile')
+  close(row.lastHalf, 1_148_660 - 958_200, 'the last half mile is the finish less the 2.6 mile')
+  // The closing pace is the closing time doubled, exactly, because it is figured over
+  // a flat half mile. The piece is really 815.7 m and that 1.4% is given up on
+  // purpose: a runner looking at 3:10.4 next to a pace has to be able to see in one
+  // step that the two agree. Dividing by the true distance read 6:16 where doubling
+  // says 6:20.9, and nothing on the page could explain the five seconds.
+  close(row.kickPace, row.lastHalf! * 2, 'the closing pace is the closing time doubled')
+  close(row.openPace, row.observed.half! * 2, 'and the opening pace is too')
   close(row.vsBest, 1_148_660 - 1_122_530, 'vs best is positive when slower')
   assert.equal(row.best, false)
 

@@ -937,6 +937,26 @@ an interpretation the column does not contain.
   consistency would be the same mistake the generated sentences made on the athlete
   page, in one word instead of a sentence.
 
+**The closing half mile is treated as exactly half a mile, and it is not.** 2.6 mi
+to the line is 815.7 m, 15.7 m more than a half. `kickPace` divides by the flat half
+anyway, so the closing pace is the closing time doubled and a reader can check it in
+one step.
+
+Dividing by the true 0.507 mi is what shipped first, and it printed a last half mile
+of 3:10.4 directly above a last half mile pace of 6:16 — while doubling 3:10.4 gives
+6:20.9. Both numbers were right and nothing on the page could account for the five
+seconds between them. That is a worse failure than 1.4% of a distance a volunteer
+paced off behind a flag: a page nobody can reconcile is a page nobody trusts, and
+the precision being defended was never there in the first place. The opening half
+mile is a true 0.5 mi, so it doubled cleanly all along, which is exactly why the
+closing one looked broken.
+
+So the field is `lastHalf`, not `last800`, the coach column is `Last ½ mi` rather
+than `Last 800`, and Open and Kick are sub-labelled `first ½ mi` and `last ½ mi`. One
+name for it everywhere, and the name is the one the arithmetic uses. The 2.6 mi
+*marker* is still described as roughly 800 to go, because that is what it is and what
+the team calls it; what changed is only the distance the pace is figured over.
+
 **The coach page has no pronouns in it.** Two teams share this app and one athlete's
 row is the same row as another's, so the text says "the runner" or "each runner" or
 says nothing at all, in the rendered page and in the comments both. There is nothing
