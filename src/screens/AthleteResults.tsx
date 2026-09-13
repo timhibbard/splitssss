@@ -8,9 +8,9 @@
  *
  * She picks from first names and an initial, which is all this build holds.
  *
- * No commentary. Her splits, her miles, her marks, and which of them nobody timed.
- * What the race meant is the coach's to say, not a page's, and a number is the same
- * number whoever reads it.
+ * No commentary. Her splits, her miles, her paces, her marks, and which of them
+ * nobody timed. What the race meant is the coach's to say, not a page's, and a
+ * number is the same number whoever reads it.
  *
  * Deliberately not a leaderboard either. The meet publishes places and the whole
  * field already; what the team's own splits add is where she was and when.
@@ -112,12 +112,15 @@ function Race({ row }: { row: Row }) {
           <p className="finish-pace">{pace(row.average)} per mile</p>
         )}
         {/*
-          Her best coming in, and the gap, stated and not characterised. A minus is
-          a new best; the courses being different is a fact she can weigh herself.
+          Her PR, labelled by whether the time above replaced it: previous when this
+          race is the new one, current when it still stands. Which of those two words
+          it is *is* the news, so it is the news rather than a sentence about it, and
+          the gap is stated and not characterised. The courses being different is a
+          fact she can weigh herself.
         */}
         {observed.best != null && row.vsBest != null && (
           <p className="finish-best">
-            Best coming in {formatPr(observed.best)}
+            {row.best ? 'Previous PR' : 'Current PR'} {formatPr(observed.best)}
             <span className={row.vsBest < 0 ? 'is-down' : 'is-up'}>
               {formatSignedElapsed(row.vsBest)}
             </span>
@@ -148,40 +151,96 @@ function Race({ row }: { row: Row }) {
           </div>
         ))}
         <p className="hint">
-          Mile 3 is worked out from the {observed.mile26 != null ? '2.6 mile mark' : '2 mile mark'}{' '}
-          and your finish, because nobody stands at 3 miles.
-          {isDerived(row, 'mile1') && ' Mile 1 is worked out too.'}
+          Mile 3 is calculated from your{' '}
+          {observed.mile26 != null ? '2.6 mile mark' : '2 mile mark'} and your finish.
+          {isDerived(row, 'mile1') && ' Mile 1 is calculated too.'}
         </p>
       </section>
 
       {/*
-        Opening pace and closing pace against the race average. These exist only
-        where a volunteer stood at 0.5 mi and 2.6 mi, and they are the reason those
-        two markers are worth a person each even though neither is a mile.
+        The two ends as the time each one took, which is the comparison: the opening
+        half mile against the closing one. Both exist only where a volunteer stood at
+        0.5 mi and 2.6 mi, and they are the reason those two markers are worth a
+        person each even though neither is a mile.
+
+        Times here and paces in the next section, deliberately not both in both. The
+        same number twice under two headings makes a page longer without making it say
+        more.
       */}
-      {(row.openPace != null || row.kickPace != null) && row.average != null && (
+      {(observed.half != null || row.last800 != null) && (
         <section className="marks">
           <h2>The two ends of the race</h2>
+          <table>
+            <tbody>
+              {observed.half != null && (
+                <tr>
+                  <th scope="row">First half mile</th>
+                  <td>{formatElapsed(observed.half)}</td>
+                </tr>
+              )}
+              {row.last800 != null && (
+                <tr>
+                  <th scope="row">Last half mile</th>
+                  <td>{formatElapsed(row.last800)}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+          <p className="hint">
+            How long each one took. The last one is from the 2.6 mile mark to the line.
+          </p>
+        </section>
+      )}
+
+      {/*
+        The same race as four paces, in course order, ending on the average. Going out
+        25 s/mile quick and closing 30 s/mile quick are different races with the same
+        finish time, and this is the section where that is visible.
+
+        The middle is the 2.1 miles between the two markers rather than "the middle
+        two miles", because 0.5 to 2.6 is what was actually timed and rounding it to a
+        tidier distance would make the number wrong.
+
+        Only shown when at least one segment pace exists. A JV runner had nobody at
+        0.5 mi or 2.6 mi, so hers would be a section containing one number that the
+        finish card already prints.
+      */}
+      {(row.openPace != null || row.middlePace != null || row.kickPace != null) && (
+        <section className="marks">
+          <h2>Paces</h2>
           <table>
             <tbody>
               {row.openPace != null && (
                 <tr>
                   <th scope="row">First half mile</th>
-                  <td>{pace(row.openPace)} per mile</td>
+                  <td>{pace(row.openPace)}</td>
                 </tr>
               )}
-              <tr>
-                <th scope="row">Whole 5K</th>
-                <td>{pace(row.average)} per mile</td>
-              </tr>
+              {row.middlePace != null && (
+                <tr>
+                  <th scope="row">Middle 2.1 miles</th>
+                  <td>{pace(row.middlePace)}</td>
+                </tr>
+              )}
               {row.kickPace != null && (
                 <tr>
-                  <th scope="row">Last 800</th>
-                  <td>{pace(row.kickPace)} per mile</td>
+                  <th scope="row">Last half mile</th>
+                  <td>{pace(row.kickPace)}</td>
+                </tr>
+              )}
+              {row.average != null && (
+                <tr>
+                  <th scope="row">Whole race</th>
+                  <td>{pace(row.average)}</td>
                 </tr>
               )}
             </tbody>
           </table>
+          <p className="hint">
+            Minutes per mile.
+            {row.middlePace != null &&
+              ' The middle is from your half mile mark to your 2.6 mile mark.'}
+          </p>
         </section>
       )}
 
@@ -194,7 +253,7 @@ function Race({ row }: { row: Row }) {
                 <th scope="row">{says}</th>
                 <td>
                   {formatElapsed(observed[key]!)}
-                  {isDerived(row, key) && <span className="soft"> worked out</span>}
+                  {isDerived(row, key) && <span className="soft"> calculated</span>}
                 </td>
               </tr>
             ))}
@@ -203,7 +262,7 @@ function Race({ row }: { row: Row }) {
                 <th scope="row">3 miles</th>
                 <td>
                   {formatElapsed(row.threeMile)}
-                  <span className="soft"> worked out</span>
+                  <span className="soft"> calculated</span>
                 </td>
               </tr>
             )}

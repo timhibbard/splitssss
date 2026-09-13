@@ -952,10 +952,15 @@ changes the number and nobody would remember to edit a constant. The regression
 test that matters is that the allowance is applied to the 2 mile anchor **only** —
 double-applying it was a real error in the sheet this replaces.
 
-**The athlete page carries no commentary.** It shows her finish against her best,
-her three miles, her opening half mile and closing 800 against the race average,
-and every mark with the time it was taken at. It does not tell her she went out
-hard, held on well, or had a good race.
+**The athlete page carries no commentary.** It shows her finish against her PR —
+labelled previous or current, depending on which this race made it — her three
+miles, how long each end of the race took, those two ends and the 2.1 miles between
+them as paces next to her average, and every mark with the time it was taken at. It
+does not tell her she went out hard, held on well, or had a good race.
+
+The two ends are times in one section and paces in another, never both in both. A
+half mile in 3:12 and a half mile at 6:24 per mile are the same fact stated twice,
+and printing it under two headings makes the page longer without making it say more.
 
 This was tried the other way first, and the version that generated sentences was
 removed. Two reasons it was wrong, in order of importance. The first is that it is
@@ -970,7 +975,7 @@ pacing gets", directly above a line saying each mile was slower than the last. T
 arithmetic was right the whole time; the interpretation was not, and only reading
 all 21 outputs end to end caught it.
 
-Both bars of the mile chart and the "worked out" labels stay, because neither is
+Both bars of the mile chart and the "calculated" labels stay, because neither is
 commentary: the chart is three numbers with a shape, and the labels are the one
 thing the page must never stop saying. Delta stays on the coach page, answering the
 question it actually answers.

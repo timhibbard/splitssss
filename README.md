@@ -121,11 +121,11 @@ Live at **https://timhibbard.github.io/splitssss/**
   before the page had a path and those messages are not going anywhere.
 - **Results, once a meet has been reconciled.** Two pages behind their own
   addresses. `/meets/2026/yellow-jacket/` is for the runners: pick your name and get
-  your own race — your finish against your best, your three miles, your opening half
-  mile and your closing 800, and every mark with the time it was taken at. Numbers
-  only; what a race meant is the coach's to say. `/meets/2026/yellow-jacket/coach/`
-  is the spreadsheet, every derived column, with what is measured and what is worked
-  out spelled out at the bottom. Two addresses on purpose, because only the first one
+  your own race — your finish against your PR, your three miles, both ends of the
+  race as times and then as paces beside your average, and every mark with the time
+  it was taken at. Numbers only; what a race meant is the coach's to say.
+  `/meets/2026/yellow-jacket/coach/` is the spreadsheet, every derived column, with
+  what is measured and what is calculated spelled out at the bottom. Two addresses on purpose, because only the first one
   should ever be texted to a team. Neither is reachable from the timing screens.
 - **Real paths, on a host with no routing.** The build writes an actual `index.html`
   at every address, so a texted link is a 200 and a real link preview rather than a
@@ -245,7 +245,7 @@ git add public/meets/2026/yellow-jacket.dat       # short labels, scrambled, mea
 
 The source is one runner per line, tab separated, full names, with the marks in
 course order and that runner's 5K best from *before* this meet at the end. A dash
-is no volunteer at that marker; a trailing `~` marks a value worked out from the
+is no volunteer at that marker; a trailing `~` marks a value calculated from the
 marks either side of it rather than timed, and the pages keep saying so. Nothing
 derived is stored — every split, net, pace and the 3 mile mark are computed at
 render time, so a hand-edited cell can never disagree with the page. The tool
