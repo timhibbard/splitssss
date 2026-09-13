@@ -247,26 +247,31 @@ function Race({ row }: { row: Row }) {
         </section>
       )}
 
+      {/*
+        "calculated" sits in the row's label, not next to its time. The times are
+        right aligned and tabular so they read as a column, and a word after one of
+        them pushes that number off the edge every other number lines up on — which
+        is the whole reason to have a column of times at all.
+      */}
       <section className="marks">
         <h2>Where you were, and when</h2>
         <table>
           <tbody>
             {MARKS.filter(({ key }) => observed[key] != null).map(({ key, says }) => (
               <tr key={key}>
-                <th scope="row">{says}</th>
-                <td>
-                  {formatElapsed(observed[key]!)}
-                  {isDerived(row, key) && <span className="soft"> calculated</span>}
-                </td>
+                <th scope="row">
+                  {says}
+                  {isDerived(row, key) && <span className="soft"> (calculated)</span>}
+                </th>
+                <td>{formatElapsed(observed[key]!)}</td>
               </tr>
             ))}
             {row.threeMile != null && (
               <tr>
-                <th scope="row">3 miles</th>
-                <td>
-                  {formatElapsed(row.threeMile)}
-                  <span className="soft"> calculated</span>
-                </td>
+                <th scope="row">
+                  3 miles <span className="soft">(calculated)</span>
+                </th>
+                <td>{formatElapsed(row.threeMile)}</td>
               </tr>
             )}
             {observed.finish != null && (
