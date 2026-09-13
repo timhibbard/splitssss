@@ -918,6 +918,30 @@ The coach page's own share button hands out the athlete link, built from the app
 base rather than from where that page happens to be. Neither page is reachable from
 a button in the app: a volunteer at Mile 2 has no use for a results table.
 
+**The coach page's labels name the number, and nothing else.** Three of them were
+wrong on the first pass and all three were wrong the same way — the label described
+an interpretation the column does not contain.
+
+- The two column sets are **Course order** and **Mile by mile**. They were
+  "Everything" and "How they ran". Neither name survived: the first one is not
+  everything, since course order holds every mark and every net and none of the
+  mile-against-mile columns, and the second sounds like a verdict on a race when both
+  views are the same arithmetic on the same stopwatch readings.
+- **Delta is now Balance**, sub-labelled `avg vs midrange`, and the `Row` field is
+  `balance` too so the code and the column say one word. "Delta / middle mile" named
+  neither its inputs nor its meaning: the middle mile is not in the formula at all,
+  which is the fastest–slowest midrange against the average.
+- **Spread is sub-labelled `how consistent`, and Balance is not.** Spread — slowest
+  mile less fastest — is the consistency number. Balance is near zero for a runner who
+  slows by the same amount every mile however wide their spread, so a label calling it
+  consistency would be the same mistake the generated sentences made on the athlete
+  page, in one word instead of a sentence.
+
+**The coach page has no pronouns in it.** Two teams share this app and one athlete's
+row is the same row as another's, so the text says "the runner" or "each runner" or
+says nothing at all, in the rendered page and in the comments both. There is nothing
+in a table of splits that needs to know who is reading it.
+
 **The file is shaped like `team.dat` and had to be.** Plaintext athlete data cannot
 be committed here, so the meet's `.dat` carries short labels only,
 scrambled with the same keystream — extracted into `src/lib/scramble.ts` so both
@@ -934,7 +958,7 @@ part that belongs to the team.
 
 **Only observations are stored.** Five cumulative marks, a squad, and the best time
 coming in. Every split, net, pace, the interpolated 3 mile mark, fastest, slowest
-and the Delta are computed at render time in `src/lib/meet.ts`. One source of
+and the balance are computed at render time in `src/lib/meet.ts`. One source of
 truth, so a hand-edited cell can never disagree with the page — which is precisely
 the failure the spreadsheet pass kept producing.
 
@@ -967,7 +991,7 @@ removed. Two reasons it was wrong, in order of importance. The first is that it 
 not the app's job: what a race meant is a thing a coach says to a runner, with the
 week's training and a course and a season behind it, and a page that says it first
 has taken that conversation and made it worse. The second is that a sentence can be
-wrong in a way a number cannot. Evenness was read off the Delta — how far the
+wrong in a way a number cannot. Evenness was read off the balance — how far the
 average mile sits from the midpoint of the fastest and slowest — which is near zero
 for a runner who slows by the *same amount* every mile, however large her range. It
 told a girl who ran 5:52.9 / 6:11.7 / 6:23.9 that her race was "about as even as
@@ -977,8 +1001,8 @@ all 21 outputs end to end caught it.
 
 Both bars of the mile chart and the "calculated" labels stay, because neither is
 commentary: the chart is three numbers with a shape, and the labels are the one
-thing the page must never stop saying. Delta stays on the coach page, answering the
-question it actually answers.
+thing the page must never stop saying. The balance stays on the coach page, under a
+label that claims only the question it actually answers.
 
 ### Storage: synchronous, one key per tap
 
