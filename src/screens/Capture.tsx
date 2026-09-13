@@ -37,8 +37,8 @@ import { Lineup } from './Lineup'
 const REORDER_AFTER_MS = 3000
 
 /**
- * Ahead of the best, behind it, or level with it. Level is its own case rather
- * than a rounding artefact of behind: a runner dead on their best pace has not
+ * Ahead of the PR, behind it, or level with it. Level is its own case rather
+ * than a rounding artefact of behind: a runner dead on their PR pace has not
  * lost anything, and colouring that as behind would say they had.
  */
 function vsPrClass(ms: number | undefined): string {
@@ -180,7 +180,7 @@ export function Capture({
   const labels = displayNames(race.athletes)
   const labelOf = (a: Athlete) => labels.get(a.id) ?? a.name
   /**
-   * The runner's best under their name on the button.
+   * The runner's PR under their name on the button.
    *
    * The number a volunteer wants at the moment a runner comes into view is what
    * that runner is capable of, and it is the same number the coach and the runner
@@ -460,7 +460,7 @@ export function Capture({
                 // tappable, because a runner passes one point once.
                 disabled={done || stopped}
                 aria-label={
-                  `${a.name}${a.pr == null ? '' : `, best ${formatPr(a.pr)}`}` +
+                  `${a.name}${a.pr == null ? '' : `, PR ${formatPr(a.pr)}`}` +
                   `${done ? ', already recorded' : ''}`
                 }
               >
@@ -534,8 +534,8 @@ export function Capture({
                       {row.projected == null ? '' : formatMinSec(row.projected)}
                     </span>
                     {/*
-                      Against that runner's own best, which is the comparison a
-                      coach makes out loud. Behind the best is the plus, since the
+                      Against that runner's own PR, which is the comparison a
+                      coach makes out loud. Behind the PR is the plus, since the
                       projection is the bigger of the two numbers.
                     */}
                     <span className={vsPrClass(row.vsPr)}>
@@ -624,7 +624,7 @@ export function Capture({
                     type="button"
                     className="name-chip"
                     onClick={() => pick(a.id)}
-                    aria-label={a.name + (a.pr == null ? '' : `, best ${formatPr(a.pr)}`)}
+                    aria-label={a.name + (a.pr == null ? '' : `, PR ${formatPr(a.pr)}`)}
                   >
                     <span className="chip-name">{labelOf(a)}</span>
                     {a.pr != null && (

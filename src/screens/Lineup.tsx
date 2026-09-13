@@ -157,7 +157,7 @@ export function Lineup({
                   onClick={() => !held && onChange(toggle(selected, a.id))}
                   aria-pressed={inRace}
                   aria-label={`${a.name}, ${a.squad == null ? '' : `${SQUAD_WORD[a.squad]}, `}${
-                    a.pr == null ? '' : `best ${formatPr(a.pr)}, `
+                    a.pr == null ? '' : `PR ${formatPr(a.pr)}, `
                   }${inRace ? 'in this race' : 'not in this race'}${
                     held ? ', already has a time here' : ''
                   }`}
@@ -171,7 +171,7 @@ export function Lineup({
                   <span className="lineup-name">
                     {a.name}
                     {/*
-                      The label the button will say, and the best time it will
+                      The label the button will say, and the PR it will
                       say under it, so neither is a surprise mid meet. The race the
                       team list puts this runner in comes first, because on this
                       screen that is the thing being checked, and a runner moved

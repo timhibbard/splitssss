@@ -58,7 +58,7 @@ export function toCsv(race: Race, taps: Tap[]): string {
       ? elapsedMs(race.gun, tap, tap.sessionId === race.gunSessionId)
       : undefined
     const proj = ms == null ? undefined : projectedFinish(race.station.meters, race.raceMeters, ms)
-    // The best time and the gap against it, so the file answers "was that a good
+    // The PR and the gap against it, so the file answers "was that a good
     // split for that runner" without the coach looking every PR up again. Printed
     // and in signed seconds both, because a column of "+0:12" cannot be sorted.
     const gap = prGap(proj, athlete?.pr, race.raceMeters)
@@ -122,7 +122,7 @@ export function toTextSummary(race: Race, taps: Tap[]): string {
     `${taps.length} crossings`,
     // Only when there is one to read. A legend for a column that is not there is
     // one more line of a text message nobody asked for.
-    anyGap ? "Last number is this pace against that runner's 5K best" : '',
+    anyGap ? "Last number is this pace against that runner's 5K PR" : '',
     '',
   ].filter(Boolean)
 

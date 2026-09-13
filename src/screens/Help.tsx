@@ -148,7 +148,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'There is no signal at the two mile mark.',
-    a: 'It all works with no signal, as long as the app was opened once somewhere that had one. After that the app, the names and the best times are all on the phone, nothing is ever sent to a server, and nothing here needs the internet until you send the CSV at the end.',
+    a: 'It all works with no signal, as long as the app was opened once somewhere that had one. After that the app, the names and the PRs are all on the phone, nothing is ever sent to a server, and nothing here needs the internet until you send the CSV at the end.',
   },
   {
     q: 'Do I have to add it to my home screen?',
@@ -160,11 +160,11 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'What is the small number under the name on a button?',
-    a: 'That runner\'s 5K best. It is the number a volunteer wants at the moment somebody comes into view, and it is the number the runner already knows.',
+    a: 'That runner\'s 5K PR. It is the number a volunteer wants at the moment somebody comes into view, and it is the number the runner already knows.',
   },
   {
     q: 'What do the last two columns in the list mean?',
-    a: 'The first is the 5K that split works out to at that pace. The second is the gap to that runner\'s own best: minus is ahead of their best pace, plus is behind it.',
+    a: 'The first is the 5K that split works out to at that pace. The second is the gap to that runner\'s own PR: minus is ahead of their PR pace, plus is behind it.',
   },
   {
     q: 'A runner from another school came past, or somebody who is not on the list.',

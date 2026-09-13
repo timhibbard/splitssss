@@ -166,7 +166,7 @@ export function Roster({
 
       <p className="hint">
         These names become the buttons you tap during a race. The list stays on
-        this phone for the whole season. A 5K best after the name is optional: it
+        this phone for the whole season. A 5K PR after the name is optional: it
         goes on the button and every split gets compared to it. "Varsity" or "JV"
         after that puts the runner in that race, so the race opens with the right
         names already picked. A line reading "# Boys" or "# Girls" puts the runners
@@ -174,7 +174,7 @@ export function Roster({
       </p>
 
       <label>
-        Paste a list, one runner per line, best time and race optional
+        Paste a list, one runner per line, PR and race optional
         <textarea
           value={paste}
           onChange={(e) => setPaste(e.target.value)}
@@ -197,7 +197,7 @@ export function Roster({
           onKeyDown={(e) => {
             if (e.key === 'Enter') addSingle()
           }}
-          placeholder="Runner's name, and a best time if there is one"
+          placeholder="Runner's name, and a PR if there is one"
           autoComplete="off"
         />
       </label>
@@ -225,7 +225,7 @@ export function Roster({
                   <span className="roster-name">
                     {a.name}
                     {/*
-                      The best time and the race this runner is in, which together
+                      The PR and the race this runner is in, which together
                       are everything the line carried. This is the screen where
                       somebody checks that what came in is what was meant.
                     */}

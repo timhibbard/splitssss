@@ -5,7 +5,7 @@
  *   npm run meet-file -- meets/yellow-jacket.txt
  *
  * The input is one runner per line, tab separated, full names, with the marks in
- * course order and that runner's 5K best from *before* this meet at the end:
+ * course order and that runner's 5K PR from *before* this meet at the end:
  *
  *   # meet Yellow Jacket Invitational
  *   # date 2026-09-12
@@ -115,7 +115,7 @@ const signed = (ms: number | undefined) => (ms == null ? '' : formatSignedElapse
 console.error(`${meet.name}, ${meet.date}: ${rows.length} runners`)
 console.error('')
 console.error(
-  ['runner'.padEnd(14), '  0.5mi', '  mile1', '   2mi', ' mile2', '   net', '  2.6mi', '  3mi*', ' mile3', '   net', ' last½mi', '  finish', '  vs best']
+  ['runner'.padEnd(14), '  0.5mi', '  mile1', '   2mi', ' mile2', '   net', '  2.6mi', '  3mi*', ' mile3', '   net', ' last½mi', '  finish', '    vs PR']
     .join(''),
 )
 rows.forEach((r, i) => {
@@ -134,7 +134,7 @@ rows.forEach((r, i) => {
       cell(r.lastHalf),
       (r.observed.finish == null ? '' : formatPr(r.observed.finish)).padStart(10),
       (r.vsBest == null ? '' : formatSignedElapsed(r.vsBest)).padStart(10),
-      r.best ? '  best' : '',
+      r.best ? '  new PR' : '',
     ].join(''),
   )
 })
@@ -162,7 +162,7 @@ if (estimates.length > 0) {
   }
 }
 console.error('')
-console.error(`${bests} new best time${bests === 1 ? '' : 's'}.`)
+console.error(`${bests} new PR${bests === 1 ? '' : 's'}.`)
 console.error('')
 console.error(`Wrote ${OUT}. Read it back and the meet matches.`)
 console.error('Check the table above against the sheet before committing it.')
