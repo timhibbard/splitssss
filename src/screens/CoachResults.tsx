@@ -83,9 +83,11 @@ const COLUMNS: Column[] = [
  * each race was rather than where each mark was taken.
  *
  * Spread is the consistency column: slowest mile less fastest, in seconds, which is
- * the whole question in one number. Balance is a different question and is labelled
- * as one — how far the average mile sits from the middle of that range, which says
- * whether one mile was an outlier or all three stepped evenly.
+ * the whole question in one number. The Delta is a different question — how far the
+ * average mile sits from the middle of that range, which says whether one mile was an
+ * outlier or all three stepped evenly — and its sub-label names its inputs, since the
+ * name Delta does not and "middle mile", which used to sit there, named the wrong
+ * ones.
  */
 const BY_MILE: Column[] = [
   { head: 'Mile 1', cell: (r) => time(r.observed.mile1), derived: (r) => isDerived(r, 'mile1') },
@@ -99,7 +101,7 @@ const BY_MILE: Column[] = [
     cell: (r) => (r.fastest == null ? '' : formatElapsed(r.slowest! - r.fastest!)),
   },
   { head: 'Pace', sub: 'per mile', cell: (r) => pace(r.average) },
-  { head: 'Balance', sub: 'avg vs midrange', cell: (r) => time(r.balance) },
+  { head: 'Delta', sub: 'avg vs midrange', cell: (r) => time(r.delta) },
   { head: 'Open', sub: 'first ½ mi', cell: (r) => pace(r.openPace) },
   { head: 'Kick', sub: 'last ½ mi', cell: (r) => pace(r.kickPace) },
 ]
@@ -330,12 +332,12 @@ function Footnotes({ meet, rows }: { meet: Meet; rows: Row[] }) {
           new best.
         </li>
         <li>
-          <strong>Spread is the consistency number. Balance is not.</strong> Spread is
+          <strong>Spread is the consistency number. The Delta is not.</strong> Spread is
           the slowest mile less the fastest, so zero is three identical miles and it is
-          the column to read for how even a race was. Balance is how
+          the column to read for how even a race was. The Delta is how
           far the average mile sits from the middle of that fastest–slowest range, which
           answers a different question — whether one mile was an outlier, or all three
-          stepped evenly. A runner who slows by the same amount every mile has a balance
+          stepped evenly. A runner who slows by the same amount every mile has a Delta
           near zero whatever their spread, so the two disagree constantly and neither one
           substitutes for the other.
         </li>

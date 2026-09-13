@@ -149,7 +149,7 @@ test('the splits, nets and paces a coach reads off the table', () => {
   assert.equal(row.best, false)
 
   // Mile 3 is derived, so it belongs in the miles list, and the three of them are
-  // what fastest, slowest and the balance are computed over.
+  // what fastest, slowest and the Delta are computed over.
   assert.equal(row.miles.length, 3)
   close(row.fastest, Math.min(...row.miles), 'fastest of the three')
   close(row.slowest, Math.max(...row.miles), 'slowest of the three')
@@ -174,11 +174,11 @@ function shaped(label: string, [one, two, three]: [number, number, number]): Obs
   }
 }
 
-test('spread is the consistency number and the balance is not', () => {
+test('spread is the consistency number and the Delta is not', () => {
   // The reason the coach table labels them differently. Both of these runners have a
   // full minute between their fastest and slowest mile, so they are equally
   // inconsistent. One slows by exactly 30 s a mile and the other runs the middle mile
-  // a minute slow and recovers, and only the balance can tell them apart: an evenly
+  // a minute slow and recovers, and only the Delta can tell them apart: an evenly
   // stepped race sits on the midpoint of its own range, an outlier does not.
   // By label, not by position: rows come out in finishing order, and the runner who
   // recovers from a bad middle mile finishes ahead of the one who fades.
@@ -196,11 +196,11 @@ test('spread is the consistency number and the balance is not', () => {
 
   assert.ok(Math.abs(spread(stepped) - spread(outlier)) < 2000, 'the same spread, near enough')
   assert.ok(spread(stepped) > 55_000, `a minute apart: ${spread(stepped)}`)
-  assert.ok(stepped.balance! < 3000, `evenly stepped is near zero: ${stepped.balance}`)
-  assert.ok(outlier.balance! > 6000, `an outlier is not: ${outlier.balance}`)
+  assert.ok(stepped.delta! < 3000, `evenly stepped is near zero: ${stepped.delta}`)
+  assert.ok(outlier.delta! > 6000, `an outlier is not: ${outlier.delta}`)
 })
 
-test('the balance is the average against the middle of the range, and nothing else', () => {
+test('the Delta is the average against the middle of the range, and nothing else', () => {
   // Named after the label it earns. It does not involve the middle mile, which is
   // what "Delta / middle mile" claimed for as long as that header lasted.
   const [row] = meetRows({
@@ -209,7 +209,7 @@ test('the balance is the average against the middle of the range, and nothing el
     runners: [shaped('Rowan H.', [360_000, 390_000, 420_000])],
   })
   close(row.midpoint, (row.fastest! + row.slowest!) / 2, 'the midpoint is the range midpoint')
-  close(row.balance, Math.abs(row.average! - row.midpoint!), 'and the balance is the gap to it')
+  close(row.delta, Math.abs(row.average! - row.midpoint!), 'and the Delta is the gap to it')
 })
 
 test('a new best is negative and flagged', () => {
