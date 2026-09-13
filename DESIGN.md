@@ -927,14 +927,16 @@ an interpretation the column does not contain.
   everything, since course order holds every mark and every net and none of the
   mile-against-mile columns, and the second sounds like a verdict on a race when both
   views are the same arithmetic on the same stopwatch readings.
-- **Delta is now Balance**, sub-labelled `avg vs midrange`, and the `Row` field is
-  `balance` too so the code and the column say one word. "Delta / middle mile" named
-  neither its inputs nor its meaning: the middle mile is not in the formula at all,
-  which is the fastest–slowest midrange against the average.
-- **Spread is sub-labelled `how consistent`, and Balance is not.** Spread — slowest
-  mile less fastest — is the consistency number. Balance is near zero for a runner who
-  slows by the same amount every mile however wide their spread, so a label calling it
-  consistency would be the same mistake the generated sentences made on the athlete
+- **The Delta keeps its name and loses its sub-label.** The head is Delta, which is
+  the word coach uses for it, and the `Row` field is `delta` to match. What was wrong
+  was underneath it: "middle mile" named inputs the formula does not have, since the
+  middle mile is not in it at all — it is the fastest–slowest midrange against the
+  average, so the sub-label now says `avg vs midrange`. A head nobody can decode from
+  the word alone needs its inputs spelled out, not a second guess at its meaning.
+- **Spread is sub-labelled `how consistent`, and the Delta is not.** Spread — slowest
+  mile less fastest — is the consistency number. The Delta is near zero for a runner
+  who slows by the same amount every mile however wide their spread, so a label calling
+  it consistency would be the same mistake the generated sentences made on the athlete
   page, in one word instead of a sentence.
 
 **The closing half mile is treated as exactly half a mile, and it is not.** 2.6 mi
@@ -978,7 +980,7 @@ part that belongs to the team.
 
 **Only observations are stored.** Five cumulative marks, a squad, and the best time
 coming in. Every split, net, pace, the interpolated 3 mile mark, fastest, slowest
-and the balance are computed at render time in `src/lib/meet.ts`. One source of
+and the Delta are computed at render time in `src/lib/meet.ts`. One source of
 truth, so a hand-edited cell can never disagree with the page — which is precisely
 the failure the spreadsheet pass kept producing.
 
@@ -1023,7 +1025,7 @@ removed. Two reasons it was wrong, in order of importance. The first is that it 
 not the app's job: what a race meant is a thing a coach says to a runner, with the
 week's training and a course and a season behind it, and a page that says it first
 has taken that conversation and made it worse. The second is that a sentence can be
-wrong in a way a number cannot. Evenness was read off the balance — how far the
+wrong in a way a number cannot. Evenness was read off the Delta — how far the
 average mile sits from the midpoint of the fastest and slowest — which is near zero
 for a runner who slows by the *same amount* every mile, however large her range. It
 told a girl who ran 5:52.9 / 6:11.7 / 6:23.9 that her race was "about as even as
@@ -1033,8 +1035,8 @@ all 21 outputs end to end caught it.
 
 Both bars of the mile chart and the "calculated" labels stay, because neither is
 commentary: the chart is three numbers with a shape, and the labels are the one
-thing the page must never stop saying. The balance stays on the coach page, under a
-label that claims only the question it actually answers.
+thing the page must never stop saying. The Delta stays on the coach page, under a
+sub-label that names its two inputs and claims nothing about what they mean.
 
 ### Storage: synchronous, one key per tap
 
