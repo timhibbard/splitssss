@@ -107,6 +107,23 @@ export function formatDelta(ms: number): string {
   return `${ms < 0 ? '-' : '+'}${body}`
 }
 
+/**
+ * A signed gap to the tenth, as +m:ss.t or -m:ss.t. For comparing two things this
+ * app measured against each other, where formatDelta's whole seconds would throw
+ * away precision the numbers actually have.
+ *
+ * The sign is the point, so a positive one is written rather than left implied:
+ * a mile split column reading "12.2" next to one reading "-22.6" invites the
+ * first to be read as an absolute time. Dead even gets no sign at all, because
+ * "+0:00.0" reads as slower when it means neither.
+ */
+export function formatSignedElapsed(ms: number): string {
+  if (!Number.isFinite(ms)) return ''
+  const body = formatElapsed(Math.abs(ms))
+  if (Math.round(Math.abs(ms) / 100) === 0) return body
+  return `${ms < 0 ? '-' : '+'}${body}`
+}
+
 /** Format a wall clock time as h:mm:ss.t in the device's local timezone. */
 export function formatWallClock(wallMs: number): string {
   const d = new Date(wallMs)

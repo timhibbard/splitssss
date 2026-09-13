@@ -1146,3 +1146,331 @@
   border-radius: 12px;
   padding: 12px 14px;
 }
+
+/* ---------- results ---------- */
+
+/* Read, not operated, so like the help page it scrolls. Needed because index.css
+   pins the body to stop a stray swipe scrolling the capture screen away. */
+.results {
+  overflow-y: auto;
+}
+
+/* The whole athlete page is this control until a name is picked, so it gets the
+   navy outline the "set up once" box on the home screen gets, for the same
+   reason: it is the thing to do first and nothing below it means anything until
+   it is done. */
+.pick {
+  display: grid;
+  gap: 6px;
+  background: var(--panel);
+  border: 1px solid var(--navy);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.pick > span {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--navy);
+}
+
+/* Sized like the app's buttons rather than like a form field: this is a tap
+   target on a phone, and 17px is the floor before iOS zooms the page on focus. */
+.pick select {
+  font: inherit;
+  font-size: 17px;
+  color: inherit;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 13px 14px;
+  width: 100%;
+}
+
+.pick select:focus-visible {
+  outline: 3px solid var(--navy);
+  outline-offset: 2px;
+}
+
+/* Her time, at the size the thing she will tell people deserves. */
+.finish-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+}
+
+/* A best gets the wash and the green, matching what a split ahead of a best
+   already looks like in the crossing list. */
+.finish-card.is-best {
+  background: var(--sky-tint);
+  border-color: var(--ahead);
+}
+
+.finish-label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--navy);
+}
+
+.finish-time {
+  margin: 2px 0 0;
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.finish-pace {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+/* Her best coming in and the gap to it, stated rather than characterised. The
+   colour is the same convention the crossing list uses: green ahead of a best,
+   amber behind, never the red that erases races. */
+.finish-best {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.finish-best span {
+  margin-left: 8px;
+  font-weight: 600;
+}
+
+.finish-best .is-down {
+  color: var(--ahead);
+}
+
+.finish-best .is-up {
+  color: var(--warn);
+}
+
+.miles,
+.marks,
+.footnotes {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.miles h2,
+.marks h2,
+.footnotes h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: var(--navy);
+}
+
+.mile-row {
+  display: grid;
+  grid-template-columns: 52px 1fr 62px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.mile-no {
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.mile-bar {
+  display: block;
+  height: 18px;
+  border-radius: 4px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+/* Widths are relative to the slowest mile, so the comparison is between her own
+   three miles and not against an absolute pace nobody has in mind. */
+.mile-fill {
+  display: block;
+  height: 100%;
+  background: var(--sky);
+  border-radius: 4px;
+}
+
+.mile-fill.is-fast {
+  background: var(--ahead);
+}
+
+.mile-fill.is-slow {
+  background: var(--navy);
+}
+
+.mile-time {
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.miles .hint,
+.marks .hint {
+  margin-top: 8px;
+}
+
+.marks table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.marks th {
+  text-align: left;
+  font-weight: 400;
+  font-size: 15px;
+  padding: 5px 0;
+}
+
+.marks td {
+  text-align: right;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  padding: 5px 0;
+}
+
+.marks tr + tr th,
+.marks tr + tr td {
+  border-top: 1px solid var(--line);
+}
+
+/* A number nobody timed. Lighter, everywhere it appears, so an estimate can
+   never be mistaken for a stopwatch reading. */
+.soft,
+.results .is-soft {
+  color: var(--ink-soft);
+}
+
+/* ---------- results, the coach's table ---------- */
+
+.coach-share {
+  display: grid;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.views {
+  display: flex;
+  gap: 8px;
+}
+
+.views button {
+  flex: 1;
+  padding: 10px 12px;
+  font-size: 15px;
+}
+
+.views button.is-on {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Fifteen columns will not fit a phone and shrinking the type until they do makes
+   the table unreadable, so it scrolls sideways. The name column is pinned,
+   because a row of times with the name scrolled off the left belongs to nobody. */
+.table-scroll {
+  overflow-x: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.grid {
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.grid th,
+.grid td {
+  padding: 6px 8px;
+  text-align: right;
+  border-bottom: 1px solid var(--line);
+}
+
+.grid thead th {
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  color: var(--navy);
+  font-size: 12px;
+  vertical-align: bottom;
+  z-index: 1;
+}
+
+/* Two lines in the header cell, so "Net" can say which two miles it is the net
+   of without a legend somewhere else on the page. */
+.grid .sub {
+  display: block;
+  font-weight: 400;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.grid .who {
+  position: sticky;
+  left: 0;
+  background: var(--panel);
+  text-align: left;
+  font-weight: 600;
+  border-right: 1px solid var(--line);
+  z-index: 2;
+}
+
+.grid thead .who {
+  z-index: 3;
+}
+
+.grid tbody tr.is-best .who,
+.grid tbody tr.is-best td {
+  background: var(--sky-tint);
+}
+
+.grid tbody tr.is-best .who {
+  color: var(--ahead);
+}
+
+/* Faster and slower, by the same convention the crossing list already uses:
+   green ahead, amber behind, and never the red that erases races. */
+.grid .is-down {
+  color: var(--ahead);
+}
+
+.grid .is-up {
+  color: var(--warn);
+}
+
+.footnotes ul {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.footnotes strong {
+  color: var(--ink);
+}

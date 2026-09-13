@@ -114,11 +114,24 @@ Live at **https://timhibbard.github.io/splitssss/**
   installing it on the phone through sending the CSV, then the questions a
   volunteer actually has, with an answer each. It is offline like everything else,
   so it is readable standing at the marker.
-- **The help page can be texted.** It has an address of its own, `#help`, and a
+- **The help page can be texted.** It has an address of its own, `/help/`, and a
   button on it that shares the link. A parent who taps that link lands on the
   instructions, with the app and the names one Back away, so a text message is the
-  whole briefing. A fragment rather than a path because a static site on a subpath
-  has no server to route `/help`, and it can never collide with a roster link.
+  whole briefing. The old `#help` still resolves, because it was texted to parents
+  before the page had a path and those messages are not going anywhere.
+- **Results, once a meet has been reconciled.** Two pages behind their own
+  addresses. `/meets/2026/yellow-jacket/` is for the runners: pick your name and get
+  your own race — your finish against your best, your three miles, your opening half
+  mile and your closing 800, and every mark with the time it was taken at. Numbers
+  only; what a race meant is the coach's to say. `/meets/2026/yellow-jacket/coach/`
+  is the spreadsheet, every derived column, with what is measured and what is worked
+  out spelled out at the bottom. Two addresses on purpose, because only the first one
+  should ever be texted to a team. Neither is reachable from the timing screens.
+- **Real paths, on a host with no routing.** The build writes an actual `index.html`
+  at every address, so a texted link is a 200 and a real link preview rather than a
+  404 the app recovers from. The season is in a meet's path because the same
+  invitational comes back every September, and a link sent out last year should not
+  start showing this year's splits.
 - **No backend.** Static site, all state on the device, exports leave by way of
   the share sheet.
 - **Works with no signal.** Fully offline once loaded, which matters at the two
@@ -144,6 +157,14 @@ the same reason: a best time that has to be sent to a volunteer never reaches th
 one at the two mile mark, and a 5K best is already published next to a full name
 on the meet's own results page. See DESIGN.md.
 
+`public/meets/2026/yellow-jacket.dat` is a meet's reconciled results and follows the
+same rule: short labels, no surnames, scrambled, with its own key so it can never be
+confused for the team file. Its source, the full-name spreadsheet paste under
+`meets/`, is gitignored like `roster.txt`, along with `docs/`, where the notes from
+reconciling a meet by hand quote real rows while the work is going on. The splits are
+not published anywhere else, which is why they travel attached to a first name and an
+initial.
+
 There is no season passphrase and no encrypted roster. There used to be an
 AES-GCM `public/roster.enc` for publishing full names with the app; it is gone,
 because first name plus last initial is what the buttons and the export say, so
@@ -164,7 +185,7 @@ npm run dev
 ```sh
 npm run build    # type check and build
 npm run lint
-npm test         # clock, storage, roster, link, team file, distance, split, gesture, name, and lineup logic, via node --test
+npm test         # clock, storage, roster, link, addresses, team file, meet file, distance, split, gesture, name, and lineup logic, via node --test
 npm run preview  # serve the production build at /splitssss/
 ```
 
@@ -213,6 +234,29 @@ is how full names reach a phone, and the only way they do:
 npm run roster-link roster.txt     # roster*.txt is gitignored
 pbpaste | npm run roster-link
 ```
+
+Publish a meet's results, once they have been reconciled against the meet's own
+finish times and every station has been put on one gun:
+
+```sh
+npm run meet-file -- meets/yellow-jacket.txt      # /meets/ is gitignored
+git add public/meets/2026/yellow-jacket.dat       # short labels, scrambled, meant to be committed
+```
+
+The source is one runner per line, tab separated, full names, with the marks in
+course order and that runner's 5K best from *before* this meet at the end. A dash
+is no volunteer at that marker; a trailing `~` marks a value worked out from the
+marks either side of it rather than timed, and the pages keep saying so. Nothing
+derived is stored — every split, net, pace and the 3 mile mark are computed at
+render time, so a hand-edited cell can never disagree with the page. The tool
+prints the whole derived table on the way out; check it against the sheet before
+committing.
+
+The file is half of publishing a meet. The other half is a line in `PUBLISHED` in
+`src/lib/pages.ts`, which is what gives the meet its address and what makes the build
+write a real page there — the tool prints the line to add. The year comes off the
+meet's own date line and the slug off the input file's name, so the address and the
+data file are derived from the source rather than typed twice.
 
 Pushing to `main` deploys to GitHub Pages via `.github/workflows/deploy.yml`.
 

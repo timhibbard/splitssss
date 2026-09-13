@@ -1,6 +1,7 @@
 // Explicit extensions: see the note in link.ts.
 import { base64UrlToBytes, bytesToBase64Url } from './base64.ts'
 import { parseRoster, rosterText } from './roster.ts'
+import { mask } from './scramble.ts'
 import type { Athlete } from './types'
 
 /**
@@ -34,6 +35,8 @@ import type { Athlete } from './types'
  * The keystream is a fixed xorshift, which is why this file is deterministic: the
  * same list rebuilds byte for byte, so a rebuild with no roster change is not a
  * diff. Nothing here is meant to resist an attacker, so nothing here pretends to.
+ * It lives in scramble.ts, shared with the meet results file, so the writer and
+ * the reader of both can never disagree about it.
  */
 
 /** Precached with the app, so it is there with no signal at the two mile mark. */
@@ -53,32 +56,6 @@ const FOOTER = 'splitssss end'
 
 const KEY = 'splitssss/team/v1'
 
-/** FNV-1a over the key, purely to turn a string into a seed. */
-function seed(): number {
-  let h = 0x811c9dc5
-  for (let i = 0; i < KEY.length; i++) {
-    h ^= KEY.charCodeAt(i)
-    h = Math.imul(h, 0x01000193) >>> 0
-  }
-  return h || 1
-}
-
-/**
- * XOR with a keystream, which is its own inverse, so one function covers both
- * directions and the two can never disagree about the order of anything.
- */
-function mask(bytes: Uint8Array): Uint8Array {
-  let x = seed()
-  const out = new Uint8Array(bytes.length)
-  for (let i = 0; i < bytes.length; i++) {
-    x = (x ^ (x << 13)) >>> 0
-    x = x ^ (x >>> 17)
-    x = (x ^ (x << 5)) >>> 0
-    out[i] = bytes[i] ^ (x & 0xff)
-  }
-  return out
-}
-
 /**
  * The file body: one line of base64url, so it is a plain text file in git. Each
  * line in is one runner, in the same format everything else here uses, which is a
@@ -87,7 +64,7 @@ function mask(bytes: Uint8Array): Uint8Array {
 export function scrambleTeam(lines: string[]): string {
   const clean = lines.map((line) => line.trim()).filter(Boolean)
   const text = [HEADER, ...clean, FOOTER].join('\n')
-  return bytesToBase64Url(mask(new TextEncoder().encode(text)))
+  return bytesToBase64Url(mask(new TextEncoder().encode(text), KEY))
 }
 
 /**
@@ -99,7 +76,7 @@ export function scrambleTeam(lines: string[]): string {
 export function unscrambleTeam(body: string): Athlete[] | null {
   const bytes = base64UrlToBytes(body.trim())
   if (!bytes || bytes.length === 0) return null
-  const lines = new TextDecoder().decode(mask(bytes)).split('\n')
+  const lines = new TextDecoder().decode(mask(bytes, KEY)).split('\n')
   if (lines.length < 3) return null
   if (lines[0] !== HEADER || lines[lines.length - 1] !== FOOTER) return null
   const athletes = parseRoster(lines.slice(1, -1).join('\n'))

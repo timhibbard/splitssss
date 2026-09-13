@@ -230,7 +230,8 @@ export function Help({ onBack }: Props) {
    * troubleshoot it at a meet.
    */
   async function share() {
-    const link = helpLink(window.location.origin, window.location.pathname)
+    // The app's base, not the current path, which is /help/ while this is open.
+    const link = helpLink(window.location.origin, import.meta.env.BASE_URL)
     const text = `How to time splits at the meet, and the app itself: ${link}`
     if (navigator.share) {
       try {

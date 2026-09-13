@@ -9,7 +9,7 @@
  *
  *   # Girls
  *   Rowan Hayes     21:34.60   Varsity
- *   Avery Langston  22:40.25   JV
+ *   Marlowe Holloway  22:29.15   JV
  *
  *   # Boys
  *   Jordan Blake    17:12.40
