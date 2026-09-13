@@ -16,8 +16,14 @@
  * from the marks either side of it rather than timed, which is the one thing a
  * results table must never lose track of.
  *
- * Writes `public/<name>.dat`, which **is** meant to be committed. The input is
- * not: /meets/ is gitignored, exactly like roster*.txt.
+ * Writes `public/meets/<year>/<slug>.dat`, which **is** meant to be committed. The
+ * input is not: /meets/ is gitignored, exactly like roster*.txt. The year comes off
+ * the meet's own date line and the slug off the input file's name, so the data file
+ * and the page's address are derived from the source rather than typed twice.
+ *
+ * Writing the file is half of publishing a meet. The other half is the line in
+ * PUBLISHED in src/lib/pages.ts, which is what gives the meet an address and what
+ * makes the build write an actual page there. This prints the line to add.
  *
  * What gets written is the short form the tap buttons already say, "Rowan H.",
  * and it is scrambled rather than encrypted. Same tradeoff as the team file and
@@ -33,11 +39,12 @@
  * page. The whole derived table gets printed here for exactly that reason: it is
  * the only chance to compare it against the sheet before it ships.
  */
-import { basename, extname } from 'node:path'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { basename, dirname, extname } from 'node:path'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { formatElapsed, formatPr, formatSignedElapsed } from '../src/lib/clock.ts'
 import { kickAllowance, type Mark, meetRows, meetText, parseMeet } from '../src/lib/meet.ts'
 import { scrambleMeet, unscrambleMeet } from '../src/lib/meetfile.ts'
+import { meetFilePath, PUBLISHED, resultsPath } from '../src/lib/pages.ts'
 import { shortNames } from '../src/lib/names.ts'
 
 const file = process.argv[2]
@@ -76,7 +83,16 @@ if (missingFinish.length > 0) {
 
 const meet = { ...source, runners: source.runners.map((r, i) => ({ ...r, label: labels[i] })) }
 
-const OUT = `public/${basename(file, extname(file))}.dat`
+/**
+ * The slug comes from the input file's name and the year from the meet's own date,
+ * so the address and the data file are both derived from the source rather than
+ * typed twice. Under `public/` at exactly the path the app will ask for.
+ */
+const slug = basename(file, extname(file))
+const year = Number(meet.date.slice(0, 4))
+const published = { slug, year, name: meet.name }
+const OUT = `public/${meetFilePath(published)}`
+mkdirSync(dirname(OUT), { recursive: true })
 writeFileSync(OUT, `${scrambleMeet(meet)}\n`)
 
 // Read it back through the same path the app uses, so a bad write is caught here
@@ -155,3 +171,19 @@ console.error('This file is scrambled, not encrypted. Anyone who wants it can de
 console.error('it, which is why it holds first names and an initial and no full names.')
 console.error('')
 console.error(`Commit ${OUT}. Do not commit ${file}.`)
+
+// The address is the other half. Without the line in PUBLISHED this file ships and
+// nothing can reach it, which is a failure with no error message anywhere.
+const listed = PUBLISHED.some((m) => m.slug === slug && m.year === year)
+if (listed) {
+  console.error('')
+  console.error(`Its pages are ${resultsPath(published)} and ${resultsPath(published)}coach/`)
+} else {
+  console.error('')
+  console.error('This meet has no address yet. Add it to PUBLISHED in src/lib/pages.ts:')
+  console.error('')
+  console.error(`  { slug: '${slug}', year: ${year}, name: ${JSON.stringify(meet.name)} },`)
+  console.error('')
+  console.error('The build writes a real page for each line in that list. Without one,')
+  console.error('this file ships and no URL reaches it.')
+}

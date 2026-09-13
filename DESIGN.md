@@ -713,18 +713,24 @@ The help page is a screen and not a document, so it is precached and readable at
 marker with no signal. But the whole point of it is that a coach can send it to
 somebody instead of briefing them, and a screen with no address cannot be sent.
 
-So it has one, `#help`, and there is a button on the page that texts it.
+So it has one, `/help/`, and there is a button on the page that texts it.
 
-A fragment and not a path. This is a static site on a GitHub Pages subpath with no
-server to route anything, so `/splitssss/help` would be a 404 for exactly the person
-being sent the link: the one who has never opened the app, and therefore has no
-service worker to serve the fallback. A fragment always lands on the app itself,
-first visit or hundredth.
+It was `#help` first, and the reasoning for the fragment was that this is a static
+site on a GitHub Pages subpath with no server to route anything, so `/splitssss/help`
+would be a 404 for exactly the person being sent the link: the one who has never
+opened the app, and therefore has no service worker to serve the fallback. That
+reasoning was right about the constraint and wrong about the only way out of it. See
+[Addresses are real paths](#addresses-are-real-paths).
 
-It shares the fragment with the roster link and is matched **whole**, so `#r=...`
-never reads as a request for the help page and `#help` never imports a roster.
-Tests assert both directions, because the two features would otherwise be one
-typo apart.
+`#help` still works, and will keep working, because it was texted to parents and a
+link in somebody's message thread does not get to stop resolving. It is read once at
+startup and rewritten in place to `/help/`, so the address bar ends up showing the
+current one.
+
+It shared the fragment with the roster link and was matched **whole**, so `#r=...`
+never reads as a request for the help page and `#help` never imports a roster. The
+roster is still a fragment and always will be, so those tests still matter: the two
+features would otherwise be one typo apart.
 
 The link points at the help page rather than at the app root on purpose. A parent
 who has never seen this lands on the instructions rather than on a race they do not
@@ -838,22 +844,68 @@ destroy work nobody asked it to touch:
   and nothing appears. It is precached like the rest of the build, so it lands
   with no signal.
 
+### Addresses are real paths
+
+Every page that can be texted has a real path, and the build writes a real
+`index.html` at it: `/help/`, `/meets/2026/yellow-jacket/`, and
+`/meets/2026/yellow-jacket/coach/`.
+
+GitHub Pages has no routing at all — a URL works if a file is sitting at it and
+doesn't if one isn't — so there were three ways to have paths and only one of them is
+any good:
+
+1. **Copy `index.html` to `404.html`.** The usual SPA-on-Pages trick. The address bar
+   looks right and the app boots and reads `location.pathname`. But the HTTP status
+   really is 404, and iMessage checks the status before it draws a link preview. For a
+   link whose whole job is to be texted, that is the wrong thing to get wrong.
+2. **A Vite multi-page build.** Real 200s, but each address becomes its own entry with
+   its own chunk, when what all of them want is the one app.
+3. **Write a file at each address.** `realPages()` in `vite.config.ts` copies the
+   finished `index.html` into every path in `PAGES`. Every asset reference in it is
+   absolute under `base`, so the same bytes work at any depth.
+
+Three is what this does, and the list in `src/lib/pages.ts` has three readers and one
+source: the router decides what a URL means, the build writes a file at each path, and
+the service worker precaches whatever the build wrote. Workbox resolves a request for
+a directory to the `index.html` inside it — `directoryIndex`, set out loud in the
+config because every one of these pages depends on it — so a phone with no signal gets
+the page it asked for rather than the home screen. A page in the list with no file
+behind it would be a 404 for the one person who was sent the link, so the list is what
+*makes* the file rather than the two being kept in step by hand. A test asserts the
+round trip in both directions.
+
+The roster is the exception and stays a fragment forever. That is not an address, it
+is a payload, and a fragment is never sent to a server, which is the only reason it is
+safe to put the names of minors in a link at all.
+
+This is a Pages constraint and not a preference. On a host that does rewrites, paths
+would have been one config line from the start.
+
 ### Results: two pages, one file, nothing derived stored
 
 Timing a race is half of it. The other half is what the splits are *for*, and until
 now that half lived in a spreadsheet on the coach's laptop. Two pages publish it:
-`#yellow-jacket` for the runners and `#yellow-jacket-coach` for the coach.
+`/meets/2026/yellow-jacket/` for the runners and `.../coach/` for the coach.
+
+**The year is in the address** because a season is the unit a coach thinks in and
+because the same invitational comes back every September. `/meets/2026/` and
+`/meets/2027/` are different races that happen to share a name, and neither one's
+link quietly starts showing the other's splits. The data file is scoped the same way,
+`public/meets/2026/yellow-jacket.dat`, so next year's file cannot overwrite this
+one. Both come off one line in `PUBLISHED`.
 
 **Two addresses, not one page with a switch.** They serve two different people and
 only one of them should be textable to a team. The coach page is the only thing on
 this site with the whole squad's numbers side by side, and a link sent to a group
-chat must not land there. The athlete hash is a prefix of the coach hash, so both
-matchers match whole and a test is named after that specific mistake. Both use the
-same fragment-not-path reasoning as `#help`, and neither is reachable from a button
-in the app: a volunteer at Mile 2 has no use for a results table.
+chat must not land there. It sits *underneath* the athlete page, because it is the
+same meet in more detail, which means a prefix match would read one as the other:
+the router matches whole segments and a test is named after that specific mistake.
+The coach page's own share button hands out the athlete link, built from the app's
+base rather than from where that page happens to be. Neither page is reachable from
+a button in the app: a volunteer at Mile 2 has no use for a results table.
 
 **The file is shaped like `team.dat` and had to be.** Plaintext athlete data cannot
-be committed here, so `public/yellow-jacket.dat` carries short labels only,
+be committed here, so the meet's `.dat` carries short labels only,
 scrambled with the same keystream — extracted into `src/lib/scramble.ts` so both
 file types share one implementation. `public/team.dat` re-encodes byte-identically
 after that extraction, which was the check worth running: a refactor that changed a

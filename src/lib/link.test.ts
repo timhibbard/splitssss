@@ -4,13 +4,12 @@ import {
   decodeRoster,
   encodeRoster,
   helpLink,
-  isCoachResultsHash,
-  isHelpHash,
-  isResultsHash,
+  isLegacyHelpHash,
   resultsLink,
   rosterFromHash,
   rosterLink,
 } from './link.ts'
+import { PUBLISHED } from './pages.ts'
 import type { Athlete } from './types.ts'
 
 const team: Athlete[] = [
@@ -146,48 +145,46 @@ test('other fragment params do not confuse the reader', () => {
 test('the help page has an address that can be texted', () => {
   assert.equal(
     helpLink('https://example.test', '/splitssss/'),
-    'https://example.test/splitssss/#help',
+    'https://example.test/splitssss/help/',
   )
-  assert.ok(isHelpHash('#help'))
-  assert.ok(isHelpHash('help'), 'with or without the leading hash')
+})
+
+test('the help page still answers on the fragment it used to have', () => {
+  // #help was texted to parents before the page had a path. Those messages are in
+  // people's threads for good, so the old address has to keep landing on the page.
+  assert.ok(isLegacyHelpHash('#help'))
+  assert.ok(isLegacyHelpHash('help'), 'with or without the leading hash')
+  assert.equal(isLegacyHelpHash(''), false)
+  assert.equal(isLegacyHelpHash('#helping'), false, 'matched whole, not by prefix')
 })
 
 test('a roster link is never read as a request for the help page', () => {
-  // Both travel in the fragment, so each has to be blind to the other: a texted
-  // roster must not open the help page, and the help link must import nobody.
+  // The roster is the one thing that still travels in the fragment, because a
+  // fragment is never sent to a server. So the old help hash has to be blind to it:
+  // a texted roster must not open the help page, and the help link imports nobody.
   const roster = `#r=${encodeRoster(team)}`
-  assert.equal(isHelpHash(roster), false)
+  assert.equal(isLegacyHelpHash(roster), false)
   assert.deepEqual(rosterFromHash('#help'), [])
-  assert.equal(isHelpHash(''), false)
-  assert.equal(isHelpHash('#helping'), false, 'matched whole, not by prefix')
 })
 
 test('the athlete results page has an address that can be texted', () => {
+  // A real path, and the year is in it, so next September's Yellow Jacket is a
+  // different address rather than the same link quietly showing different splits.
   assert.equal(
-    resultsLink('https://example.test', '/splitssss/'),
-    'https://example.test/splitssss/#yellow-jacket',
+    resultsLink('https://example.test', '/splitssss/', {
+      slug: 'yellow-jacket',
+      year: 2026,
+      name: 'Yellow Jacket Invitational',
+    }),
+    'https://example.test/splitssss/meets/2026/yellow-jacket/',
   )
-  assert.ok(isResultsHash('#yellow-jacket'))
-  assert.ok(isResultsHash('yellow-jacket'), 'with or without the leading hash')
 })
 
-test('the coach page and the athlete page are never each other', () => {
-  // The athlete hash is a prefix of the coach hash, and the coach page is the only
-  // thing on this site with the whole team's numbers side by side. A link texted to
-  // a team landing there instead would be the one mistake that actually matters.
-  assert.equal(isResultsHash('#yellow-jacket-coach'), false)
-  assert.equal(isCoachResultsHash('#yellow-jacket'), false)
-  assert.ok(isCoachResultsHash('#yellow-jacket-coach'))
-})
-
-test('a results address is not read as a roster or as the help page', () => {
-  for (const hash of ['#yellow-jacket', '#yellow-jacket-coach']) {
-    assert.deepEqual(rosterFromHash(hash), [])
-    assert.equal(isHelpHash(hash), false)
+test('every published meet has a link that is built, not typed', () => {
+  for (const meet of PUBLISHED) {
+    assert.equal(
+      resultsLink('https://example.test', '/splitssss/', meet),
+      `https://example.test/splitssss/meets/${meet.year}/${meet.slug}/`,
+    )
   }
-  const roster = `#r=${encodeRoster(team)}`
-  assert.equal(isResultsHash(roster), false)
-  assert.equal(isCoachResultsHash(roster), false)
-  assert.equal(isResultsHash(''), false)
-  assert.equal(isCoachResultsHash(''), false)
 })

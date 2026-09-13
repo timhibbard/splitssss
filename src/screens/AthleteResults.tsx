@@ -19,10 +19,17 @@
 import { useState } from 'react'
 import { formatElapsed, formatPr, formatSignedElapsed } from '../lib/clock'
 import { isDerived, type Meet, meetRows, type Row } from '../lib/meet'
+import type { Published } from '../lib/pages'
 
 type Props = {
   /** `undefined` while the file is still being looked for, `null` if there isn't one. */
   meet: Meet | null | undefined
+  /**
+   * Which meet's address this is. The page can name the meet from it before the
+   * file has loaded, so a runner opening a texted link sees where she is rather
+   * than the word "Results" while the fetch is in flight.
+   */
+  published: Published
   onBack: () => void
 }
 
@@ -34,7 +41,7 @@ const MARKS: { key: 'half' | 'mile1' | 'twoMile' | 'mile26'; says: string }[] = 
   { key: 'mile26', says: '2.6 miles' },
 ]
 
-export function AthleteResults({ meet, onBack }: Props) {
+export function AthleteResults({ meet, published, onBack }: Props) {
   const [picked, setPicked] = useState('')
   const rows = meet ? meetRows(meet) : []
   const row = rows.find((r) => r.observed.label === picked)
@@ -46,7 +53,7 @@ export function AthleteResults({ meet, onBack }: Props) {
           Back
         </button>
         <div className="bar-where">
-          <strong>{meet?.name ?? 'Results'}</strong>
+          <strong>{meet?.name ?? published.name}</strong>
           <span>{meet ? 'Your race, mile by mile' : 'One moment'}</span>
         </div>
       </header>

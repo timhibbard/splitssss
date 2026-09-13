@@ -1,6 +1,7 @@
 // Explicit extension so `node --test` can load this module's graph without a
 // build step. Vite resolves it identically.
 import { base64UrlToText, textToBase64Url } from './base64.ts'
+import { HELP_PATH, pageLink, type Published, resultsPath } from './pages.ts'
 import { parseRoster, rosterText } from './roster.ts'
 import type { Athlete } from './types'
 
@@ -44,64 +45,48 @@ export function rosterFromHash(hash: string): Athlete[] {
 }
 
 /**
- * The help page's own address, so it can be texted on its own rather than
- * described over the phone.
+ * The addresses of the pages that can be texted on their own: the help page and,
+ * per meet, the athlete and coach results pages.
  *
- * A fragment and not a path, for the same reason the roster is one: this is a
- * static site on a subpath with no server to route anything, so /splitssss/help
- * would be a 404 for exactly the person being sent the link, the one who has not
- * opened the app before. A fragment always lands on the app itself.
+ * These are paths, and the reason they can be is that the build writes a real
+ * index.html at each one. See pages.ts, which is the list that does it.
  *
- * Matched whole rather than by prefix, and it shares the fragment grammar the
- * roster key uses, so a link carrying a roster is never read as a request for the
- * help page and a stray fragment is never read as either.
+ * The links are built from the app's base rather than from wherever the browser
+ * currently is, so the coach page — which is itself at a nested path — hands out
+ * the athlete link and not a path relative to its own.
  */
-const HELP = 'help'
+export const HELP = 'help'
 
-export const HELP_HASH = `#${HELP}`
-
-export function helpLink(origin: string, path: string): string {
-  return `${origin}${path}${HELP_HASH}`
-}
-
-export function isHelpHash(hash: string): boolean {
-  const raw = hash.startsWith('#') ? hash.slice(1) : hash
-  return raw.split('&').some((part) => part === HELP)
+export function helpLink(origin: string, base: string): string {
+  return pageLink(origin, base, HELP_PATH)
 }
 
 /**
- * The two Yellow Jacket results pages, addressed the same way the help page is,
- * and for the same reason: this is a static site on a subpath with no server to
- * route anything, so /splitssss/yellow-jacket would 404 for exactly the person
- * being sent the link.
+ * The link a coach texts to the team: the athlete page, never the coach page.
  *
  * Two addresses rather than one page with a switch, because they are for two
- * different people and only one of them should be textable to a team. The
- * athlete page shows one runner her own race; the coach page shows the whole
- * field with every derived column and the caveats attached. Neither is reachable
- * from the timing screens on purpose — a volunteer holding a phone at Mile 2 has
- * no use for a results table, and the app's home screen is theirs.
- *
- * Matched whole, so the athlete hash never matches the coach one despite being a
- * prefix of it.
+ * different people and only one of them should be textable to a team. The athlete
+ * page shows one runner her own race; the coach page shows the whole field with
+ * every derived column and the caveats attached. Neither is reachable from the
+ * timing screens on purpose — a volunteer holding a phone at Mile 2 has no use for
+ * a results table, and the app's home screen is theirs.
  */
-const RESULTS = 'yellow-jacket'
-const RESULTS_COACH = 'yellow-jacket-coach'
-
-export const RESULTS_HASH = `#${RESULTS}`
-export const RESULTS_COACH_HASH = `#${RESULTS_COACH}`
-
-/** The link a coach texts to the team. */
-export function resultsLink(origin: string, path: string): string {
-  return `${origin}${path}${RESULTS_HASH}`
+export function resultsLink(origin: string, base: string, meet: Published): string {
+  return pageLink(origin, base, resultsPath(meet))
 }
 
-export function isResultsHash(hash: string): boolean {
+/**
+ * The old `#help` address, kept working because it has been texted to parents and
+ * a link somebody already has in a message thread has to keep landing somewhere.
+ * It is read once at startup and turned into the real path.
+ *
+ * Matched whole and sharing the fragment grammar the roster key uses, so a link
+ * carrying a roster is never read as a request for the help page.
+ *
+ * The results pages never had a fragment address that reached anybody, so there is
+ * nothing of theirs to keep working.
+ */
+export function isLegacyHelpHash(hash: string): boolean {
   const raw = hash.startsWith('#') ? hash.slice(1) : hash
-  return raw.split('&').some((part) => part === RESULTS)
-}
-
-export function isCoachResultsHash(hash: string): boolean {
-  const raw = hash.startsWith('#') ? hash.slice(1) : hash
-  return raw.split('&').some((part) => part === RESULTS_COACH)
+  return raw.split('&').some((part) => part === HELP)
 }

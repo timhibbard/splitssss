@@ -16,10 +16,13 @@ import { useState } from 'react'
 import { formatElapsed, formatPr, formatSignedElapsed } from '../lib/clock'
 import { resultsLink } from '../lib/link'
 import { isDerived, kickAllowance, type Mark, type Meet, meetRows, type Row } from '../lib/meet'
+import type { Published } from '../lib/pages'
 
 type Props = {
   /** `undefined` while the file is still being looked for, `null` if there isn't one. */
   meet: Meet | null | undefined
+  /** Which meet's address this is, so the page has a name before the file lands. */
+  published: Published
   onBack: () => void
 }
 
@@ -87,7 +90,7 @@ const SHAPE: Column[] = [
 
 type View = 'all' | 'shape'
 
-export function CoachResults({ meet, onBack }: Props) {
+export function CoachResults({ meet, published, onBack }: Props) {
   const [view, setView] = useState<View>('all')
   const [status, setStatus] = useState('')
 
@@ -102,8 +105,11 @@ export function CoachResults({ meet, onBack }: Props) {
    * the address that shows one runner her own race.
    */
   async function share() {
-    const link = resultsLink(window.location.origin, window.location.pathname)
-    const text = `${meet?.name ?? 'Meet'} splits — pick your name: ${link}`
+    // Built from the app's base, not from where this page happens to be. The coach
+    // page sits underneath the athlete page, so a link made out of the current
+    // pathname would point back at this table.
+    const link = resultsLink(window.location.origin, import.meta.env.BASE_URL, published)
+    const text = `${published.name} splits — pick your name: ${link}`
     if (navigator.share) {
       try {
         await navigator.share({ text })
@@ -127,7 +133,7 @@ export function CoachResults({ meet, onBack }: Props) {
           Back
         </button>
         <div className="bar-where">
-          <strong>{meet?.name ?? 'Results'}</strong>
+          <strong>{meet?.name ?? published.name}</strong>
           <span>{meet ? `${meet.date} · ${rows.length} runners` : 'One moment'}</span>
         </div>
       </header>

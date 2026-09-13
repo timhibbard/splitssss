@@ -1,18 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import './App.css'
 import { SESSION_ID, stamp, todayIsoDate } from './lib/clock'
-import {
-  HELP_HASH,
-  isCoachResultsHash,
-  isHelpHash,
-  isResultsHash,
-  RESULTS_COACH_HASH,
-  RESULTS_HASH,
-  rosterFromHash,
-} from './lib/link'
+import { isLegacyHelpHash, rosterFromHash } from './lib/link'
 import { forTeam } from './lib/lineup'
 import type { Meet } from './lib/meet'
-import { fetchMeet, YELLOW_JACKET_FILE } from './lib/meetfile'
+import { fetchMeet } from './lib/meetfile'
+import { HELP_PATH, meetFilePath, type Page, pageAt } from './lib/pages'
 import { mergeLineup } from './lib/roster'
 import { assignAthlete, clearName } from './lib/splits'
 import * as store from './lib/storage'
@@ -30,22 +23,13 @@ type Screen = 'setup' | 'roster' | 'capture' | 'export' | 'help' | 'results' | '
 
 /**
  * The screens that have an address of their own, so the phone's back gesture works
- * on them and so they can be texted.
- *
- * One table rather than three near-identical callbacks: the help page needed this
- * behaviour first, and the two results pages need exactly the same behaviour, which
- * is the point at which it stops being help-specific.
+ * on them and so they can be texted. A Page's `kind` is one of these, which is why
+ * the router can hand its answer straight to setScreen.
  */
-const ADDRESSED: { screen: Screen; hash: string; matches: (hash: string) => boolean }[] = [
-  { screen: 'help', hash: HELP_HASH, matches: isHelpHash },
-  { screen: 'results', hash: RESULTS_HASH, matches: isResultsHash },
-  { screen: 'coach', hash: RESULTS_COACH_HASH, matches: isCoachResultsHash },
-]
+const ADDRESSED: Screen[] = ['help', 'results', 'coach']
 
-/** Which addressed screen a fragment asks for, if any. */
-function addressedBy(hash: string): Screen | null {
-  return ADDRESSED.find((page) => page.matches(hash))?.screen ?? null
-}
+/** Where the app lives, which every address is relative to. */
+const BASE = import.meta.env.BASE_URL
 
 /**
  * Read whatever was being timed back out of storage. Done during the first
@@ -97,6 +81,18 @@ function takeLinkedRoster(): Athlete[] | null {
 const LINKED_ROSTER = takeLinkedRoster()
 
 /**
+ * `#help` turned into `/help/`, for the links that were texted to parents before
+ * the help page had a path of its own. Rewritten in place rather than redirected,
+ * so the address bar ends up showing the real one and a bookmark of it is current.
+ */
+function takeLegacyHelpHash(): Page | null {
+  if (typeof window === 'undefined' || LINKED_ROSTER != null) return null
+  if (!isLegacyHelpHash(window.location.hash)) return null
+  window.history.replaceState(null, '', `${BASE}${HELP_PATH}`)
+  return { kind: 'help', path: HELP_PATH }
+}
+
+/**
  * Which addressed page the app was opened on, read once before anything renders.
  *
  * After takeLinkedRoster, which leaves a fragment it does not recognize alone, so a
@@ -104,7 +100,9 @@ const LINKED_ROSTER = takeLinkedRoster()
  * a request for one of these pages.
  */
 const OPENED_ON =
-  typeof window === 'undefined' || LINKED_ROSTER != null ? null : addressedBy(window.location.hash)
+  typeof window === 'undefined' || LINKED_ROSTER != null
+    ? null
+    : (takeLegacyHelpHash() ?? pageAt(window.location.pathname, BASE))
 
 function lastSeq(taps: Tap[]): number {
   return taps.length > 0 ? taps[taps.length - 1].seq : 0
@@ -127,8 +125,14 @@ export default function App() {
    * way back, from the button at the top of the home screen.
    */
   const [screen, setScreen] = useState<Screen>(
-    LINKED_ROSTER ? 'roster' : (OPENED_ON ?? (restored.race ? 'capture' : 'setup')),
+    LINKED_ROSTER ? 'roster' : (OPENED_ON?.kind ?? (restored.race ? 'capture' : 'setup')),
   )
+  /**
+   * The addressed page now showing, which is what says *which* meet is being looked
+   * at. The screen alone cannot: there will be more than one meet, and 2026's Yellow
+   * Jacket and 2027's are two addresses that render the same two screens.
+   */
+  const [addressed, setAddressed] = useState<Page | null>(OPENED_ON)
   /**
    * The shipped meet results, fetched the first time a results page is asked for
    * rather than at startup. `undefined` is still looking and `null` is a build with
@@ -141,7 +145,8 @@ export default function App() {
    * before somebody asks.
    */
   const [meet, setMeet] = useState<Meet | null | undefined>(undefined)
-  const askedForMeet = useRef(false)
+  /** The results file already asked for, so the same one is not fetched twice. */
+  const askedForMeet = useRef<string | null>(null)
   /** Where Back goes from the roster, so it returns you where you came from. */
   const [rosterReturn, setRosterReturn] = useState<Screen>(restored.race ? 'capture' : 'setup')
   /**
@@ -170,20 +175,21 @@ export default function App() {
    * pushState rather than assigning the hash, because an entry in history is what
    * makes Android's back button close the page instead of leaving the app.
    */
-  const openPage = useCallback((screen: Screen) => {
-    const page = ADDRESSED.find((p) => p.screen === screen)
-    if (!page) return
+  const openPage = useCallback((page: Page) => {
     pushedPage.current = true
-    const here = window.location.pathname + window.location.search
-    window.history.pushState(null, '', `${here}${page.hash}`)
-    setScreen(screen)
+    window.history.pushState(null, '', `${BASE}${page.path}${window.location.search}`)
+    setAddressed(page)
+    setScreen(page.kind)
   }, [])
 
   /**
-   * Leaving takes the address with it, so a phone does not sit on /#help with the
+   * Leaving takes the address with it, so a phone does not sit on /help/ with the
    * home screen showing. Back through history when this session pushed the entry,
-   * so nothing dead is left in it, and a plain replace when the app was opened on
-   * that page from a link, where there is nothing behind it to go back to.
+   * so nothing dead is left in it, and a replace to the app's own base when the app
+   * was opened on that page from a link, where there is nothing behind it to go back
+   * to — a texted results link lands you on a real path, and Back from there has to
+   * put you at the app rather than leave the app's home screen showing under a URL
+   * that says results.
    */
   const closePage = useCallback(() => {
     if (pushedPage.current) {
@@ -191,7 +197,8 @@ export default function App() {
       window.history.back()
       return
     }
-    window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    window.history.replaceState(null, '', `${BASE}${window.location.search}`)
+    setAddressed(null)
     setScreen('setup')
   }, [])
 
@@ -203,30 +210,41 @@ export default function App() {
    */
   useEffect(() => {
     const onPop = () => {
-      const asked = addressedBy(window.location.hash)
+      const asked = pageAt(window.location.pathname, BASE)
       if (asked) {
         pushedPage.current = true
-        setScreen(asked)
+        setAddressed(asked)
+        setScreen(asked.kind)
         return
       }
       pushedPage.current = false
-      setScreen((prev) => (ADDRESSED.some((p) => p.screen === prev) ? 'setup' : prev))
+      setAddressed(null)
+      setScreen((prev) => (ADDRESSED.includes(prev) ? 'setup' : prev))
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
 
   /**
-   * The results file, looked for the first time a results page is on screen. One
-   * request to a precached file, so it resolves with no signal at the course, and it
-   * happens at most once per page session however many times the pages are opened.
+   * The results file for whichever meet the address names, looked for the first time
+   * one of its pages is on screen. One request to a precached file, so it resolves
+   * with no signal at the course.
+   *
+   * Keyed on the file rather than on a flag, so opening the athlete page and then the
+   * coach page for the same meet is one fetch, while a link to a different meet is a
+   * fetch of its own.
    */
   useEffect(() => {
-    if (askedForMeet.current) return
-    if (screen !== 'results' && screen !== 'coach') return
-    askedForMeet.current = true
-    void fetchMeet(`${import.meta.env.BASE_URL}${YELLOW_JACKET_FILE}`).then(setMeet)
-  }, [screen])
+    const meetOf = addressed?.kind === 'results' || addressed?.kind === 'coach'
+      ? addressed.meet
+      : null
+    if (!meetOf) return
+    const file = `${BASE}${meetFilePath(meetOf)}`
+    if (askedForMeet.current === file) return
+    askedForMeet.current = file
+    setMeet(undefined)
+    void fetchMeet(file).then(setMeet)
+  }, [addressed])
 
   /**
    * Crossing counter, held outside React state so the storage write can happen
@@ -617,12 +635,12 @@ export default function App() {
    * page is for the link that gets texted out afterwards. Neither has anything to
    * offer somebody standing at Mile 2 with a phone.
    */
-  if (screen === 'results') {
-    return <AthleteResults meet={meet} onBack={closePage} />
+  if (screen === 'results' && addressed?.kind === 'results') {
+    return <AthleteResults meet={meet} published={addressed.meet} onBack={closePage} />
   }
 
-  if (screen === 'coach') {
-    return <CoachResults meet={meet} onBack={closePage} />
+  if (screen === 'coach' && addressed?.kind === 'coach') {
+    return <CoachResults meet={meet} published={addressed.meet} onBack={closePage} />
   }
 
   if (showSetup) {
@@ -635,7 +653,7 @@ export default function App() {
         team={roster}
         rememberedLineup={store.loadLineup}
         onEditRoster={() => editRoster('setup')}
-        onHelp={() => openPage('help')}
+        onHelp={() => openPage({ kind: 'help', path: HELP_PATH })}
         active={race}
         onBackToTiming={() => setScreen('capture')}
         stored={stored}

@@ -20,11 +20,10 @@ import { mask } from './scramble.ts'
  *
  * One file per meet rather than one file holding a season, so a fixed result from
  * September is not rewritten every time October's splits arrive. Adding a meet is
- * adding a file and a line in RESULTS.
+ * adding the file and a line in PUBLISHED, in pages.ts, which is also what gives
+ * the meet its address. Where the file sits is meetFilePath, next to that list, so
+ * the results of two seasons' worth of the same invitational do not collide.
  */
-
-/** Precached with the app, so the page opens with no signal. */
-export const YELLOW_JACKET_FILE = 'yellow-jacket.dat'
 
 /**
  * Its own key and its own header, so a team file served under a results file's
