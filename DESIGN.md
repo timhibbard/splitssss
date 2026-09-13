@@ -453,7 +453,7 @@ word at the end of the line, and `defaultLineup` reads it instead of slicing:
 ```
 # Girls
 Karen Izumi        20:17.75   Varsity
-Joyce Chen         22:40.16   JV
+Marlowe Holloway   22:29.15   JV
 ```
 
 **A tag per runner rather than a second kind of heading**, because that is how the

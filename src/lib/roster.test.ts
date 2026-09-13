@@ -264,19 +264,19 @@ test('untagged runners come first, with no heading over them', () => {
 
 test('the race at the end of a line comes in with the runner', () => {
   const parsed = parseRoster(
-    'Karen Izumi\t20:17.75\tVarsity\nJoyce Chen\t22:40.16\tJV\nPriya Whitaker\t24:00.00',
+    'Karen Izumi\t20:17.75\tVarsity\nMarlowe Holloway\t22:29.15\tJV\nPriya Whitaker\t24:00.00',
   )
   assert.deepEqual(
     parsed.map((a) => [a.name, a.squad]),
     [
       ['Karen Izumi', 'varsity'],
-      ['Joyce Chen', 'jv'],
+      ['Marlowe Holloway', 'jv'],
       ['Priya Whitaker', undefined],
     ],
   )
   assert.deepEqual(parsed.map((a) => a.pr), [
     20 * 60_000 + 17_750,
-    22 * 60_000 + 40_160,
+    22 * 60_000 + 29_150,
     24 * 60_000,
   ])
 })
@@ -289,27 +289,27 @@ test('the race and the time come off the line in either order', () => {
     [['Karen Izumi', 'varsity', 20 * 60_000 + 17_750]],
   )
   assert.deepEqual(
-    parseRoster('Joyce Chen  JV').map((a) => [a.name, a.squad, a.pr]),
-    [['Joyce Chen', 'jv', undefined]],
+    parseRoster('Marlowe Holloway  JV').map((a) => [a.name, a.squad, a.pr]),
+    [['Marlowe Holloway', 'jv', undefined]],
     'and a race with no time is still a race',
   )
 })
 
 test('junior varsity spelled out on a line is JV', () => {
   assert.deepEqual(
-    parseRoster('Joyce Chen  22:40.16  Junior Varsity').map((a) => [a.name, a.squad]),
-    [['Joyce Chen', 'jv']],
+    parseRoster('Marlowe Holloway  22:29.15  Junior Varsity').map((a) => [a.name, a.squad]),
+    [['Marlowe Holloway', 'jv']],
     'and the word varsity inside it does not win',
   )
 })
 
 test('a line with a race and a bib keeps neither in the name', () => {
-  const parsed = parseRoster('14 Karen Izumi 20:17.75 Varsity\nJoyce Chen, 22, JV')
+  const parsed = parseRoster('14 Karen Izumi 20:17.75 Varsity\nMarlowe Holloway, 22, JV')
   assert.deepEqual(
     parsed.map((a) => [a.name, a.squad]),
     [
       ['Karen Izumi', 'varsity'],
-      ['Joyce Chen', 'jv'],
+      ['Marlowe Holloway', 'jv'],
     ],
   )
 })
@@ -321,7 +321,7 @@ test('a line that is only a race is not a runner', () => {
 test('the races round trip through the text', () => {
   // The channel that matters: this is the format the shipped file and a shared
   // link both carry, so the lineup a coach set on Thursday reaches every phone.
-  const text = '# Girls\nKaren Izumi\t20:17.75\tVarsity\nJoyce Chen\t22:40.16\tJV\nPriya Whitaker'
+  const text = '# Girls\nKaren Izumi\t20:17.75\tVarsity\nMarlowe Holloway\t22:29.15\tJV\nPriya Whitaker'
   assert.equal(rosterText(parseRoster(text)), text)
 })
 
