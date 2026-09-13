@@ -1053,7 +1053,14 @@
   margin: 8px 0 0;
 }
 
+/* `flex: 0 0 auto` for the same reason `.table-scroll` needs it: these are flex
+   items in a column, `overflow-x: auto` makes them the only ones that can shrink
+   below their content, and a real 60 tap export is longer than a phone. Measured
+   at 390 wide before the fix: the CSV showed 367px of 947, the summary lost its
+   last line, and the screen itself did not scroll, because every pixel over had
+   already been taken out of the two previews. */
 .preview {
+  flex: 0 0 auto;
   margin: 0;
   background: var(--panel);
   border: 1px solid var(--line);
@@ -1384,8 +1391,18 @@
 
 /* Fifteen columns will not fit a phone and shrinking the type until they do makes
    the table unreadable, so it scrolls sideways. The name column is pinned,
-   because a row of times with the name scrolled off the left belongs to nobody. */
+   because a row of times with the name scrolled off the left belongs to nobody.
+
+   `flex: 0 0 auto` is what makes the table appear at all. This is a flex item in
+   a column, and `overflow-x: auto` computes `overflow-y` to `auto` as well, which
+   switches off the automatic minimum size a flex item otherwise gets. It was then
+   the one item on the page able to shrink below its own content, so the whole
+   deficit between a phone's height and this page's length came out of it: on an
+   iPhone the table measured 2px — its two borders — with 901px of rows inside,
+   while the footnotes underneath rendered fine. It takes its own height now and
+   `.results` scrolls, like every other section here. */
 .table-scroll {
+  flex: 0 0 auto;
   overflow-x: auto;
   background: var(--panel);
   border: 1px solid var(--line);
@@ -1407,6 +1424,11 @@
   border-bottom: 1px solid var(--line);
 }
 
+/* `top: 0` does not fire, and is kept for the day this box scrolls vertically
+   itself. The page is what scrolls, and a sticky top is measured against the
+   nearest scrollport, which is this box — so the header row scrolls away with the
+   rows. The sticky *left* on the name column below does work, because that is the
+   axis this box really does scroll. */
 .grid thead th {
   position: sticky;
   top: 0;
