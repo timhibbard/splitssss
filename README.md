@@ -117,6 +117,14 @@ Live at **https://timhibbard.github.io/splitssss/**
   instructions, with the app and the names one Back away, so a text message is the
   whole briefing. A fragment rather than a path because a static site on a subpath
   has no server to route `/help`, and it can never collide with a roster link.
+- **Results, once a meet has been reconciled.** Two pages behind their own
+  addresses. `#yellow-jacket` is for the runners: pick your name and get your own
+  race — your finish against your best, your three miles, your opening half mile and
+  your closing 800, and every mark with the time it was taken at. Numbers only; what
+  a race meant is the coach's to say. `#yellow-jacket-coach` is the spreadsheet,
+  every derived column, with what is measured and what is worked out spelled out at
+  the bottom. Two addresses on purpose, because only the first one should ever be
+  texted to a team. Neither is reachable from the timing screens.
 - **No backend.** Static site, all state on the device, exports leave by way of
   the share sheet.
 - **Works with no signal.** Fully offline once loaded, which matters at the two
@@ -141,6 +149,12 @@ automatically, and it is why the file holds no surnames. The times are in it for
 the same reason: a best time that has to be sent to a volunteer never reaches the
 one at the two mile mark, and a 5K best is already published next to a full name
 on the meet's own results page. See DESIGN.md.
+
+`public/yellow-jacket.dat` is a meet's reconciled results and follows the same
+rule: short labels, no surnames, scrambled, with its own key so it can never be
+confused for the team file. Its source, the full-name spreadsheet paste under
+`meets/`, is gitignored like `roster.txt`. The splits in it are not published
+anywhere else, which is why they travel attached to a first name and an initial.
 
 There is no season passphrase and no encrypted roster. There used to be an
 AES-GCM `public/roster.enc` for publishing full names with the app; it is gone,
@@ -211,6 +225,23 @@ is how full names reach a phone, and the only way they do:
 npm run roster-link roster.txt     # roster*.txt is gitignored
 pbpaste | npm run roster-link
 ```
+
+Publish a meet's results, once they have been reconciled against the meet's own
+finish times and every station has been put on one gun:
+
+```sh
+npm run meet-file -- meets/yellow-jacket.txt   # /meets/ is gitignored
+git add public/yellow-jacket.dat               # short labels, scrambled, meant to be committed
+```
+
+The source is one runner per line, tab separated, full names, with the marks in
+course order and that runner's 5K best from *before* this meet at the end. A dash
+is no volunteer at that marker; a trailing `~` marks a value worked out from the
+marks either side of it rather than timed, and the pages keep saying so. Nothing
+derived is stored — every split, net, pace and the 3 mile mark are computed at
+render time, so a hand-edited cell can never disagree with the page. The tool
+prints the whole derived table on the way out; check it against the sheet before
+committing.
 
 Pushing to `main` deploys to GitHub Pages via `.github/workflows/deploy.yml`.
 

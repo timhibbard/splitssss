@@ -4,7 +4,10 @@ import {
   decodeRoster,
   encodeRoster,
   helpLink,
+  isCoachResultsHash,
   isHelpHash,
+  isResultsHash,
+  resultsLink,
   rosterFromHash,
   rosterLink,
 } from './link.ts'
@@ -157,4 +160,34 @@ test('a roster link is never read as a request for the help page', () => {
   assert.deepEqual(rosterFromHash('#help'), [])
   assert.equal(isHelpHash(''), false)
   assert.equal(isHelpHash('#helping'), false, 'matched whole, not by prefix')
+})
+
+test('the athlete results page has an address that can be texted', () => {
+  assert.equal(
+    resultsLink('https://example.test', '/splitssss/'),
+    'https://example.test/splitssss/#yellow-jacket',
+  )
+  assert.ok(isResultsHash('#yellow-jacket'))
+  assert.ok(isResultsHash('yellow-jacket'), 'with or without the leading hash')
+})
+
+test('the coach page and the athlete page are never each other', () => {
+  // The athlete hash is a prefix of the coach hash, and the coach page is the only
+  // thing on this site with the whole team's numbers side by side. A link texted to
+  // a team landing there instead would be the one mistake that actually matters.
+  assert.equal(isResultsHash('#yellow-jacket-coach'), false)
+  assert.equal(isCoachResultsHash('#yellow-jacket'), false)
+  assert.ok(isCoachResultsHash('#yellow-jacket-coach'))
+})
+
+test('a results address is not read as a roster or as the help page', () => {
+  for (const hash of ['#yellow-jacket', '#yellow-jacket-coach']) {
+    assert.deepEqual(rosterFromHash(hash), [])
+    assert.equal(isHelpHash(hash), false)
+  }
+  const roster = `#r=${encodeRoster(team)}`
+  assert.equal(isResultsHash(roster), false)
+  assert.equal(isCoachResultsHash(roster), false)
+  assert.equal(isResultsHash(''), false)
+  assert.equal(isCoachResultsHash(''), false)
 })

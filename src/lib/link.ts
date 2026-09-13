@@ -68,3 +68,40 @@ export function isHelpHash(hash: string): boolean {
   const raw = hash.startsWith('#') ? hash.slice(1) : hash
   return raw.split('&').some((part) => part === HELP)
 }
+
+/**
+ * The two Yellow Jacket results pages, addressed the same way the help page is,
+ * and for the same reason: this is a static site on a subpath with no server to
+ * route anything, so /splitssss/yellow-jacket would 404 for exactly the person
+ * being sent the link.
+ *
+ * Two addresses rather than one page with a switch, because they are for two
+ * different people and only one of them should be textable to a team. The
+ * athlete page shows one runner her own race; the coach page shows the whole
+ * field with every derived column and the caveats attached. Neither is reachable
+ * from the timing screens on purpose — a volunteer holding a phone at Mile 2 has
+ * no use for a results table, and the app's home screen is theirs.
+ *
+ * Matched whole, so the athlete hash never matches the coach one despite being a
+ * prefix of it.
+ */
+const RESULTS = 'yellow-jacket'
+const RESULTS_COACH = 'yellow-jacket-coach'
+
+export const RESULTS_HASH = `#${RESULTS}`
+export const RESULTS_COACH_HASH = `#${RESULTS_COACH}`
+
+/** The link a coach texts to the team. */
+export function resultsLink(origin: string, path: string): string {
+  return `${origin}${path}${RESULTS_HASH}`
+}
+
+export function isResultsHash(hash: string): boolean {
+  const raw = hash.startsWith('#') ? hash.slice(1) : hash
+  return raw.split('&').some((part) => part === RESULTS)
+}
+
+export function isCoachResultsHash(hash: string): boolean {
+  const raw = hash.startsWith('#') ? hash.slice(1) : hash
+  return raw.split('&').some((part) => part === RESULTS_COACH)
+}

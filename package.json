@@ -10,7 +10,8 @@
     "test": "node --test",
     "preview": "vite preview",
     "roster-link": "node tools/roster-link.ts",
-    "team-file": "node tools/team-file.ts"
+    "team-file": "node tools/team-file.ts",
+    "meet-file": "node tools/meet-file.ts"
   },
   "dependencies": {
     "react": "^19.2.8",

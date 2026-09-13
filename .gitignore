@@ -7,6 +7,17 @@ roster*.txt
 roster*.json
 /rosters/
 *-splits.csv
+# Meet results before they are scrambled. The tool reads full names out of here
+# and ships public/*.dat holding first names and an initial. Same rule as the
+# roster: the readable copy stays out of the repo.
+/meets/
+*-times.txt
+jlmann-*.csv
+# Working notes from reconciling a meet by hand. They quote real rows while the
+# work is going on, which means full names next to times, so the whole directory
+# stays out. A document meant for the repo goes at the top level next to
+# DESIGN.md, where nothing is hiding it.
+/docs/
 
 # Logs
 logs

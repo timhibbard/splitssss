@@ -73,9 +73,10 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // `dat` is the team list that ships with the build, precached like
-        // everything else, so a phone loads its names with no signal at the two
-        // mile mark.
+        // `dat` is the team list and the meet results that ship with the build,
+        // precached like everything else, so a phone loads its names with no signal
+        // at the two mile mark and a runner opening a texted results link on the bus
+        // home does not need a bar of service either.
         globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest,dat}'],
         // Everything is precached and there are no network calls, so the app is
         // fully functional with no signal at the two mile mark.
