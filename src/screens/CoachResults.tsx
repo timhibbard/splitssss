@@ -3,8 +3,12 @@
  *
  * This is the spreadsheet, on a phone. It is deliberately the opposite of the
  * athlete page: no sentences, no encouragement, no rounding, twenty columns and a
- * horizontal scroll. A coach comparing eight girls' second miles needs them in a
+ * horizontal scroll. A coach comparing eight runners' second miles needs them in a
  * grid, and any amount of prose in the way makes that harder.
+ *
+ * Nothing here says "her" or "his". Two teams share this app and one athlete's
+ * table is the same table as another's, so the text says "the runner" or says
+ * nothing. The columns are the same either way.
  *
  * The footnotes are not decoration. Half the numbers in this table are derived,
  * one runner's mile 1 was never timed at all, and three of the four stations had a
@@ -74,35 +78,60 @@ const COLUMNS: Column[] = [
   { head: 'vs best', cell: (r) => sign(r.vsBest), signed: true },
 ]
 
-/** The three miles, for the view that is only about how each race was shaped. */
-const SHAPE: Column[] = [
+/**
+ * The three miles against each other, for the view that is about how consistent
+ * each race was rather than where each mark was taken.
+ *
+ * Spread is the consistency column: slowest mile less fastest, in seconds, which is
+ * the whole question in one number. Balance is a different question and is labelled
+ * as one — how far the average mile sits from the middle of that range, which says
+ * whether one mile was an outlier or all three stepped evenly.
+ */
+const BY_MILE: Column[] = [
   { head: 'Mile 1', cell: (r) => time(r.observed.mile1), derived: (r) => isDerived(r, 'mile1') },
   { head: 'Mile 2', cell: (r) => time(r.mile2Split) },
   { head: 'Mile 3', sub: 'calculated', soft: true, cell: (r) => time(r.mile3Split) },
   { head: 'Fastest', cell: (r) => time(r.fastest) },
   { head: 'Slowest', cell: (r) => time(r.slowest) },
-  { head: 'Spread', cell: (r) => (r.fastest == null ? '' : formatElapsed(r.slowest! - r.fastest!)) },
+  {
+    head: 'Spread',
+    sub: 'how consistent',
+    cell: (r) => (r.fastest == null ? '' : formatElapsed(r.slowest! - r.fastest!)),
+  },
   { head: 'Pace', sub: 'per mile', cell: (r) => pace(r.average) },
-  { head: 'Delta', sub: 'middle mile', cell: (r) => time(r.delta) },
+  { head: 'Balance', sub: 'avg vs midrange', cell: (r) => time(r.balance) },
   { head: 'Open', sub: '½ mi pace', cell: (r) => pace(r.openPace) },
   { head: 'Kick', sub: 'last 800 pace', cell: (r) => pace(r.kickPace) },
 ]
 
-type View = 'all' | 'shape'
+/**
+ * Two column sets, named for what they hold.
+ *
+ * Neither is called "everything", because neither is: `course` is every mark and
+ * every net in course order and has none of the mile-against-mile numbers, and
+ * `miles` has those and none of the intermediate marks. And neither is called "how
+ * they ran", which sounds like a judgement about a race when both are the same
+ * arithmetic on the same stopwatch readings.
+ */
+type View = 'course' | 'miles'
+const VIEWS: { view: View; says: string }[] = [
+  { view: 'course', says: 'Course order' },
+  { view: 'miles', says: 'Mile by mile' },
+]
 
 export function CoachResults({ meet, published, onBack }: Props) {
-  const [view, setView] = useState<View>('all')
+  const [view, setView] = useState<View>('course')
   const [status, setStatus] = useState('')
 
   const rows = meet ? meetRows(meet) : []
-  const columns = view === 'all' ? COLUMNS : SHAPE
+  const columns = view === 'course' ? COLUMNS : BY_MILE
 
   /**
    * Texts the *athlete* page, not this one. This page is the only thing on the site
    * with the whole team's numbers side by side, and a team group text is exactly
-   * where it should not end up — a girl reading her own splits is one thing and
+   * where it should not end up — one runner reading their own splits is one thing and
    * reading them ranked against six teammates is another. So the button here sends
-   * the address that shows one runner her own race.
+   * the address that shows one runner one race, their own.
    */
   async function share() {
     // Built from the app's base, not from where this page happens to be. The coach
@@ -152,27 +181,24 @@ export function CoachResults({ meet, published, onBack }: Props) {
               Text the team their splits
             </button>
             <p className="hint">
-              Sends the athlete page, where each runner picks her own name. Not this
+              Sends the athlete page, where each runner picks their own name. Not this
               page.
             </p>
             {status && <p className="status">{status}</p>}
           </section>
 
           <div className="views" role="group" aria-label="Which columns">
-            <button
-              type="button"
-              className={view === 'all' ? 'is-on' : ''}
-              onClick={() => setView('all')}
-            >
-              Everything
-            </button>
-            <button
-              type="button"
-              className={view === 'shape' ? 'is-on' : ''}
-              onClick={() => setView('shape')}
-            >
-              How they ran
-            </button>
+            {VIEWS.map(({ view: which, says }) => (
+              <button
+                key={which}
+                type="button"
+                className={view === which ? 'is-on' : ''}
+                aria-pressed={view === which}
+                onClick={() => setView(which)}
+              >
+                {says}
+              </button>
+            ))}
           </div>
 
           {/*
@@ -304,13 +330,14 @@ function Footnotes({ meet, rows }: { meet: Meet; rows: Row[] }) {
           new best.
         </li>
         <li>
-          <strong>Spread and Delta are two different questions.</strong> Spread is the
-          slowest mile less the fastest, which is how uneven the race was. Delta is how
-          far the average sits from the midpoint of those two, which is whether the
-          middle mile is the odd one out — it is near zero for a runner who slows by the
-          same amount every mile, however large her spread. Across this field the two
-          disagree completely, so they are worth reading as a pair rather than either one
-          on its own.
+          <strong>Spread is the consistency number. Balance is not.</strong> Spread is
+          the slowest mile less the fastest, so zero is three identical miles and it is
+          the column to read for how even a race was. Balance is how
+          far the average mile sits from the middle of that fastest–slowest range, which
+          answers a different question — whether one mile was an outlier, or all three
+          stepped evenly. A runner who slows by the same amount every mile has a balance
+          near zero whatever their spread, so the two disagree constantly and neither one
+          substitutes for the other.
         </li>
       </ul>
     </section>

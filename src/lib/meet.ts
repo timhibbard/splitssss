@@ -145,7 +145,7 @@ export type Row = {
   miles: number[]
   fastest?: number
   slowest?: number
-  /** Halfway between the fastest and slowest mile. The Delta's reference point. */
+  /** Halfway between the fastest and slowest mile. What `balance` is measured from. */
   midpoint?: number
   /** True average mile pace across the whole 5K. */
   average?: number
@@ -153,8 +153,12 @@ export type Row = {
    * How far the average sits from that midpoint. Small means the three miles were
    * evenly spaced around the average; large means one of them was an outlier
    * dragging the middle away from where the runner actually spent the race.
+   *
+   * Not a consistency measure, and named so it cannot be read as one: a runner who
+   * slows by the same amount every mile lands near zero however wide their spread.
+   * Spread is the consistency number. The coach table labels this one Balance.
    */
-  delta?: number
+  balance?: number
   /** Finish against the best time coming in. Negative is a new best. */
   vsBest?: number
   best: boolean
@@ -204,7 +208,7 @@ function row(observed: Observed, allowance: number): Row {
   const slowest = miles.length > 0 ? Math.max(...miles) : undefined
   const midpoint = fastest != null && slowest != null ? (fastest + slowest) / 2 : undefined
   const average = finish != null ? perMile(finish, RACE_M) : undefined
-  const delta = average != null && midpoint != null ? Math.abs(average - midpoint) : undefined
+  const balance = average != null && midpoint != null ? Math.abs(average - midpoint) : undefined
   const vsBest = finish != null && best != null ? finish - best : undefined
 
   return {
@@ -224,7 +228,7 @@ function row(observed: Observed, allowance: number): Row {
     slowest,
     midpoint,
     average,
-    delta,
+    balance,
     vsBest,
     best: vsBest != null && vsBest < 0,
   }
