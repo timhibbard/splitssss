@@ -982,11 +982,23 @@ and the balance are computed at render time in `src/lib/meet.ts`. One source of
 truth, so a hand-edited cell can never disagree with the page — which is precisely
 the failure the spreadsheet pass kept producing.
 
-**Estimates are marked, everywhere, forever.** A trailing `~` in the file marks a
-mark nobody timed, it survives the round trip, and both pages render it in lighter
-type and say so in words. The 3 mile column is interpolated for everybody and is
-labelled that way in its own header. An estimate that reads as a stopwatch reading
-is a small lie that outlives everyone who knew better.
+**Estimates are marked in the file, forever.** A trailing `~` marks a mark nobody
+timed and it survives the round trip, so the record of what was reconstructed cannot
+be lost by anything short of editing the file. An estimate that reads as a stopwatch
+reading is a small lie that outlives everyone who knew better.
+
+**The coach page says which marks those were. The athlete page does not.** They were
+labelled on both at first, and the athlete page's label came off at the coach's
+request: a mark one volunteer missed, which the coach filled in from the marks either
+side and then checked against the rest of the race, is a mark the coach is using, and
+a page that hedges about a number its author is confident in is just noise to the
+runner reading it. She cannot act on the difference; the person who can is the person
+who filled it in, and that person reads the other page. The coach page still lists
+each one by name in its footnotes and still renders it in lighter type.
+
+The 3 mile mark keeps its label on both pages, because that one is interpolated for
+every runner in the field — nobody stood at 3 miles at all — and the label is a fact
+about the course, not a hedge about one runner's mark.
 
 **Corrections are measured, not hardcoded.** The 2 mile anchor for the 3 mile mark
 undershoots, because a straight line to the finish ignores the closing kick. Rather
