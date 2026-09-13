@@ -163,11 +163,14 @@ function Race({ row }: { row: Row }) {
         0.5 mi and 2.6 mi, and they are the reason those two markers are worth a
         person each even though neither is a mile.
 
+        The closing one is 815.7 m, and is called and paced as a half mile anyway, so
+        the pace in the next section is this time doubled. See `lastHalf` in meet.ts.
+
         Times here and paces in the next section, deliberately not both in both. The
         same number twice under two headings makes a page longer without making it say
         more.
       */}
-      {(observed.half != null || row.last800 != null) && (
+      {(observed.half != null || row.lastHalf != null) && (
         <section className="marks">
           <h2>The two ends of the race</h2>
           <table>
@@ -178,10 +181,10 @@ function Race({ row }: { row: Row }) {
                   <td>{formatElapsed(observed.half)}</td>
                 </tr>
               )}
-              {row.last800 != null && (
+              {row.lastHalf != null && (
                 <tr>
                   <th scope="row">Last half mile</th>
-                  <td>{formatElapsed(row.last800)}</td>
+                  <td>{formatElapsed(row.lastHalf)}</td>
                 </tr>
               )}
             </tbody>

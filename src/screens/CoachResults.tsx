@@ -72,7 +72,7 @@ const COLUMNS: Column[] = [
   { head: '3 mi', sub: 'calculated', soft: true, cell: (r) => time(r.threeMile) },
   { head: 'Mile 3', sub: 'split', soft: true, cell: (r) => time(r.mile3Split) },
   { head: 'Net', sub: 'vs mile 2', soft: true, cell: (r) => sign(r.net2), signed: true },
-  { head: 'Last 800', cell: (r) => time(r.last800) },
+  { head: 'Last ½ mi', cell: (r) => time(r.lastHalf) },
   { head: 'Finish', cell: (r) => (r.observed.finish == null ? '' : formatPr(r.observed.finish)) },
   { head: 'Best', sub: 'coming in', cell: (r) => (r.observed.best == null ? '' : formatPr(r.observed.best)) },
   { head: 'vs best', cell: (r) => sign(r.vsBest), signed: true },
@@ -100,8 +100,8 @@ const BY_MILE: Column[] = [
   },
   { head: 'Pace', sub: 'per mile', cell: (r) => pace(r.average) },
   { head: 'Balance', sub: 'avg vs midrange', cell: (r) => time(r.balance) },
-  { head: 'Open', sub: '½ mi pace', cell: (r) => pace(r.openPace) },
-  { head: 'Kick', sub: 'last 800 pace', cell: (r) => pace(r.kickPace) },
+  { head: 'Open', sub: 'first ½ mi', cell: (r) => pace(r.openPace) },
+  { head: 'Kick', sub: 'last ½ mi', cell: (r) => pace(r.kickPace) },
 ]
 
 /**

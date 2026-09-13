@@ -115,7 +115,7 @@ const signed = (ms: number | undefined) => (ms == null ? '' : formatSignedElapse
 console.error(`${meet.name}, ${meet.date}: ${rows.length} runners`)
 console.error('')
 console.error(
-  ['runner'.padEnd(14), '  0.5mi', '  mile1', '   2mi', ' mile2', '   net', '  2.6mi', '  3mi*', ' mile3', '   net', ' last800', '  finish', '  vs best']
+  ['runner'.padEnd(14), '  0.5mi', '  mile1', '   2mi', ' mile2', '   net', '  2.6mi', '  3mi*', ' mile3', '   net', ' last½mi', '  finish', '  vs best']
     .join(''),
 )
 rows.forEach((r, i) => {
@@ -131,7 +131,7 @@ rows.forEach((r, i) => {
       cell(r.threeMile),
       cell(r.mile3Split),
       signed(r.net2),
-      cell(r.last800),
+      cell(r.lastHalf),
       (r.observed.finish == null ? '' : formatPr(r.observed.finish)).padStart(10),
       (r.vsBest == null ? '' : formatSignedElapsed(r.vsBest)).padStart(10),
       r.best ? '  best' : '',

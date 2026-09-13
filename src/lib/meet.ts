@@ -126,13 +126,22 @@ export type Row = {
   mile3Split?: number
   /** Mile 3 against mile 2. Positive is slower. */
   net2?: number
-  /** 2.6 mi to the line. 816 m, near enough to an 800 to call it one. */
-  last800?: number
+  /**
+   * 2.6 mi to the line, called the last half mile everywhere it is shown.
+   *
+   * It is 815.7 m, which is 15.7 m more than half a mile, and that difference is
+   * deliberately given up: `kickPace` divides by a flat half mile so the pace is the
+   * time doubled and reconciles in one step. Dividing by the true 0.507 mi put 3:10.4
+   * next to 6:16 when doubling it says 6:20.9, and two correct numbers that look like
+   * they disagree cost more than 1.4% of a distance a volunteer paced off anyway.
+   */
+  lastHalf?: number
   /** Per mile over the 2.1 miles between the 0.5 and 2.6 markers. */
   middlePace?: number
   /**
-   * Per mile over the opening half mile, and over the closing 816 m. Both exist
-   * only where a volunteer stood at 0.5 mi and 2.6 mi, so varsity only here.
+   * Per mile over the opening half mile and over the closing one, both figured over
+   * exactly half a mile so each is its own time doubled. Both exist only where a
+   * volunteer stood at 0.5 mi and 2.6 mi, so varsity only here.
    *
    * These two against the race average are the whole story of how a 5K was run,
    * and they are the reason those two markers are worth a volunteer each even
@@ -197,11 +206,13 @@ function row(observed: Observed, allowance: number): Row {
   const mile3Split = threeMile != null && twoMile != null ? threeMile - twoMile : undefined
   const net2 = mile3Split != null && mile2Split != null ? mile3Split - mile2Split : undefined
 
-  const last800 = finish != null && mile26 != null ? finish - mile26 : undefined
+  const lastHalf = finish != null && mile26 != null ? finish - mile26 : undefined
   const middlePace =
     mile26 != null && half != null ? perMile(mile26 - half, MILE_2_6_M - HALF_MILE_M) : undefined
   const openPace = half != null ? perMile(half, HALF_MILE_M) : undefined
-  const kickPace = last800 != null ? perMile(last800, RACE_M - MILE_2_6_M) : undefined
+  // A flat half mile, not the 815.7 m this actually is. See `lastHalf`: the pace has
+  // to be the time doubled or the two numbers read as a contradiction.
+  const kickPace = lastHalf != null ? perMile(lastHalf, HALF_MILE_M) : undefined
 
   const miles = [mile1, mile2Split, mile3Split].filter((m): m is number => m != null)
   const fastest = miles.length > 0 ? Math.min(...miles) : undefined
@@ -219,7 +230,7 @@ function row(observed: Observed, allowance: number): Row {
     anchor,
     mile3Split,
     net2,
-    last800,
+    lastHalf,
     middlePace,
     openPace,
     kickPace,
