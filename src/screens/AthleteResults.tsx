@@ -8,9 +8,9 @@
  *
  * She picks from first names and an initial, which is all this build holds.
  *
- * No commentary. Her splits, her miles, her paces, her marks, and which of them
- * nobody timed. What the race meant is the coach's to say, not a page's, and a
- * number is the same number whoever reads it.
+ * No commentary. Her splits, her miles, her paces and her marks. What the race meant
+ * is the coach's to say, not a page's, and a number is the same number whoever reads
+ * it.
  *
  * Deliberately not a leaderboard either. The meet publishes places and the whole
  * field already; what the team's own splits add is where she was and when.
@@ -18,7 +18,7 @@
 
 import { useState } from 'react'
 import { formatElapsed, formatPr, formatSignedElapsed } from '../lib/clock'
-import { isDerived, type Meet, meetRows, type Row } from '../lib/meet'
+import { type Meet, meetRows, type Row } from '../lib/meet'
 import type { Published } from '../lib/pages'
 
 type Props = {
@@ -153,7 +153,6 @@ function Race({ row }: { row: Row }) {
         <p className="hint">
           Mile 3 is calculated from your{' '}
           {observed.mile26 != null ? '2.6 mile mark' : '2 mile mark'} and your finish.
-          {isDerived(row, 'mile1') && ' Mile 1 is calculated too.'}
         </p>
       </section>
 
@@ -248,6 +247,13 @@ function Race({ row }: { row: Row }) {
       )}
 
       {/*
+        Only the 3 mile mark is labelled here, and only because nobody was standing at
+        3 miles for anyone. A mark that one volunteer missed and the coach reconstructed
+        and then checked is a mark the coach is using, so this page shows it as one. The
+        coach page still lists exactly which marks those were, which is where that
+        belongs: a runner reading her own splits cannot act on the difference, and the
+        person who can is the person who filled it in.
+
         "calculated" sits in the row's label, not next to its time. The times are
         right aligned and tabular so they read as a column, and a word after one of
         them pushes that number off the edge every other number lines up on — which
@@ -259,10 +265,7 @@ function Race({ row }: { row: Row }) {
           <tbody>
             {MARKS.filter(({ key }) => observed[key] != null).map(({ key, says }) => (
               <tr key={key}>
-                <th scope="row">
-                  {says}
-                  {isDerived(row, key) && <span className="soft"> (calculated)</span>}
-                </th>
+                <th scope="row">{says}</th>
                 <td>{formatElapsed(observed[key]!)}</td>
               </tr>
             ))}
