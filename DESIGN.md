@@ -577,14 +577,25 @@ It needs both a station distance and a race distance, so a custom split point
 entered without a distance shows the clock and no projection rather than a
 wrong number.
 
-### A best time on the button, and a gap in the list
+### A PR on the button, and a gap in the list
+
+**The word is PR, in everything the app says.** Never "best", never "best time",
+never "best coming in". A PR is what the team, the coach and the runners say out
+loud, and the app is not the place a fifth word for it gets introduced. This was
+enforced late: the coach table shipped a column headed "Best / coming in", the
+volunteer's screens said "best" in five more places, and the roster screen asked
+for a "best time" while the field behind it had been called `pr` all along. The
+column now says `Previous PR`, and the one next to it `vs PR`, which is also what
+the athlete page had already settled on — "Previous PR" when this race replaced it,
+"Current PR" when it still stands. Code keeps `pr`, `best` and `vsBest` where they
+are; this rule is about rendered text, console output and the docs.
 
 A projected finish answers "how fast is this". The question a coach actually
 asks at 2K is "how fast is this *for this runner*", and that needs their own
-best next to it. So a runner carries an optional `pr`, in milliseconds, and the
+PR next to it. So a runner carries an optional `pr`, in milliseconds, and the
 whole feature is one number and one comparison.
 
-The button shows the best time itself, `21:34`, under the name. Not a target
+The button shows the PR itself, `21:34`, under the name. Not a target
 split for this station, which would be the more useful number in the abstract:
 a 112px button already holds a name, and a second number that is neither the
 runner's PR nor the clock on the screen is a number a volunteer has to be
@@ -593,7 +604,7 @@ seconds on the button and never rounded up, because 18:40 is a time that runner
 has not run.
 
 The running list carries the comparison instead, one column, the projected
-finish minus that runner's best: `+0:12` behind, `-0:08` ahead, `0:00` with no
+finish minus that runner's PR: `+0:12` behind, `-0:08` ahead, `0:00` with no
 sign when it rounds to level. Amber for behind and green for ahead, and behind
 is deliberately not the red used to confirm erasing a race, because being
 twelve seconds off your PR at 2K is a fact and not a warning. A screen reader
@@ -938,6 +949,10 @@ an interpretation the column does not contain.
   who slows by the same amount every mile however wide their spread, so a label calling
   it consistency would be the same mistake the generated sentences made on the athlete
   page, in one word instead of a sentence.
+- **`Previous PR` and `vs PR`**, which were "Best / coming in" and "vs best". Nobody
+  on this team says "best"; they say PR. "Previous" also does the work "coming in" was
+  doing, in a word that is not a preposition: the column is the time they arrived with,
+  and a highlighted row beat it. See the vocabulary rule in "A PR on the button".
 
 **The closing half mile is treated as exactly half a mile, and it is not.** 2.6 mi
 to the line is 815.7 m, 15.7 m more than a half. `kickPace` divides by the flat half
@@ -978,8 +993,8 @@ like `roster.txt`. A 5K finish time is published next to a full name on the meet
 own results page anyway; the splits are not published anywhere, and they are the
 part that belongs to the team.
 
-**Only observations are stored.** Five cumulative marks, a squad, and the best time
-coming in. Every split, net, pace, the interpolated 3 mile mark, fastest, slowest
+**Only observations are stored.** Five cumulative marks, a squad, and the PR they
+came in with. Every split, net, pace, the interpolated 3 mile mark, fastest, slowest
 and the Delta are computed at render time in `src/lib/meet.ts`. One source of
 truth, so a hand-edited cell can never disagree with the page — which is precisely
 the failure the spreadsheet pass kept producing.

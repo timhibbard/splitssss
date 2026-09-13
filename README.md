@@ -37,7 +37,7 @@ Live at **https://timhibbard.github.io/splitssss/**
   list with no such line is untagged and shows in either race, which is how a
   phone that predates the change keeps working.
 - **The roster travels by link.** The coach taps "Send this list to a volunteer"
-  and texts a link that loads all the names, and their best times, in one tap.
+  and texts a link that loads all the names, and their PRs, in one tap.
   The names ride in the URL fragment, which browsers never send to a server, so
   they reach no log or cache. The recipient gets a prompt, not a silent
   overwrite. This is the only channel that carries full names, and it is the only
@@ -84,11 +84,11 @@ Live at **https://timhibbard.github.io/splitssss/**
 - **Projected finish.** Races are 5K, so the header shows what the current pace
   projects to at the finish, and every row in the list carries its own. Linear,
   to the second, because the number gets said out loud to a runner.
-- **Every runner's best time is on their button.** Put a 5K best after a name
+- **Every runner's PR is on their button.** Put a 5K PR after a name
   when you paste the list, "Rowan Hayes 21:34.60", and the button shows it. Then
-  every crossing says where that pace stands against that runner's own best,
+  every crossing says where that pace stands against that runner's own PR,
   `+0:12` behind or `-0:08` ahead, in the list and in the export. A runner with
-  no best time simply has none, and a race that is not a 5K gets no comparison
+  no PR simply has none, and a race that is not a 5K gets no comparison
   rather than a wrong one.
 - **A refresh loses nothing.** Every tap is on disk before the button springs
   back. Reloading restores the race, the roster, and every crossing in order.
@@ -148,13 +148,13 @@ send to the server, so the names of minors never reach a web server log or a CDN
 cache.
 
 `public/team.dat` is committed, and it is the one file in the repo that carries
-anything about a runner. It holds first names and an initial with a 5K best after
+anything about a runner. It holds first names and an initial with a 5K PR after
 each, "Rowan H. 21:34.60", scrambled. Scrambled is not encrypted: the app reads
 it with nothing typed, so the way to read it ships in the JavaScript and anyone
 who wants the list can have it. That is the trade for the names being there
 automatically, and it is why the file holds no surnames. The times are in it for
-the same reason: a best time that has to be sent to a volunteer never reaches the
-one at the two mile mark, and a 5K best is already published next to a full name
+the same reason: a PR that has to be sent to a volunteer never reaches the
+one at the two mile mark, and a 5K PR is already published next to a full name
 on the meet's own results page. See DESIGN.md.
 
 `public/meets/2026/yellow-jacket.dat` is a meet's reconciled results and follows the
@@ -191,7 +191,7 @@ npm run preview  # serve the production build at /splitssss/
 
 Ship the teams with the app, so every phone opens with the names on it and the
 right lineup already picked. One runner per line in `roster.txt`, with that
-runner's 5K best after the name if there is one and the race they are in this week
+runner's 5K PR after the name if there is one and the race they are in this week
 after that, under a heading per team:
 
 ```
@@ -216,7 +216,7 @@ headings still works and ships everyone untagged.
 
 ```sh
 npm run team-file -- roster.txt     # writes public/team.dat, prints the list in order
-git add public/team.dat             # short labels and best times, scrambled, meant to be committed
+git add public/team.dat             # short labels and PRs, scrambled, meant to be committed
 ```
 
 Re-run it before each meet, once the lineup is set, and after adding a runner,
@@ -244,7 +244,7 @@ git add public/meets/2026/yellow-jacket.dat       # short labels, scrambled, mea
 ```
 
 The source is one runner per line, tab separated, full names, with the marks in
-course order and that runner's 5K best from *before* this meet at the end. A dash
+course order and that runner's 5K PR from *before* this meet at the end. A dash
 is no volunteer at that marker; a trailing `~` marks a value calculated from the
 marks either side of it rather than timed, and the pages keep saying so. Nothing
 derived is stored — every split, net, pace and the 3 mile mark are computed at

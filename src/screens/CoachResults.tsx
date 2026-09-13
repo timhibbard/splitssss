@@ -47,7 +47,7 @@ type Column = {
   cell: (row: Row) => string
   /** Whether this particular runner's value was reconstructed. */
   derived?: (row: Row) => boolean
-  /** Signed, and coloured by sign: a net or a gap to a best. */
+  /** Signed, and coloured by sign: a net or a gap to a PR. */
   signed?: boolean
 }
 
@@ -74,8 +74,11 @@ const COLUMNS: Column[] = [
   { head: 'Net', sub: 'vs mile 2', soft: true, cell: (r) => sign(r.net2), signed: true },
   { head: 'Last ½ mi', cell: (r) => time(r.lastHalf) },
   { head: 'Finish', cell: (r) => (r.observed.finish == null ? '' : formatPr(r.observed.finish)) },
-  { head: 'Best', sub: 'coming in', cell: (r) => (r.observed.best == null ? '' : formatPr(r.observed.best)) },
-  { head: 'vs best', cell: (r) => sign(r.vsBest), signed: true },
+  // "Previous PR", not "Best coming in". PR is the word the team says, and
+  // "previous" carries what "coming in" was there for: this is the time they
+  // arrived with, and a highlighted row has beaten it.
+  { head: 'Previous PR', cell: (r) => (r.observed.best == null ? '' : formatPr(r.observed.best)) },
+  { head: 'vs PR', cell: (r) => sign(r.vsBest), signed: true },
 ]
 
 /**
@@ -322,14 +325,14 @@ function Footnotes({ meet, rows }: { meet: Meet; rows: Row[] }) {
           9.5. This table is the corrected version; the raw exports are not in it.
         </li>
         <li>
-          <strong>Best times are from before this meet.</strong> A row marked as a best
-          beat the time in the column next to it. It has not been written back to
-          anybody's record here.
+          <strong>The PR column is the one they came in with.</strong> A highlighted row
+          beat the time in it at this meet. It has not been written back to anybody's
+          record here.
         </li>
         <li>
-          <strong>Nets and vs-best are signed seconds.</strong> Minus is faster: a
-          negative net is a mile quicker than the one before it, a negative vs-best is a
-          new best.
+          <strong>Nets and vs-PR are signed seconds.</strong> Minus is faster: a
+          negative net is a mile quicker than the one before it, a negative vs-PR is a
+          new PR.
         </li>
         <li>
           <strong>Spread is the consistency number. The Delta is not.</strong> Spread is
