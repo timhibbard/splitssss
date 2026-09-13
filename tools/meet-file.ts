@@ -12,7 +12,7 @@
  *   Rowan Hayes   Varsity  2:53.3  5:52.9  12:04.6  15:58.2  19:08.66  18:42.53
  *   Marlowe Holloway  JV   -       7:54.4  16:54.8  -        27:04.84  27:31.02
  *
- * A dash is no volunteer at that marker. A trailing `~` marks a value worked out
+ * A dash is no volunteer at that marker. A trailing `~` marks a value calculated
  * from the marks either side of it rather than timed, which is the one thing a
  * results table must never lose track of.
  *
@@ -158,7 +158,7 @@ console.error(
 if (estimates.length > 0) {
   console.error('')
   for (const r of estimates) {
-    console.error(`  ${r.observed.label}: ${r.observed.derived.join(', ')} worked out, not timed.`)
+    console.error(`  ${r.observed.label}: ${r.observed.derived.join(', ')} calculated, not timed.`)
   }
 }
 console.error('')

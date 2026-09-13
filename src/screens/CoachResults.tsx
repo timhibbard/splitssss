@@ -65,7 +65,7 @@ const COLUMNS: Column[] = [
   { head: 'Net', sub: 'vs mile 1', cell: (r) => sign(r.net1), signed: true },
   { head: '2.6 mi', cell: (r) => time(r.observed.mile26), derived: (r) => isDerived(r, 'mile26') },
   { head: 'Middle', sub: '½–2.6 pace', cell: (r) => pace(r.middlePace) },
-  { head: '3 mi', sub: 'worked out', soft: true, cell: (r) => time(r.threeMile) },
+  { head: '3 mi', sub: 'calculated', soft: true, cell: (r) => time(r.threeMile) },
   { head: 'Mile 3', sub: 'split', soft: true, cell: (r) => time(r.mile3Split) },
   { head: 'Net', sub: 'vs mile 2', soft: true, cell: (r) => sign(r.net2), signed: true },
   { head: 'Last 800', cell: (r) => time(r.last800) },
@@ -78,7 +78,7 @@ const COLUMNS: Column[] = [
 const SHAPE: Column[] = [
   { head: 'Mile 1', cell: (r) => time(r.observed.mile1), derived: (r) => isDerived(r, 'mile1') },
   { head: 'Mile 2', cell: (r) => time(r.mile2Split) },
-  { head: 'Mile 3', sub: 'worked out', soft: true, cell: (r) => time(r.mile3Split) },
+  { head: 'Mile 3', sub: 'calculated', soft: true, cell: (r) => time(r.mile3Split) },
   { head: 'Fastest', cell: (r) => time(r.fastest) },
   { head: 'Slowest', cell: (r) => time(r.slowest) },
   { head: 'Spread', cell: (r) => (r.fastest == null ? '' : formatElapsed(r.slowest! - r.fastest!)) },
