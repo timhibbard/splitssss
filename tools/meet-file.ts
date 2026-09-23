@@ -26,10 +26,11 @@
  * the one thing a results table must never lose track of. A row of the wrong width
  * for its event is refused, with the line number.
  *
- * Writes `public/meets/<year>/<slug>.dat`, which **is** meant to be committed. The
+ * Writes `public/meets/<year>/<team>/<slug>.dat`, which **is** meant to be committed. The
  * input is not: /meets/ is gitignored, exactly like roster*.txt. The year comes off
- * the meet's own date line and the slug off the input file's name, so the data file
- * and the page's address are derived from the source rather than typed twice.
+ * the meet's own date line, the team off its team line and the slug off the input
+ * file's name, so the data file and the page's address are derived from the source
+ * rather than typed twice.
  *
  * Writing the file is half of publishing a meet. The other half is the line in
  * PUBLISHED in src/lib/pages.ts, which is what gives the meet an address and what
@@ -112,7 +113,7 @@ const meet: Meet = {
  */
 const slug = basename(file, extname(file))
 const year = Number(meet.date.slice(0, 4))
-const published = { slug, year, name: meet.name }
+const published = { slug, year, team: meet.team, date: meet.date, name: meet.name }
 const OUT = `public/${meetFilePath(published)}`
 mkdirSync(dirname(OUT), { recursive: true })
 writeFileSync(OUT, `${scrambleMeet(meet)}\n`)
@@ -212,7 +213,7 @@ console.error(`Commit ${OUT}. Do not commit ${file}.`)
 
 // The address is the other half. Without the line in PUBLISHED this file ships and
 // nothing can reach it, which is a failure with no error message anywhere.
-const listed = PUBLISHED.some((m) => m.slug === slug && m.year === year)
+const listed = PUBLISHED.find((m) => m.slug === slug && m.year === year && m.team === meet.team)
 if (listed) {
   console.error('')
   console.error(`Its pages are ${resultsPath(published)} and ${resultsPath(published)}coach/`)
@@ -220,7 +221,9 @@ if (listed) {
   console.error('')
   console.error('This meet has no address yet. Add it to PUBLISHED in src/lib/pages.ts:')
   console.error('')
-  console.error(`  { slug: '${slug}', year: ${year}, name: ${JSON.stringify(meet.name)} },`)
+  console.error(
+    `  { slug: '${slug}', year: ${year}, team: '${meet.team}', date: '${meet.date}', name: ${JSON.stringify(meet.name)} },`,
+  )
   console.error('')
   console.error('The build writes a real page for each line in that list. Without one,')
   console.error('this file ships and no URL reaches it.')

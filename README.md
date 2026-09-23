@@ -157,7 +157,7 @@ the same reason: a PR that has to be sent to a volunteer never reaches the
 one at the two mile mark, and a 5K PR is already published next to a full name
 on the meet's own results page. See DESIGN.md.
 
-`public/meets/2026/yellow-jacket.dat` is a meet's reconciled results and follows the
+`public/meets/2026/girls/yellow-jacket.dat` is a meet's reconciled results and follows the
 same rule: short labels, no surnames, scrambled, with its own key so it can never be
 confused for the team file. Its source, the full-name spreadsheet paste under
 `meets/`, is gitignored like `roster.txt`, along with `docs/`, where the notes from
@@ -240,11 +240,13 @@ finish times and every station has been put on one gun:
 
 ```sh
 npm run meet-file -- meets/yellow-jacket.txt      # /meets/ is gitignored
-git add public/meets/2026/yellow-jacket.dat       # short labels, scrambled, meant to be committed
+git add public/meets/2026/girls/yellow-jacket.dat # short labels, scrambled, meant to be committed
 ```
 
-The source is one runner per line, tab separated, full names, with the marks in
-course order and that runner's 5K PR from *before* this meet at the end. A dash
+The source opens with `# meet`, `# date` and `# team` lines, then one block per
+race: `# event Varsity` (or JV), `# marks 0.5mi 1mi 2mi` for the markers that race
+actually had, and one runner per line, tab separated, full names, a cell per mark,
+the finish, and that runner's 5K PR from *before* this meet. A dash
 is no volunteer at that marker; a trailing `~` marks a value calculated from the
 marks either side of it rather than timed, and the pages keep saying so. Nothing
 derived is stored — every split, net, pace and the 3 mile mark are computed at
@@ -255,7 +257,7 @@ committing.
 The file is half of publishing a meet. The other half is a line in `PUBLISHED` in
 `src/lib/pages.ts`, which is what gives the meet its address and what makes the build
 write a real page there — the tool prints the line to add. The year comes off the
-meet's own date line and the slug off the input file's name, so the address and the
+meet's own date line, the team off its team line, and the slug off the input file's name, so the address and the
 data file are derived from the source rather than typed twice.
 
 Pushing to `main` deploys to GitHub Pages via `.github/workflows/deploy.yml`.
