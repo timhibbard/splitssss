@@ -83,7 +83,8 @@ export function coachPath(meet: Published): string {
  * Not where the v1 file sat, `meets/2026/yellow-jacket.dat`, and that is on
  * purpose: a phone mid-update is still running the old bundle out of its own
  * precache and asking the old path for the old format. That file stays committed
- * for one release so those phones keep working, then goes.
+ * for good, like every published meet's data and address: nothing that has been
+ * linked to is ever taken down.
  */
 export function meetFilePath(meet: Published): string {
   return `meets/${meet.year}/${meet.team}/${meet.slug}.dat`
