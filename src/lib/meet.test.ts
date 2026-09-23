@@ -213,14 +213,29 @@ test('a mile is never made out of the gun and the finish alone', () => {
   assert.deepEqual(row.miles, [])
 })
 
-test('a runner with no finish gets blanks, not an exception', () => {
+test('a runner with no finish gets every derived number blank, and keeps her marks', () => {
+  // A DNF. Two miles and a pace would be a partial race dressed as a whole one.
   const noFinish: Observed = { ...even('Rowan H.', EVEN_20, VARSITY), finish: undefined }
   const [row] = rowsOf(meet(event(VARSITY, [noFinish])))
-  assert.equal(row.miles.length, 2, 'the two timed miles, and no third')
+  assert.deepEqual(row.miles, [])
+  assert.equal(row.opening, undefined)
+  assert.equal(row.middle, undefined)
   assert.equal(row.closing, undefined)
+  assert.equal(row.fastest, undefined)
   assert.equal(row.average, undefined)
+  assert.equal(row.delta, undefined)
   assert.equal(row.vsBest, undefined)
   assert.equal(row.best, false)
+  assert.deepEqual(row.observed.times, noFinish.times, 'what was timed is still there')
+})
+
+test('a DNF sorts last and moves nobody else', () => {
+  const she = even('Rowan H.', EVEN_20, VARSITY)
+  const dnf: Observed = { ...even('Jordan B.', EVEN_20, VARSITY), finish: undefined }
+  const alone = rowsOf(meet(event(VARSITY, [she])))
+  const rows = rowsOf(meet(event(VARSITY, [dnf, she])))
+  assert.deepEqual(rows.map((r) => r.observed.label), ['Rowan H.', 'Jordan B.'])
+  assert.deepEqual(rows[0].miles, alone[0].miles)
 })
 
 test('the splits, nets and paces a coach reads off the table', () => {

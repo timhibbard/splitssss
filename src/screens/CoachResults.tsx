@@ -458,6 +458,7 @@ function Footnotes({
               : [],
           )
           const miles = mileCount(rows)
+          const unfinished = rows.filter((r) => r.observed.finish == null).map((r) => r.observed.label)
           return [
             <li key={`${event.squad}-coverage`}>
               <strong>{who}Coverage.</strong> {counts.join(', ')}, finish {finished}, out of {rows.length}.
@@ -498,6 +499,13 @@ function Footnotes({
                 <strong>{who}Timed marks that are actually estimates:</strong> {guessed.join('; ')}.
                 Filled in from the marks either side. Shown in the lighter type, same as the
                 calculated columns.
+              </li>
+            ) : null,
+            unfinished.length > 0 ? (
+              <li key={`${event.squad}-unfinished`}>
+                <strong>{who}No finish time:</strong> {unfinished.join(', ').replace(/\.?$/, '.')} Their marks are in the
+                table and nothing is derived from them, since every split, pace and net is
+                anchored on a finish.
               </li>
             ) : null,
           ]

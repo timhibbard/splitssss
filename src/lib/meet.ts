@@ -292,7 +292,8 @@ export type Row = {
    * Every whole mile up to the race distance that can be had, in order. Timed
    * where somebody stood at the mile, interpolated from the nearest known times
    * either side where nobody did. Stops at the first one that cannot be had,
-   * which is only ever the tail end of a runner with no finish.
+   * which is a runner with only the gun and the finish to go on. Empty for a
+   * runner with no finish, who gets nothing derived at all.
    *
    * JV's mile 3 and varsity's are the same code path, and so is a course with
    * markers at 800 m and 2K and no whole miles at all.
@@ -353,6 +354,15 @@ export function meetRows(meet: Meet): EventRows[] {
 
 function row(event: Event, observed: Observed, allowances: Allowance[]): Row {
   const { finish, best } = observed
+
+  // No finish, nothing derived. Every derived number here is anchored on the
+  // finish somewhere, and the ones that are not would be a partial race dressed as
+  // a whole one: two miles and a pace next to twenty finishers. Her marks stay,
+  // because those were timed.
+  if (finish == null) {
+    return { event, observed, miles: [], best: false }
+  }
+
   const known = points(event, observed)
 
   const miles: WholeMile[] = []
