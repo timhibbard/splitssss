@@ -17,7 +17,7 @@
  */
 
 import { useState } from 'react'
-import { formatElapsed, formatPr, formatSignedElapsed } from '../lib/clock'
+import { formatElapsed, formatIsoDate, formatPr, formatSignedElapsed } from '../lib/clock'
 import { METERS_PER_MILE } from '../lib/distance'
 import { resultsLink } from '../lib/link'
 import {
@@ -33,11 +33,12 @@ import {
   repeatsAMile,
   type Row,
 } from '../lib/meet'
-import { type ResultsPage, seasonName } from '../lib/pages'
+import { type Published, type ResultsPage, seasonName } from '../lib/pages'
+import type { SeasonMeet } from '../lib/season'
 
 type Props = {
-  /** `undefined` while the file is still being looked for, `null` if there isn't one. */
-  meet: Meet | null | undefined
+  /** The season's meets, newest first, each with its file as far as it has loaded. */
+  meets: SeasonMeet[]
   /** Which address this is and the meet it opens on, so the page has a name before the file lands. */
   page: ResultsPage
   onBack: () => void
@@ -231,9 +232,13 @@ const VIEWS: { view: View; says: string }[] = [
   { view: 'miles', says: 'Mile by mile' },
 ]
 
-export function CoachResults({ meet, page, onBack }: Props) {
+export function CoachResults({ meets, page, onBack }: Props) {
   const [view, setView] = useState<View>('course')
   const [status, setStatus] = useState('')
+  /** The meet on screen, by slug: the one the address opens on until another is picked. */
+  const [chosen, setChosen] = useState(page.meet?.slug ?? '')
+  const showing = meets.find((m) => m.published.slug === chosen) ?? meets[0]
+  const meet = showing?.meet
 
   const events = meet ? meetRows(meet) : []
   const runners = events.reduce((n, e) => n + e.rows.length, 0)
@@ -249,8 +254,9 @@ export function CoachResults({ meet, page, onBack }: Props) {
     // Built from the app's base, not from where this page happens to be. The coach
     // page sits underneath the athlete page, so a link made out of the current
     // pathname would point back at this table.
-    const link = resultsLink(window.location.origin, import.meta.env.BASE_URL, page)
-    const text = `${meet?.name ?? seasonName(page)} splits — pick your name: ${link}`
+    if (!showing) return
+    const link = resultsLink(window.location.origin, import.meta.env.BASE_URL, page, showing.published)
+    const text = `${showing.published.name} splits — pick your name: ${link}`
     if (navigator.share) {
       try {
         await navigator.share({ text })
@@ -274,12 +280,31 @@ export function CoachResults({ meet, page, onBack }: Props) {
           Back
         </button>
         <div className="bar-where">
-          <strong>{meet?.name ?? page.meet?.name ?? seasonName(page)}</strong>
-          <span>{meet ? `${meet.date} · ${runners} runners` : page.meet ? 'One moment' : 'Results'}</span>
+          <strong>{showing?.published.name ?? seasonName(page)}</strong>
+          <span>{meet ? `${meet.date} · ${runners} runners` : showing ? 'One moment' : 'Results'}</span>
         </div>
       </header>
 
-      {page.meet === null ? (
+      {showing && (
+        <label className="pick">
+          <span>Race</span>
+          <select
+            value={showing.published.slug}
+            onChange={(e) => {
+              setChosen(e.target.value)
+              setStatus('')
+            }}
+          >
+            {meets.map(({ published }) => (
+              <option key={published.slug} value={published.slug}>
+                {published.name}, {formatIsoDate(published.date)}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
+      {!showing ? (
         <p className="instructions">No results for this season yet.</p>
       ) : meet === undefined ? (
         <p className="instructions">Looking for the results…</p>
@@ -319,7 +344,7 @@ export function CoachResults({ meet, page, onBack }: Props) {
             <EventTable key={e.event.squad} {...e} view={view} several={events.length > 1} />
           ))}
 
-          <Footnotes meet={meet} events={events} />
+          <Footnotes meet={meet} events={events} reconciled={showing?.published.reconciled} />
         </>
       )}
     </div>
@@ -398,12 +423,20 @@ function EventTable({ event, rows, view, several }: EventRows & { view: View; se
  * What is measured and what is not, spelled out.
  *
  * Generated from the meet rather than typed, so a second meet with different
- * stations cannot ship last meet's caveats. The one thing hardcoded is the gun
- * corrections, because those happened outside this data: they were reconciled by
- * hand before the file was built, and the file has no memory of them. That is the
- * gap results-import is meant to close.
+ * stations cannot ship last meet's caveats. The one thing not read off the file is
+ * how its times were reconciled, because that happened outside this data and the
+ * file has no memory of it, so it comes from that meet's line in PUBLISHED. That is
+ * the gap results-import is meant to close.
  */
-function Footnotes({ meet, events }: { meet: Meet; events: EventRows[] }) {
+function Footnotes({
+  meet,
+  events,
+  reconciled,
+}: {
+  meet: Meet
+  events: EventRows[]
+  reconciled?: Published['reconciled']
+}) {
   const allowances = kickAllowances(meet).filter((a) => a.ms !== 0)
   const several = events.length > 1
   const span = (distance: number, pair: [number, number]) =>
@@ -480,13 +513,11 @@ function Footnotes({ meet, events }: { meet: Meet; events: EventRows[] }) {
             what they measured at this meet. It is recalculated per meet, not stored.
           </li>
         ))}
-        <li>
-          <strong>Every station's gun was corrected by hand.</strong> Three of the four
-          volunteers started late — by 2.3 s, 6.6 s and 9.5 s — and the offsets came out
-          of the absolute clock times, not out of what anyone remembered pressing. The
-          2.6 mile operator reported being "3 to 4 seconds" late and the phone recorded
-          9.5. This table is the corrected version; the raw exports are not in it.
-        </li>
+        {reconciled && (
+          <li>
+            <strong>{reconciled.title}</strong> {reconciled.body}
+          </li>
+        )}
         <li>
           <strong>The PR column is the one they came in with.</strong> A highlighted row
           beat the time in it at this meet. It has not been written back to anybody's

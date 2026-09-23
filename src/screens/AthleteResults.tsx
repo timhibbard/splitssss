@@ -17,17 +17,18 @@
  */
 
 import { useState } from 'react'
-import { formatElapsed, formatPr, formatSignedElapsed } from '../lib/clock'
+import { formatElapsed, formatIsoDate, formatPr, formatSignedElapsed } from '../lib/clock'
 import { METERS_PER_MILE } from '../lib/distance'
-import { type Anchor, anchorLabel, comparesToPr, type Event, type Meet, meetRows, mileage, repeatsAMile, type Row } from '../lib/meet'
+import { type Anchor, anchorLabel, comparesToPr, type Event, meetRows, mileage, repeatsAMile, type Row } from '../lib/meet'
 import { type ResultsPage, seasonName } from '../lib/pages'
+import { firstRace, isHandedOut, racesOf, type SeasonMeet, seasonLabels } from '../lib/season'
 
 type Props = {
-  /** `undefined` while the file is still being looked for, `null` if there isn't one. */
-  meet: Meet | null | undefined
+  /** The season's meets, newest first, each with its file as far as it has loaded. */
+  meets: SeasonMeet[]
   /**
    * Which address this is, and the meet it opens on. The page can name the meet
-   * from it before the file has loaded, so a runner opening a texted link sees
+   * from it before the files have loaded, so a runner opening a texted link sees
    * where she is rather than the word "Results" while the fetch is in flight.
    */
   page: ResultsPage
@@ -36,10 +37,26 @@ type Props = {
 
 const COUNT = ['no', 'one', 'two', 'three', 'four', 'five', 'six']
 
-export function AthleteResults({ meet, page, onBack }: Props) {
+export function AthleteResults({ meets, page, onBack }: Props) {
   const [picked, setPicked] = useState('')
-  const rows = meet ? meetRows(meet).flatMap((e) => e.rows) : []
-  const row = rows.find((r) => r.observed.label === picked)
+  /** The race on screen, by slug, once she has picked one other than her first. */
+  const [chosen, setChosen] = useState('')
+
+  const loading = meets.some((m) => m.meet === undefined)
+  const loaded = meets.filter((m) => m.meet)
+  const labels = seasonLabels(loaded)
+  const races = picked ? racesOf(picked, loaded) : []
+  const race = races.find((r) => r.published.slug === chosen) ?? firstRace(page, races)
+  const row = race?.meet
+    ? meetRows(race.meet)
+        .flatMap((e) => e.rows)
+        .find((r) => r.observed.label === picked)
+    : undefined
+
+  // Before a name is picked, a texted meet address is about its meet and a season
+  // is about the season.
+  const title =
+    race?.published.name ?? (isHandedOut(page) && page.meet ? page.meet.name : seasonName(page))
 
   return (
     <div className="screen results">
@@ -48,16 +65,16 @@ export function AthleteResults({ meet, page, onBack }: Props) {
           Back
         </button>
         <div className="bar-where">
-          <strong>{meet?.name ?? page.meet?.name ?? seasonName(page)}</strong>
-          <span>{meet ? 'Your race, mile by mile' : page.meet ? 'One moment' : 'Results'}</span>
+          <strong>{title}</strong>
+          <span>{row ? 'Your race, mile by mile' : meets.length === 0 ? 'Results' : loading ? 'One moment' : 'Your races'}</span>
         </div>
       </header>
 
-      {page.meet === null ? (
+      {meets.length === 0 ? (
         <p className="instructions">No results for this season yet.</p>
-      ) : meet === undefined ? (
+      ) : loading ? (
         <p className="instructions">Looking for the results…</p>
-      ) : meet === null ? (
+      ) : loaded.length === 0 ? (
         <p className="instructions">
           This build does not have the results in it. Tap Refresh on the home screen
           to pick up a newer one.
@@ -72,22 +89,41 @@ export function AthleteResults({ meet, page, onBack }: Props) {
               going past; here nothing is timed, and a phone's own picker is the
               control every person opening this already knows how to use.
             */}
-            <select value={picked} onChange={(e) => setPicked(e.target.value)}>
+            <select
+              value={picked}
+              onChange={(e) => {
+                setPicked(e.target.value)
+                setChosen('')
+              }}
+            >
               <option value="">Choose…</option>
-              {[...rows]
-                .sort((a, b) => a.observed.label.localeCompare(b.observed.label))
-                .map((r) => (
-                  <option key={r.observed.label} value={r.observed.label}>
-                    {r.observed.label}
-                  </option>
-                ))}
+              {labels.map((label) => (
+                <option key={label} value={label}>
+                  {label}
+                </option>
+              ))}
             </select>
           </label>
 
+          {race && (
+            <label className="pick">
+              {/* Only the meets she ran. One she was not at has nothing of hers in it. */}
+              <span>Race</span>
+              <select value={race.published.slug} onChange={(e) => setChosen(e.target.value)}>
+                {races.map(({ published }) => (
+                  <option key={published.slug} value={published.slug}>
+                    {published.name}, {formatIsoDate(published.date)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
           {row == null ? (
             <p className="hint">
-              {rows.length} of us raced at {meet.name}. Pick your name for your marks,
-              your miles and your finish.
+              {loaded.length === 1
+                ? `${labels.length} of us raced at ${loaded[0].published.name}. Pick your name for your marks, your miles and your finish.`
+                : `${labels.length} of us raced in ${loaded.length} meets this season. Pick your name for your marks, your miles and your finish at each.`}
             </p>
           ) : (
             <Race row={row} />
