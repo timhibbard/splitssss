@@ -165,7 +165,11 @@ function Race({ row }: { row: Row }) {
         <p className="finish-label">
           {observed.label}, {comparesToPr(event.distance) ? '5K' : `${event.distance} m`}
         </p>
-        <p className="finish-time">{observed.finish == null ? '' : formatPr(observed.finish)}</p>
+        {observed.finish == null ? (
+          <p className="finish-pace">No finish time</p>
+        ) : (
+          <p className="finish-time">{formatPr(observed.finish)}</p>
+        )}
         {row.average != null && (
           <p className="finish-pace">{pace(row.average)} per mile</p>
         )}

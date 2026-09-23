@@ -21,10 +21,21 @@
  *   # marks 1mi 2mi
  *   Marlowe Holloway  7:54.4  16:54.8  27:04.84  27:31.02
  *
- * A dash is the volunteer at that marker missing that runner. A trailing `~` marks
- * a value calculated from the marks either side of it rather than timed, which is
- * the one thing a results table must never lose track of. A row of the wrong width
- * for its event is refused, with the line number.
+ * A dash is the volunteer at that marker missing that runner, and a dash for the
+ * finish is a runner with no finish time: her marks ship, nothing is derived for
+ * her, and this says whose it was rather than refusing twenty reconciled races
+ * over one DNF. A trailing `~` marks a value calculated from the marks either side
+ * of it rather than timed, which is the one thing a results table must never lose
+ * track of. A row of the wrong width for its event is refused, with the line
+ * number, and nothing is written.
+ *
+ * Name the file for the meet and the team, `meets/rockingham-girls.txt`. The
+ * `-girls` comes off for the slug, so both teams' files for one meet publish side
+ * by side under their own team.
+ *
+ * On the way out it lists this file's labels against every other file for the same
+ * team and season: who is new, who raced before and is not here, and any pair with
+ * the same first name that might be one runner whose label drifted.
  *
  * Writes `public/meets/<year>/<team>/<slug>.dat`, which **is** meant to be committed. The
  * input is not: /meets/ is gitignored, exactly like roster*.txt. The year comes off
@@ -50,8 +61,8 @@
  * page. The whole derived table gets printed here for exactly that reason: it is
  * the only chance to compare it against the sheet before it ships.
  */
-import { basename, dirname, extname } from 'node:path'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { basename, dirname, extname, join } from 'node:path'
 import { formatElapsed, formatPr, formatSignedElapsed } from '../src/lib/clock.ts'
 import { anchorLabel, kickAllowances, type Meet, meetRows, meetText, mileage, parseMeet } from '../src/lib/meet.ts'
 import { scrambleMeet, unscrambleMeet } from '../src/lib/meetfile.ts'
@@ -60,7 +71,7 @@ import { shortNames } from '../src/lib/names.ts'
 
 const file = process.argv[2]
 if (!file) {
-  console.error('Usage: npm run meet-file -- meets/yellow-jacket.txt')
+  console.error('Usage: npm run meet-file -- meets/rockingham-girls.txt')
   process.exit(1)
 }
 
@@ -90,10 +101,23 @@ if (clash) {
   process.exit(1)
 }
 
-const missingFinish = everyone.filter((r) => r.finish == null).map((r) => r.label)
-if (missingFinish.length > 0) {
-  console.error(`No finish time for ${missingFinish.join(', ')}.`)
-  console.error('Every derived number is anchored on the finish, so a row without one is blank.')
+/**
+ * The slug comes from the input file's name, with a trailing `-girls` or `-boys`
+ * taken off, so `rockingham-girls.txt` and `rockingham-boys.txt` are the same meet
+ * for two teams and publish side by side. A suffix that disagrees with the file's
+ * own team line is a file about to be published under the wrong team, so it is
+ * refused rather than believed either way.
+ */
+const stem = basename(file, extname(file))
+const suffix = /-(girls|boys)$/.exec(stem)?.[1]
+if (suffix && suffix !== source.team) {
+  console.error(`${file} is named for the ${suffix} but says "# team ${source.team}". Nothing was written.`)
+  process.exit(1)
+}
+const slug = suffix ? stem.slice(0, -(suffix.length + 1)) : stem
+// The slug is a directory name in a URL, and a season's own pages sit beside it.
+if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug) || ['girls', 'boys', 'coach'].includes(slug)) {
+  console.error(`"${slug}" cannot be a meet's address. Name the file like rockingham-girls.txt. Nothing was written.`)
   process.exit(1)
 }
 
@@ -107,22 +131,31 @@ const meet: Meet = {
 }
 
 /**
- * The slug comes from the input file's name and the year from the meet's own date,
- * so the address and the data file are both derived from the source rather than
- * typed twice. Under `public/` at exactly the path the app will ask for.
+ * The year comes off the meet's own date, so the address and the data file are
+ * both derived from the source rather than typed twice. Under `public/` at exactly
+ * the path the app will ask for.
  */
-const slug = basename(file, extname(file))
 const year = Number(meet.date.slice(0, 4))
 const published = { slug, year, team: meet.team, date: meet.date, name: meet.name }
 const OUT = `public/${meetFilePath(published)}`
-mkdirSync(dirname(OUT), { recursive: true })
-writeFileSync(OUT, `${scrambleMeet(meet)}\n`)
 
-// Read it back through the same path the app uses, so a bad write is caught here
-// rather than by an athlete who cannot find her name.
-const back = unscrambleMeet(readFileSync(OUT, 'utf8'))
-if (back == null || meetText(back) !== meetText(meet)) {
-  console.error(`${OUT} did not read back as the same meet. Do not publish it.`)
+// Read back through the same path the app uses, once before anything is written and
+// once off the disk after, so a bad file is caught here rather than by an athlete
+// who cannot find her name. A file that fails the second is removed, not left.
+const body = `${scrambleMeet(meet)}\n`
+const roundTrips = (text: string) => {
+  const back = unscrambleMeet(text)
+  return back != null && meetText(back) === meetText(meet)
+}
+if (!roundTrips(body)) {
+  console.error('The meet did not read back as itself. Nothing was written.')
+  process.exit(1)
+}
+mkdirSync(dirname(OUT), { recursive: true })
+writeFileSync(OUT, body)
+if (!roundTrips(readFileSync(OUT, 'utf8'))) {
+  rmSync(OUT)
+  console.error(`${OUT} did not read back as the same meet off the disk, so it was removed.`)
   process.exit(1)
 }
 
@@ -197,6 +230,50 @@ if (allowances.length > 0) {
       `Mile ${a.mile} off ${span(a.from)} is corrected onto ${span(a.onto)} by ${formatSignedElapsed(a.ms)}, ` +
         `measured from ${a.calibrators} runner${a.calibrators === 1 ? '' : 's'} with both.`,
     )
+  }
+}
+
+const unfinished = everyone.filter((r) => r.finish == null).map((r) => short.get(r)!)
+if (unfinished.length > 0) {
+  console.error('')
+  // Labels end in an initial's period already, so the sentence does not add one.
+  const list = unfinished.join(', ')
+  console.error(`No finish time for ${list}${list.endsWith('.') ? '' : '.'}`)
+  console.error('Their marks ship and nothing is derived for them. If that is a missing')
+  console.error('time rather than a DNF, fix the source and run this again.')
+}
+
+/*
+ * Labels against the rest of the season. shortNames only knows about this file, so
+ * adding one runner can grow somebody else's label a letter ("Emma L." becoming
+ * "Emma La.") and her season quietly splits into two people. A new runner and a
+ * drifted label look the same to the code and are obvious to whoever reads this.
+ */
+const seasonDir = dirname(OUT)
+const others = readdirSync(seasonDir)
+  .filter((f) => f.endsWith('.dat') && f !== `${slug}.dat`)
+  .flatMap((f) => {
+    const other = unscrambleMeet(readFileSync(join(seasonDir, f), 'utf8'))
+    return other ? [other] : []
+  })
+console.error('')
+if (others.length === 0) {
+  console.error(`First ${meet.team} meet of ${year} on disk, so there are no other labels to check against.`)
+} else {
+  const labelsOf = (m: Meet) => new Set(m.events.flatMap((e) => e.runners.map((r) => r.label)))
+  const here = labelsOf(meet)
+  const before = new Map<string, string>()
+  for (const other of others) for (const label of labelsOf(other)) if (!before.has(label)) before.set(label, other.name)
+  const fresh = [...here].filter((l) => !before.has(l)).sort()
+  const absent = [...before.keys()].filter((l) => !here.has(l)).sort()
+  const first = (l: string) => l.split(' ')[0]
+  console.error(`Labels against the other ${others.length} ${meet.team} meet${others.length === 1 ? '' : 's'} of ${year}:`)
+  console.error(`  First time this season: ${fresh.length > 0 ? fresh.join(', ') : 'nobody'}`)
+  console.error(`  Raced before, not here: ${absent.length > 0 ? absent.join(', ') : 'nobody'}`)
+  for (const l of fresh) {
+    for (const a of absent.filter((a) => first(a) === first(l))) {
+      console.error(`  Same runner? "${l}" here and "${a}" at ${before.get(a)}. If so, the labels have drifted.`)
+    }
   }
 }
 
