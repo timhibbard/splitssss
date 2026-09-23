@@ -5,7 +5,8 @@ import { isLegacyHelpHash, rosterFromHash } from './lib/link'
 import { forTeam } from './lib/lineup'
 import type { Meet } from './lib/meet'
 import { fetchMeet } from './lib/meetfile'
-import { HELP_PATH, meetFilePath, type Page, pageAt } from './lib/pages'
+import { HELP_PATH, meetFilePath, type Page, pageAt, type ResultsPage, seasonMeets } from './lib/pages'
+import { type SeasonMeet, seasonFiles } from './lib/season'
 import { mergeLineup } from './lib/roster'
 import { assignAthlete, clearName } from './lib/splits'
 import * as store from './lib/storage'
@@ -134,8 +135,9 @@ export default function App() {
    */
   const [addressed, setAddressed] = useState<Page | null>(OPENED_ON)
   /**
-   * The shipped meet results, fetched the first time a results page is asked for
-   * rather than at startup. `undefined` is still looking and `null` is a build with
+   * The shipped meet results, keyed by file, each fetched the first time a results
+   * page for its season is asked for rather than at startup. A file missing from
+   * here is still being looked for. `undefined` is still looking and `null` is a build with
    * no results file in it, which is the normal case for a fresh clone — the two have
    * to read differently or somebody with a slow first load is told the results do
    * not exist.
@@ -144,9 +146,9 @@ export default function App() {
    * the file is precached either way, so there is nothing to gain by paying for it
    * before somebody asks.
    */
-  const [meet, setMeet] = useState<Meet | null | undefined>(undefined)
-  /** The results file already asked for, so the same one is not fetched twice. */
-  const askedForMeet = useRef<string | null>(null)
+  const [meetFiles, setMeetFiles] = useState<Record<string, Meet | null>>({})
+  /** The results files already asked for, so the same one is not fetched twice. */
+  const askedForMeet = useRef(new Set<string>())
   /** Where Back goes from the roster, so it returns you where you came from. */
   const [rosterReturn, setRosterReturn] = useState<Screen>(restored.race ? 'capture' : 'setup')
   /**
@@ -226,27 +228,28 @@ export default function App() {
   }, [])
 
   /**
-   * The results file for whichever meet the address names, looked for the first time
-   * one of its pages is on screen. One request to a precached file, so it resolves
+   * Every results file in the season the address names, looked for the first time
+   * one of its pages is on screen. The whole season rather than one meet, because
+   * the name picker lists everybody who raced any of them and the race picker
+   * switches between them. A kilobyte or so each and all precached, so they resolve
    * with no signal at the course.
    *
-   * Keyed on the file rather than on a flag, so opening the athlete page and then the
-   * coach page for the same meet is one fetch, while a link to a different meet is a
-   * fetch of its own.
+   * Keyed on the file, so opening the athlete page and then the coach page for the
+   * same season fetches nothing twice. A season with nothing published has no file
+   * to look for, and the page says so from its own address.
    */
   useEffect(() => {
-    const meetOf = addressed?.kind === 'results' || addressed?.kind === 'coach'
-      ? addressed.meet
-      : null
-    // A season with nothing published has no file to look for. The page says so
-    // from its own address.
-    if (!meetOf) return
-    const file = `${BASE}${meetFilePath(meetOf)}`
-    if (askedForMeet.current === file) return
-    askedForMeet.current = file
-    setMeet(undefined)
-    void fetchMeet(file).then(setMeet)
+    if (addressed?.kind !== 'results' && addressed?.kind !== 'coach') return
+    for (const published of seasonMeets(addressed.season)) {
+      const file = `${BASE}${meetFilePath(published)}`
+      if (askedForMeet.current.has(file)) continue
+      askedForMeet.current.add(file)
+      void fetchMeet(file).then((meet) => setMeetFiles((prev) => ({ ...prev, [file]: meet })))
+    }
   }, [addressed])
+
+  const seasonOf = (page: ResultsPage): SeasonMeet[] =>
+    seasonFiles(page.season, (published) => meetFiles[`${BASE}${meetFilePath(published)}`])
 
   /**
    * Crossing counter, held outside React state so the storage write can happen
@@ -638,11 +641,11 @@ export default function App() {
    * offer somebody standing at Mile 2 with a phone.
    */
   if (screen === 'results' && addressed?.kind === 'results') {
-    return <AthleteResults meet={meet} page={addressed} onBack={closePage} />
+    return <AthleteResults meets={seasonOf(addressed)} page={addressed} onBack={closePage} />
   }
 
   if (screen === 'coach' && addressed?.kind === 'coach') {
-    return <CoachResults meet={meet} page={addressed} onBack={closePage} />
+    return <CoachResults meets={seasonOf(addressed)} page={addressed} onBack={closePage} />
   }
 
   if (showSetup) {

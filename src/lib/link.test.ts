@@ -9,7 +9,7 @@ import {
   rosterFromHash,
   rosterLink,
 } from './link.ts'
-import { PAGES, pageAt } from './pages.ts'
+import { PAGES, pageAt, PUBLISHED } from './pages.ts'
 import type { Athlete } from './types.ts'
 
 const team: Athlete[] = [
@@ -167,24 +167,34 @@ test('a roster link is never read as a request for the help page', () => {
   assert.deepEqual(rosterFromHash('#help'), [])
 })
 
-test('the coach page hands out the athlete page that goes with it', () => {
-  // Never its own address. From the season's coach page that is the season; from a
-  // meet address that was texted out, it is that same meet address, so a link sent
-  // from there keeps meaning that race.
+test('the coach page hands out an athlete page, never its own', () => {
   for (const page of PAGES) {
     if (page.kind !== 'coach') continue
-    const link = resultsLink('https://example.test', '/splitssss/', page)
-    assert.equal(link, `https://example.test/splitssss/${page.athlete}`)
-    assert.ok(!link.includes('/coach'), link)
-    assert.equal(pageAt(new URL(link).pathname, '/splitssss/')?.kind, 'results', link)
+    for (const showing of PUBLISHED) {
+      const link = resultsLink('https://example.test', '/splitssss/', page, showing)
+      assert.ok(!link.includes('/coach'), link)
+      assert.equal(pageAt(new URL(link).pathname, '/splitssss/')?.kind, 'results', link)
+    }
   }
 })
 
-test('the Yellow Jacket coach page still texts the Yellow Jacket link', () => {
+test('the Yellow Jacket coach page still texts the Yellow Jacket link for Yellow Jacket', () => {
   const coach = PAGES.find((p) => p.path === 'meets/2026/yellow-jacket/coach/')
-  assert.ok(coach && coach.kind === 'coach')
+  assert.ok(coach && coach.kind === 'coach' && coach.meet)
   assert.equal(
-    resultsLink('https://example.test', '/splitssss/', coach),
+    resultsLink('https://example.test', '/splitssss/', coach, coach.meet),
     'https://example.test/splitssss/meets/2026/yellow-jacket/',
+  )
+})
+
+test('a different race picked there texts the season, not the Yellow Jacket link', () => {
+  // The Yellow Jacket address opens on Yellow Jacket. Sending it with another
+  // meet's name in the message would hand every runner the wrong race.
+  const coach = PAGES.find((p) => p.path === 'meets/2026/yellow-jacket/coach/')
+  assert.ok(coach && coach.kind === 'coach' && coach.meet)
+  const other = { ...coach.meet, slug: 'rockingham', date: '2026-09-26', name: 'Rockingham' }
+  assert.equal(
+    resultsLink('https://example.test', '/splitssss/', coach, other),
+    'https://example.test/splitssss/meets/2026/girls/',
   )
 })

@@ -40,6 +40,12 @@ export type Published = {
   year: number
   /** What the meet is called, shown before the file has loaded. */
   name: string
+  /**
+   * How this meet's times were put right before the file was built, for the coach
+   * page. Kept here because the file has no memory of it, and per meet because a
+   * note about one day's volunteers printed under every meet would be false.
+   */
+  reconciled?: { title: string; body: string }
 }
 
 /**
@@ -47,7 +53,21 @@ export type Published = {
  * that `npm run meet-file` wrote; the tool prints the line to add.
  */
 export const PUBLISHED: Published[] = [
-  { slug: 'yellow-jacket', year: 2026, team: 'girls', date: '2026-09-12', name: 'Yellow Jacket Invitational' },
+  {
+    slug: 'yellow-jacket',
+    year: 2026,
+    team: 'girls',
+    date: '2026-09-12',
+    name: 'Yellow Jacket Invitational',
+    reconciled: {
+      title: "Every station's gun was corrected by hand.",
+      body:
+        'Three of the four volunteers started late — by 2.3 s, 6.6 s and 9.5 s — and the ' +
+        'offsets came out of the absolute clock times, not out of what anyone remembered ' +
+        'pressing. The 2.6 mile operator reported being "3 to 4 seconds" late and the ' +
+        'phone recorded 9.5. This table is the corrected version; the raw exports are not in it.',
+    },
+  },
 ]
 
 /** One team's year of meets, which is the unit both results pages are addressed by. */

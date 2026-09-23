@@ -1,7 +1,8 @@
 // Explicit extension so `node --test` can load this module's graph without a
 // build step. Vite resolves it identically.
 import { base64UrlToText, textToBase64Url } from './base64.ts'
-import { HELP_PATH, pageLink, type ResultsPage } from './pages.ts'
+import { HELP_PATH, pageLink, type Published, type ResultsPage } from './pages.ts'
+import { shareAddress } from './season.ts'
 import { parseRoster, rosterText } from './roster.ts'
 import type { Athlete } from './types'
 
@@ -71,12 +72,17 @@ export function helpLink(origin: string, base: string): string {
  * timing screens on purpose — a volunteer holding a phone at Mile 2 has no use for
  * a results table, and the app's home screen is theirs.
  *
- * Takes the page rather than a meet, and reads its `athlete` address, so the coach
- * page's own path cannot be passed in here by mistake. From a handed-out meet
- * address that is the same meet address; from a season it is the season.
+ * Takes the page and the meet on screen rather than a path, so the coach page's own
+ * address cannot be passed in here by mistake. See shareAddress for which athlete
+ * address that comes to.
  */
-export function resultsLink(origin: string, base: string, page: ResultsPage): string {
-  return pageLink(origin, base, page.athlete)
+export function resultsLink(
+  origin: string,
+  base: string,
+  page: ResultsPage,
+  showing: Published,
+): string {
+  return pageLink(origin, base, shareAddress(page, showing))
 }
 
 /**
