@@ -18,7 +18,8 @@
 
 import { useState } from 'react'
 import { formatElapsed, formatPr, formatSignedElapsed } from '../lib/clock'
-import { type Meet, meetRows, type Row } from '../lib/meet'
+import { METERS_PER_MILE } from '../lib/distance'
+import { type Anchor, anchorLabel, comparesToPr, type Event, type Meet, meetRows, mileage, repeatsAMile, type Row } from '../lib/meet'
 import type { Published } from '../lib/pages'
 
 type Props = {
@@ -33,17 +34,11 @@ type Props = {
   onBack: () => void
 }
 
-/** The cumulative marks, in course order, as her own row of the table. */
-const MARKS: { key: 'half' | 'mile1' | 'twoMile' | 'mile26'; says: string }[] = [
-  { key: 'half', says: 'Half mile' },
-  { key: 'mile1', says: '1 mile' },
-  { key: 'twoMile', says: '2 miles' },
-  { key: 'mile26', says: '2.6 miles' },
-]
+const COUNT = ['no', 'one', 'two', 'three', 'four', 'five', 'six']
 
 export function AthleteResults({ meet, published, onBack }: Props) {
   const [picked, setPicked] = useState('')
-  const rows = meet ? meetRows(meet) : []
+  const rows = meet ? meetRows(meet).flatMap((e) => e.rows) : []
   const row = rows.find((r) => r.observed.label === picked)
 
   return (
@@ -89,8 +84,8 @@ export function AthleteResults({ meet, published, onBack }: Props) {
 
           {row == null ? (
             <p className="hint">
-              {rows.length} of us raced at {meet.name}. Pick your name for your half
-              mile, your three miles and your finish.
+              {rows.length} of us raced at {meet.name}. Pick your name for your marks,
+              your miles and your finish.
             </p>
           ) : (
             <Race row={row} />
@@ -102,11 +97,36 @@ export function AthleteResults({ meet, published, onBack }: Props) {
 }
 
 function Race({ row }: { row: Row }) {
-  const { observed } = row
+  const { observed, event } = row
+  const first = event.markers[0]?.meters ?? 0
+  const opening = row.opening && repeatsAMile(0, row.opening.meters) ? undefined : row.opening
+  const middle = row.middle && repeatsAMile(first, row.middle.meters) ? undefined : row.middle
+  const { closing } = row
+  const calculated = row.miles.filter((m) => !m.timed)
+
+  /*
+    Every place she has a time for, in course order: the markers somebody stood at,
+    then any whole mile nobody did, which is calculated.
+  */
+  const where = [
+    ...event.markers.flatMap((marker, i) => {
+      const at = observed.times[i]
+      return at == null ? [] : [{ meters: marker.meters, says: marker.label, at, calculated: false }]
+    }),
+    ...calculated.map((m) => ({
+      meters: m.mile * METERS_PER_MILE,
+      says: `${m.mile} mi`,
+      at: m.at,
+      calculated: true,
+    })),
+  ].sort((a, b) => a.meters - b.meters)
+
   return (
     <>
       <section className={`finish-card${row.best ? ' is-best' : ''}`}>
-        <p className="finish-label">{observed.label}, 5K</p>
+        <p className="finish-label">
+          {observed.label}, {comparesToPr(event.distance) ? '5K' : `${event.distance} m`}
+        </p>
         <p className="finish-time">{observed.finish == null ? '' : formatPr(observed.finish)}</p>
         {row.average != null && (
           <p className="finish-pace">{pace(row.average)} per mile</p>
@@ -129,105 +149,104 @@ function Race({ row }: { row: Row }) {
       </section>
 
       {/*
-        The three miles as bars, because the shape is the point and three numbers in
-        a row do not have a shape. Widths are relative to the slowest mile, so the
-        longest bar is always full and the comparison is between her own three miles
-        rather than against some absolute pace nobody has in mind.
+        Her miles as bars, because the shape is the point and three numbers in a row
+        do not have a shape. Widths are relative to the slowest mile, so the longest
+        bar is always full and the comparison is between her own miles rather than
+        against some absolute pace nobody has in mind.
       */}
-      <section className="miles">
-        <h2>Your three miles</h2>
-        {row.miles.map((ms, i) => (
-          <div key={i} className="mile-row">
-            <span className="mile-no">Mile {i + 1}</span>
-            <span className="mile-bar">
-              <span
-                className={`mile-fill${ms === row.fastest ? ' is-fast' : ''}${
-                  ms === row.slowest ? ' is-slow' : ''
-                }`}
-                style={{ width: `${(ms / row.slowest!) * 100}%` }}
-              />
-            </span>
-            <span className="mile-time">{formatElapsed(ms)}</span>
-          </div>
-        ))}
-        <p className="hint">
-          Mile 3 is calculated from your{' '}
-          {observed.mile26 != null ? '2.6 mile mark' : '2 mile mark'} and your finish.
-        </p>
-      </section>
+      {row.miles.length > 0 && (
+        <section className="miles">
+          <h2>Your {COUNT[row.miles.length] ?? row.miles.length} miles</h2>
+          {row.miles.map((m) => (
+            <div key={m.mile} className="mile-row">
+              <span className="mile-no">Mile {m.mile}</span>
+              <span className="mile-bar">
+                <span
+                  className={`mile-fill${m.split === row.fastest ? ' is-fast' : ''}${
+                    m.split === row.slowest ? ' is-slow' : ''
+                  }`}
+                  style={{ width: `${(m.split / row.slowest!) * 100}%` }}
+                />
+              </span>
+              <span className="mile-time">{formatElapsed(m.split)}</span>
+            </div>
+          ))}
+          {calculated.map((m) => (
+            <p key={m.mile} className="hint">
+              Mile {m.mile} is calculated from {yours(event, m.between![0])} and{' '}
+              {yours(event, m.between![1])}.
+            </p>
+          ))}
+        </section>
+      )}
 
       {/*
         The two ends as the time each one took, which is the comparison: the opening
-        half mile against the closing one. Both exist only where a volunteer stood at
-        0.5 mi and 2.6 mi, and they are the reason those two markers are worth a
-        person each even though neither is a mile.
-
-        The closing one is 815.7 m, and is called and paced as a half mile anyway, so
-        the pace in the next section is this time doubled. See `lastHalf` in meet.ts.
+        stretch against the closing one. Each is named with its true length, so the
+        pace in the next section is that time over that distance and nothing else.
 
         Times here and paces in the next section, deliberately not both in both. The
         same number twice under two headings makes a page longer without making it say
         more.
       */}
-      {(observed.half != null || row.lastHalf != null) && (
+      {(opening != null || closing != null) && (
         <section className="marks">
           <h2>The two ends of the race</h2>
           <table>
             <tbody>
-              {observed.half != null && (
+              {opening != null && (
                 <tr>
-                  <th scope="row">First half mile</th>
-                  <td>{formatElapsed(observed.half)}</td>
+                  <th scope="row">First {mileage(opening.meters)}</th>
+                  <td>{formatElapsed(opening.time)}</td>
                 </tr>
               )}
-              {row.lastHalf != null && (
+              {closing != null && (
                 <tr>
-                  <th scope="row">Last half mile</th>
-                  <td>{formatElapsed(row.lastHalf)}</td>
+                  <th scope="row">Last {mileage(closing.meters)}</th>
+                  <td>{formatElapsed(closing.time)}</td>
                 </tr>
               )}
             </tbody>
           </table>
           <p className="hint">
-            How long each one took. The last one is from the 2.6 mile mark to the line.
+            How long each one took.
+            {closing != null && ` The last one is from the ${event.markers.at(-1)!.label} mark to the line.`}
           </p>
         </section>
       )}
 
       {/*
-        The same race as four paces, in course order, ending on the average. Going out
+        The same race as paces, in course order, ending on the average. Going out
         25 s/mile quick and closing 30 s/mile quick are different races with the same
         finish time, and this is the section where that is visible.
 
-        The middle is the 2.1 miles between the two markers rather than "the middle
-        two miles", because 0.5 to 2.6 is what was actually timed and rounding it to a
-        tidier distance would make the number wrong.
+        The middle is what was actually timed, first marker to last, rather than a
+        tidier distance, because rounding it would make the number wrong.
 
-        Only shown when at least one segment pace exists. A JV runner had nobody at
-        0.5 mi or 2.6 mi, so hers would be a section containing one number that the
-        finish card already prints.
+        Only shown when at least one segment pace exists, so it is never a section
+        holding one number the finish card already prints.
       */}
-      {(row.openPace != null || row.middlePace != null || row.kickPace != null) && (
+      {(opening != null || middle != null || closing != null) && (
         <section className="marks">
           <h2>Paces</h2>
           <table>
             <tbody>
-              {row.openPace != null && (
+              {opening != null && (
                 <tr>
-                  <th scope="row">First half mile</th>
-                  <td>{pace(row.openPace)}</td>
+                  <th scope="row">First {mileage(opening.meters)}</th>
+                  <td>{pace(opening.pace)}</td>
                 </tr>
               )}
-              {row.middlePace != null && (
+              {middle != null && (
                 <tr>
-                  <th scope="row">Middle 2.1 miles</th>
-                  <td>{pace(row.middlePace)}</td>
+                  <th scope="row">Middle {mileage(middle.meters)}</th>
+                  <td>{pace(middle.pace)}</td>
                 </tr>
               )}
-              {row.kickPace != null && (
+              {closing != null && (
                 <tr>
-                  <th scope="row">Last half mile</th>
-                  <td>{pace(row.kickPace)}</td>
+                  <th scope="row">Last {mileage(closing.meters)}</th>
+                  <td>{pace(closing.pace)}</td>
                 </tr>
               )}
               {row.average != null && (
@@ -240,19 +259,19 @@ function Race({ row }: { row: Row }) {
           </table>
           <p className="hint">
             Minutes per mile.
-            {row.middlePace != null &&
-              ' The middle is from your half mile mark to your 2.6 mile mark.'}
+            {middle != null &&
+              ` The middle is from your ${event.markers[0].label} mark to your ${event.markers.at(-1)!.label} mark.`}
           </p>
         </section>
       )}
 
       {/*
-        Only the 3 mile mark is labelled here, and only because nobody was standing at
-        3 miles for anyone. A mark that one volunteer missed and the coach reconstructed
-        and then checked is a mark the coach is using, so this page shows it as one. The
-        coach page still lists exactly which marks those were, which is where that
-        belongs: a runner reading her own splits cannot act on the difference, and the
-        person who can is the person who filled it in.
+        Only the calculated miles are labelled here, because nobody was standing at
+        them. A mark that one volunteer missed and the coach reconstructed and then
+        checked is a mark the coach is using, so this page shows it as one. The coach
+        page still lists exactly which marks those were, which is where that belongs:
+        a runner reading her own splits cannot act on the difference, and the person
+        who can is the person who filled it in.
 
         "calculated" sits in the row's label, not next to its time. The times are
         right aligned and tabular so they read as a column, and a word after one of
@@ -263,20 +282,15 @@ function Race({ row }: { row: Row }) {
         <h2>Where you were, and when</h2>
         <table>
           <tbody>
-            {MARKS.filter(({ key }) => observed[key] != null).map(({ key, says }) => (
-              <tr key={key}>
-                <th scope="row">{says}</th>
-                <td>{formatElapsed(observed[key]!)}</td>
+            {where.map((w) => (
+              <tr key={w.meters}>
+                <th scope="row">
+                  {w.says}
+                  {w.calculated && <span className="soft"> (calculated)</span>}
+                </th>
+                <td>{formatElapsed(w.at)}</td>
               </tr>
             ))}
-            {row.threeMile != null && (
-              <tr>
-                <th scope="row">
-                  3 miles <span className="soft">(calculated)</span>
-                </th>
-                <td>{formatElapsed(row.threeMile)}</td>
-              </tr>
-            )}
             {observed.finish != null && (
               <tr>
                 <th scope="row">Finish</th>
@@ -292,6 +306,13 @@ function Race({ row }: { row: Row }) {
       </section>
     </>
   )
+}
+
+/** A known time as it reads in a sentence to her: "your 2.6 mi mark", "the gun". */
+function yours(event: Event, anchor: Anchor): string {
+  if (anchor === 'start') return 'the gun'
+  if (anchor === 'finish') return 'your finish'
+  return `your ${anchorLabel(event, anchor)} mark`
 }
 
 /** A pace as m:ss. Tenths of a second per mile is precision this does not have. */

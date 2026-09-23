@@ -1,7 +1,7 @@
 // Explicit extensions: see the note in link.ts.
 import { parsePr } from './clock.ts'
 import { METERS_PER_MILE, PR_METERS } from './distance.ts'
-import type { Squad } from './types'
+import type { Squad, Team } from './types'
 
 /**
  * One meet's reconciled results: what volunteers timed at the markers, joined to
@@ -15,226 +15,406 @@ import type { Squad } from './types'
  *
  * Times are milliseconds, matching everything else in this app, so the formatters
  * in clock.ts apply unchanged.
+ *
+ * Which markers a race had is data, declared per event, and never a field name.
+ * Yellow Jacket's varsity race had volunteers at 0.5, 1, 2 and 2.6 miles and its
+ * JV race only at 1 and 2; the next course may have one at 800 m. A model with
+ * one course's markers written into its types cannot tell "nobody stood there"
+ * from "the volunteer missed this runner", and those are different facts: the
+ * first is a marker absent from the event, the second a null in a runner's row.
  */
-
-/** Marker distances, in meters, as the course actually had them. */
-const HALF_MILE_M = 0.5 * METERS_PER_MILE
-const TWO_MILE_M = 2 * METERS_PER_MILE
-const MILE_2_6_M = 2.6 * METERS_PER_MILE
-const THREE_MILE_M = 3 * METERS_PER_MILE
-const RACE_M = PR_METERS
 
 /**
- * A cumulative time somebody stood at a marker for, or that the meet published.
- * Named so a derived value can say which of them it is standing in for.
+ * A place on the course somebody stood. `label` is how a page says it, "0.5 mi"
+ * or "800 m" or "2K", and with its space taken out it is also how the file says
+ * it, which is what lets the text round-trip.
  */
-export type Mark = 'half' | 'mile1' | 'twoMile' | 'mile26' | 'finish'
-
-const MARKS: Mark[] = ['half', 'mile1', 'twoMile', 'mile26', 'finish']
+export type Marker = { meters: number; label: string }
 
 export type Observed = {
   /** "Rowan H.", the same label the tap buttons say. Never a full name. */
   label: string
-  squad?: Squad
-  /** Cumulative from the gun. Absent where no volunteer stood. */
-  half?: number
-  mile1?: number
-  twoMile?: number
-  mile26?: number
+  /**
+   * Cumulative from the gun, one per marker of this runner's event, in the same
+   * order. Null where the volunteer at that marker missed this runner.
+   */
+  times: (number | null)[]
   finish?: number
-  /** This runner's 5K best *before* this meet, for the comparison. */
+  /** This runner's 5K PR *before* this meet, for the comparison. */
   best?: number
   /**
-   * Marks holding a number nobody timed.
+   * Indices into `times` holding a number nobody timed.
    *
    * A missing split can be reconstructed when two real observations bracket it,
    * and that value is worth having, but it must never be indistinguishable from a
-   * tap. At Yellow Jacket exactly one was: Emma L.'s mile 1, interpolated between
+   * tap. At Yellow Jacket exactly one was: a varsity mile 1, interpolated between
    * a timed 0.5 mi and a timed 2 mi. A year from now nothing else would say so.
    */
-  derived: readonly Mark[]
+  derived: readonly number[]
 }
 
-export type Meet = { name: string; date: string; runners: Observed[] }
+/**
+ * One race inside a meet. Its markers and its distance are its own, because two
+ * races on one afternoon do not have to have had the same volunteers.
+ *
+ * `distance` is the honest measured length, not the nominal one. A course that
+ * ran 60 m long is still a 5K for the PR line (see `comparesToPr`), but the paces
+ * are figured over what was actually run.
+ */
+export type Event = { squad: Squad; distance: number; markers: Marker[]; runners: Observed[] }
+
+/** One meet for one team: one course, one afternoon, one set of guns. */
+export type Meet = { name: string; date: string; team: Team; events: Event[] }
 
 /** Milliseconds per mile at the pace implied by covering `meters` in `ms`. */
 export function perMile(ms: number, meters: number): number {
   return (ms * METERS_PER_MILE) / meters
 }
 
-/** Where `target` falls between two marks, as a fraction of the gap. */
-function fraction(target: number, from: number, to: number): number {
-  return (target - from) / (to - from)
-}
-
-const FROM_2_6 = fraction(THREE_MILE_M, MILE_2_6_M, RACE_M)
-const FROM_2_MILE = fraction(THREE_MILE_M, TWO_MILE_M, RACE_M)
-
 /**
- * The 3 mile mark, interpolated, because nobody was standing at it.
+ * A distance as a page says it, to the hundredth of a mile: "0.51 mi", "2.1 mi".
  *
- * It reads far better than an interpolation has any right to, and the reason is
- * that 3 miles is only 172 m short of a 5K. Anchored on 2.6 mi the published
- * finish carries 79% of the weight; anchored on 2 mi it carries 90%. So the
- * shakiest number in a set barely touches the answer: the 9.5 s gun error at
- * Yellow Jacket's 2.6 mi station comes through as about 1.3 s here.
- *
- * Anchoring on the nearer mark is strictly better, so 2.6 mi wins whenever a
- * volunteer stood there. Only the JV girls, who had no 2.6 mi station, fall back
- * to 2 mi.
+ * The true distance, labelled as itself. 2.6 mi to a 5K line is 815.7 m, and this
+ * says 0.51 mi rather than calling it half a mile. With markers declared per race
+ * a flat half mile would be right on one course and quietly wrong on the next.
  */
-function fromMark(mark: number, finish: number, span: number): number {
-  return mark + span * (finish - mark)
+export function mileage(meters: number): string {
+  return `${Number((meters / METERS_PER_MILE).toFixed(2))} mi`
 }
 
 /**
- * How much the 2 mi anchor undershoots, measured rather than assumed.
+ * Whether a finish at this distance can be set against a 5K PR. A band, not an
+ * exact match: a PR is a PR even if the course ran short or long, and a course
+ * that measured 60 m over should not cost anyone their PR line. A 3200 or a 4000
+ * is well outside it, which keeps distance.ts's rule that a 4K is not a 5K.
+ */
+export function comparesToPr(distance: number): boolean {
+  return Math.abs(distance - PR_METERS) <= 250
+}
+
+/* ---------- whole miles ---------- */
+
+/**
+ * How close two distances have to be to be the same place. Marker distances come
+ * out of tokens like "2.6mi", so two spellings of one marker agree to far better
+ * than this; anything farther apart is a different spot on the course.
+ */
+const SAME_PLACE_M = 0.5
+
+/**
+ * Whether a stretch starting `from` meters out and `meters` long is exactly one
+ * whole mile, which a mile split already shows. A JV race timed at 1 and 2 miles
+ * has an opening that is mile 1 and a middle that is mile 2, and the same number
+ * twice under two headings makes a page longer without making it say more.
+ */
+export function repeatsAMile(from: number, meters: number): boolean {
+  const miles = from / METERS_PER_MILE
+  return (
+    Math.abs(miles - Math.round(miles)) * METERS_PER_MILE <= SAME_PLACE_M &&
+    Math.abs(meters - METERS_PER_MILE) <= SAME_PLACE_M
+  )
+}
+
+/** A known time: the gun, a marker by its index in the event, or the finish. */
+export type Anchor = 'start' | 'finish' | number
+
+type Point = { anchor: Anchor; meters: number; at: number }
+
+/** Everything known about one runner's race, in course order, gun included. */
+function points(event: Event, runner: Observed): Point[] {
+  const known: Point[] = [{ anchor: 'start', meters: 0, at: 0 }]
+  event.markers.forEach((marker, i) => {
+    const at = runner.times[i]
+    if (at != null) known.push({ anchor: i, meters: marker.meters, at })
+  })
+  if (runner.finish != null) known.push({ anchor: 'finish', meters: event.distance, at: runner.finish })
+  return known
+}
+
+function pointAt(known: Point[], meters: number): Point | undefined {
+  return known.find((p) => p.anchor !== 'start' && Math.abs(p.meters - meters) <= SAME_PLACE_M)
+}
+
+/**
+ * The two nearest known times either side of `meters`.
+ *
+ * Never the gun and the finish together. A mile interpolated from nothing but a
+ * finish time is the runner's average pace written into a split column, and it
+ * would read as a mile somebody ran.
+ */
+function bracket(known: Point[], meters: number): [Point, Point] | undefined {
+  const low = known.findLast((p) => p.meters < meters - SAME_PLACE_M)
+  const high = known.find((p) => p.meters > meters + SAME_PLACE_M)
+  if (!low || !high) return undefined
+  if (low.anchor === 'start' && high.anchor === 'finish') return undefined
+  return [low, high]
+}
+
+function interpolate([low, high]: [Point, Point], meters: number): number {
+  return low.at + ((high.at - low.at) * (meters - low.meters)) / (high.meters - low.meters)
+}
+
+/**
+ * A correction for interpolating a mile off a wider bracket than the course's
+ * tightest, measured rather than assumed.
  *
  * A straight line from 2 mi to the finish misses the fact that runners speed up
- * over the last half mile, and it misses it worse than a line from 2.6 mi does
- * because it has more than twice the distance to be wrong over. Every varsity
- * girl has *both* anchors, so the size of that miss is not a guess: compute both
- * ways for whoever has both marks and take the mean gap. At Yellow Jacket that is
- * +1.84 s, fast on all nine, ranging +0.8 s to +3.0 s.
+ * over the last half mile, and it misses it worse than a line from 2.6 mi does,
+ * because it has more than twice the distance to be wrong over. Anybody with both
+ * brackets timed shows the size of that miss directly: compute the mile both ways
+ * and take the gap. At Yellow Jacket that was +1.84 s, fast on all nine varsity
+ * girls, ranging +0.8 s to +3.0 s.
  *
  * Calibrating instead of hardcoding is what makes this survive another meet. A
  * flatter course, a longer finishing straight, or a 2.5 mi marker instead of 2.6
  * changes the number, and nobody would remember to edit a constant.
  *
- * Zero when nobody has both marks, which is the honest answer: with no runner to
- * calibrate against there is nothing to say about the closing kick.
+ * Measured across the whole file, not per event, and that is deliberate. The
+ * allowance is a property of the course, and the runners who need it (JV, who had
+ * nobody at 2.6) are exactly the ones who cannot calibrate it. Scoped per event it
+ * would come out zero for JV and silently move their mile 3 by about two seconds.
+ * One file is one team on one course on one day, so the file is the course.
+ * Races of different lengths are kept apart, since they did not share a finish.
  */
-export function kickAllowance(runners: Observed[]): number {
-  const gaps = runners.flatMap((r) =>
-    r.mile26 != null && r.twoMile != null && r.finish != null
-      ? [fromMark(r.mile26, r.finish, FROM_2_6) - fromMark(r.twoMile, r.finish, FROM_2_MILE)]
-      : [],
-  )
-  if (gaps.length === 0) return 0
-  return gaps.reduce((a, b) => a + b, 0) / gaps.length
+export type Allowance = {
+  /** The race length it applies to. */
+  distance: number
+  /** Which whole mile. */
+  mile: number
+  /** The bracket being corrected, as meters from the gun. */
+  from: [number, number]
+  /** The tightest bracket anyone in the file had, which is what it is corrected onto. */
+  onto: [number, number]
+  /** Added to a mile interpolated off `from`. Zero when nobody had both brackets. */
+  ms: number
+  /** How many runners had both, and so measured it. */
+  calibrators: number
 }
 
+/**
+ * Every allowance in a meet.
+ *
+ * Only the wider brackets get one. The tightest bracket is the reference and is
+ * never corrected, which was a real error in the spreadsheet this replaces: the
+ * JV correction applied to the varsity rows put every runner who had a 2.6 mile
+ * mark about two seconds off.
+ *
+ * Zero when nobody has both, which is the honest answer: with no runner to
+ * calibrate against there is nothing to say about the closing kick, and a
+ * constant carried over from another meet is exactly what this is avoiding.
+ */
+export function kickAllowances(meet: Meet): Allowance[] {
+  const found: Allowance[] = []
+  for (const distance of new Set(meet.events.map((e) => e.distance))) {
+    const field = meet.events
+      .filter((e) => e.distance === distance)
+      .flatMap((e) => e.runners.map((r) => points(e, r)))
+    for (let mile = 1; mile * METERS_PER_MILE <= distance + SAME_PLACE_M; mile++) {
+      const at = mile * METERS_PER_MILE
+      const brackets = field.flatMap((known) => {
+        if (pointAt(known, at)) return []
+        const b = bracket(known, at)
+        return b ? [b] : []
+      })
+      if (brackets.length === 0) continue
+      const onto = brackets.reduce((best, b) =>
+        b[1].meters - b[0].meters < best[1].meters - best[0].meters ? b : best,
+      )
+      const seen = new Set<string>()
+      for (const from of brackets) {
+        const key = `${from[0].meters}/${from[1].meters}`
+        if (sameSpan(from, onto) || seen.has(key)) continue
+        seen.add(key)
+        const gaps = field.flatMap((known) => {
+          const tight = [pointAt(known, onto[0].meters) ?? start(known, onto[0]), pointAt(known, onto[1].meters)]
+          const wide = [pointAt(known, from[0].meters) ?? start(known, from[0]), pointAt(known, from[1].meters)]
+          if (!tight[0] || !tight[1] || !wide[0] || !wide[1]) return []
+          return [
+            interpolate(tight as [Point, Point], at) - interpolate(wide as [Point, Point], at),
+          ]
+        })
+        found.push({
+          distance,
+          mile,
+          from: [from[0].meters, from[1].meters],
+          onto: [onto[0].meters, onto[1].meters],
+          ms: gaps.length === 0 ? 0 : gaps.reduce((a, b) => a + b, 0) / gaps.length,
+          calibrators: gaps.length,
+        })
+      }
+    }
+  }
+  return found
+}
+
+/** The gun, when the bracket end being looked for is the gun. Everybody has that one. */
+function start(known: Point[], p: Point): Point | undefined {
+  return p.anchor === 'start' ? known[0] : undefined
+}
+
+function sameSpan(a: [Point, Point], b: [Point, Point]): boolean {
+  return (
+    Math.abs(a[0].meters - b[0].meters) <= SAME_PLACE_M &&
+    Math.abs(a[1].meters - b[1].meters) <= SAME_PLACE_M
+  )
+}
+
+/** One whole mile of one runner's race. */
+export type WholeMile = {
+  /** 1, 2, 3. */
+  mile: number
+  /** Cumulative from the gun at the mile mark. */
+  at: number
+  /** This mile on its own. */
+  split: number
+  /** This mile against the one before it. Positive is slower. Absent for mile 1. */
+  net?: number
+  /**
+   * Whether somebody stood at the mile. A timed mile can still be one the coach
+   * reconstructed by hand; that is on the marker, and `isDerived` says.
+   */
+  timed: boolean
+  /** The marker it was timed at, when it was timed at one. */
+  marker?: number
+  /** The two known times it was interpolated between, when it was not timed. */
+  between?: [Anchor, Anchor]
+  /** What the kick allowance added to it. Zero on a timed mile or the tightest bracket. */
+  allowance: number
+}
+
+/** A stretch of the race between two known times, with its true length. */
+export type Segment = { meters: number; time: number; pace: number }
+
 export type Row = {
+  event: Event
   observed: Observed
-  /** Mile 2 alone: the 2 mile mark less the 1 mile mark. */
-  mile2Split?: number
-  /** Mile 2 against mile 1. Positive is slower. */
-  net1?: number
-  threeMile?: number
-  /** Which mark the 3 mile came off, so a page can say. */
-  anchor?: Extract<Mark, 'mile26' | 'twoMile'>
-  mile3Split?: number
-  /** Mile 3 against mile 2. Positive is slower. */
-  net2?: number
   /**
-   * 2.6 mi to the line, called the last half mile everywhere it is shown.
+   * Every whole mile up to the race distance that can be had, in order. Timed
+   * where somebody stood at the mile, interpolated from the nearest known times
+   * either side where nobody did. Stops at the first one that cannot be had,
+   * which is only ever the tail end of a runner with no finish.
    *
-   * It is 815.7 m, which is 15.7 m more than half a mile, and that difference is
-   * deliberately given up: `kickPace` divides by a flat half mile so the pace is the
-   * time doubled and reconciles in one step. Dividing by the true 0.507 mi put 3:10.4
-   * next to 6:16 when doubling it says 6:20.9, and two correct numbers that look like
-   * they disagree cost more than 1.4% of a distance a volunteer paced off anyway.
+   * JV's mile 3 and varsity's are the same code path, and so is a course with
+   * markers at 800 m and 2K and no whole miles at all.
    */
-  lastHalf?: number
-  /** Per mile over the 2.1 miles between the 0.5 and 2.6 markers. */
-  middlePace?: number
+  miles: WholeMile[]
   /**
-   * Per mile over the opening half mile and over the closing one, both figured over
-   * exactly half a mile so each is its own time doubled. Both exist only where a
-   * volunteer stood at 0.5 mi and 2.6 mi, so varsity only here.
+   * Gun to the event's first marker, first marker to its last, and last marker to
+   * the line. Each is divided by its true distance and carries it, so the page
+   * labels it with that distance: "Last 0.51 mi", not "Last ½ mi".
    *
-   * These two against the race average are the whole story of how a 5K was run,
-   * and they are the reason those two markers are worth a volunteer each even
-   * though neither is a mile. Going out 25 s/mi quick and closing 30 s/mi quick
-   * are different races with the same finish time.
+   * These against the race average are the whole story of how a race was run, and
+   * they are why a marker is worth a volunteer even when it is not a mile. Going out
+   * 25 s/mi quick and closing 30 s/mi quick are different races with one finish.
    */
-  openPace?: number
-  kickPace?: number
-  /** The three individual miles, in order, however many of them exist. */
-  miles: number[]
+  opening?: Segment
+  middle?: Segment
+  closing?: Segment
   fastest?: number
   slowest?: number
   /** Halfway between the fastest and slowest mile. What the Delta is measured from. */
   midpoint?: number
-  /** True average mile pace across the whole 5K. */
+  /** True average mile pace across the whole race. */
   average?: number
   /**
-   * How far the average sits from that midpoint. Small means the three miles were
-   * evenly spaced around the average; large means one of them was an outlier
-   * dragging the middle away from where the runner actually spent the race.
+   * How far the average sits from that midpoint. Small means the miles were evenly
+   * spaced around the average; large means one of them was an outlier dragging the
+   * middle away from where the runner actually spent the race.
    *
    * Not a consistency measure, and named so it cannot be read as one: a runner who
    * slows by the same amount every mile lands near zero however wide their spread.
    * Spread is the consistency number. The coach table calls this one Delta.
    */
   delta?: number
-  /** Finish against the best time coming in. Negative is a new best. */
+  /** Finish against the PR coming in. Negative is a new PR. Only for a 5K. */
   vsBest?: number
   best: boolean
 }
 
+export type EventRows = { event: Event; rows: Row[] }
+
 /**
- * Everything the pages show, derived once, in finishing order.
+ * Everything the pages show, derived once, event by event, each in finishing
+ * order.
  *
  * Order is by published finish rather than by anything timed at a marker: it is
  * the only number here that a chip recorded, and a station's crossing order can
  * disagree with it wherever a volunteer tapped two runners out of sequence.
  */
-export function meetRows(meet: Meet): Row[] {
-  const allowance = kickAllowance(meet.runners)
-  return [...meet.runners]
-    .sort((a, b) => (a.finish ?? Infinity) - (b.finish ?? Infinity))
-    .map((observed) => row(observed, allowance))
+export function meetRows(meet: Meet): EventRows[] {
+  const allowances = kickAllowances(meet)
+  return meet.events.map((event) => ({
+    event,
+    rows: [...event.runners]
+      .sort((a, b) => (a.finish ?? Infinity) - (b.finish ?? Infinity))
+      .map((observed) => row(event, observed, allowances)),
+  }))
 }
 
-function row(observed: Observed, allowance: number): Row {
-  const { half, mile1, twoMile, mile26, finish, best } = observed
+function row(event: Event, observed: Observed, allowances: Allowance[]): Row {
+  const { finish, best } = observed
+  const known = points(event, observed)
 
-  const mile2Split = twoMile != null && mile1 != null ? twoMile - mile1 : undefined
-  const net1 = mile2Split != null && mile1 != null ? mile2Split - mile1 : undefined
+  const miles: WholeMile[] = []
+  for (let mile = 1; mile * METERS_PER_MILE <= event.distance + SAME_PLACE_M; mile++) {
+    const meters = mile * METERS_PER_MILE
+    const hit = pointAt(known, meters)
+    const b = hit ? undefined : bracket(known, meters)
+    if (!hit && !b) break
+    const allowance = b
+      ? (allowances.find(
+          (a) =>
+            a.distance === event.distance &&
+            a.mile === mile &&
+            Math.abs(a.from[0] - b[0].meters) <= SAME_PLACE_M &&
+            Math.abs(a.from[1] - b[1].meters) <= SAME_PLACE_M,
+        )?.ms ?? 0)
+      : 0
+    const at = hit ? hit.at : interpolate(b!, meters) + allowance
+    const before = miles.at(-1)
+    const split = at - (before?.at ?? 0)
+    miles.push({
+      mile,
+      at,
+      split,
+      ...(before ? { net: split - before.split } : {}),
+      timed: hit != null,
+      ...(hit && typeof hit.anchor === 'number' ? { marker: hit.anchor } : {}),
+      ...(b ? { between: [b[0].anchor, b[1].anchor] as [Anchor, Anchor] } : {}),
+      allowance,
+    })
+  }
 
-  const anchor = finish == null ? undefined : mile26 != null ? 'mile26' : twoMile != null ? 'twoMile' : undefined
-  const threeMile =
-    finish == null
-      ? undefined
-      : anchor === 'mile26'
-        ? fromMark(mile26!, finish, FROM_2_6)
-        : anchor === 'twoMile'
-          ? fromMark(twoMile!, finish, FROM_2_MILE) + allowance
-          : undefined
+  const { markers } = event
+  const first = observed.times[0]
+  const last = observed.times.at(-1)
+  const segment = (meters: number, time: number): Segment => ({ meters, time, pace: perMile(time, meters) })
+  const opening = markers.length > 0 && first != null ? segment(markers[0].meters, first) : undefined
+  const closing =
+    markers.length > 0 && last != null && finish != null
+      ? segment(event.distance - markers.at(-1)!.meters, finish - last)
+      : undefined
+  const middle =
+    markers.length > 1 && first != null && last != null
+      ? segment(markers.at(-1)!.meters - markers[0].meters, last - first)
+      : undefined
 
-  const mile3Split = threeMile != null && twoMile != null ? threeMile - twoMile : undefined
-  const net2 = mile3Split != null && mile2Split != null ? mile3Split - mile2Split : undefined
-
-  const lastHalf = finish != null && mile26 != null ? finish - mile26 : undefined
-  const middlePace =
-    mile26 != null && half != null ? perMile(mile26 - half, MILE_2_6_M - HALF_MILE_M) : undefined
-  const openPace = half != null ? perMile(half, HALF_MILE_M) : undefined
-  // A flat half mile, not the 815.7 m this actually is. See `lastHalf`: the pace has
-  // to be the time doubled or the two numbers read as a contradiction.
-  const kickPace = lastHalf != null ? perMile(lastHalf, HALF_MILE_M) : undefined
-
-  const miles = [mile1, mile2Split, mile3Split].filter((m): m is number => m != null)
-  const fastest = miles.length > 0 ? Math.min(...miles) : undefined
-  const slowest = miles.length > 0 ? Math.max(...miles) : undefined
+  const splits = miles.map((m) => m.split)
+  const fastest = splits.length > 0 ? Math.min(...splits) : undefined
+  const slowest = splits.length > 0 ? Math.max(...splits) : undefined
   const midpoint = fastest != null && slowest != null ? (fastest + slowest) / 2 : undefined
-  const average = finish != null ? perMile(finish, RACE_M) : undefined
+  const average = finish != null ? perMile(finish, event.distance) : undefined
   const delta = average != null && midpoint != null ? Math.abs(average - midpoint) : undefined
-  const vsBest = finish != null && best != null ? finish - best : undefined
+  const vsBest =
+    finish != null && best != null && comparesToPr(event.distance) ? finish - best : undefined
 
   return {
+    event,
     observed,
-    mile2Split,
-    net1,
-    threeMile,
-    anchor,
-    mile3Split,
-    net2,
-    lastHalf,
-    middlePace,
-    openPace,
-    kickPace,
     miles,
+    opening,
+    middle,
+    closing,
     fastest,
     slowest,
     midpoint,
@@ -245,19 +425,40 @@ function row(observed: Observed, allowance: number): Row {
   }
 }
 
-/** Whether a mark on this row is a real observation or something reconstructed. */
-export function isDerived(row: Row, mark: Mark): boolean {
-  return row.observed.derived.includes(mark)
+/** Whether a marker's time on this row is a real observation or something reconstructed. */
+export function isDerived(row: Row, marker: number): boolean {
+  return row.observed.derived.includes(marker)
+}
+
+/** How a page names a known time: a marker's label, or the start or finish. */
+export function anchorLabel(event: Event, anchor: Anchor): string {
+  if (anchor === 'start') return 'start'
+  if (anchor === 'finish') return 'finish'
+  return event.markers[anchor].label
 }
 
 /* ---------- the text format ---------- */
 
 /**
- * One runner per line, tab separated, in the fixed order below, with `-` where
- * no volunteer stood and a trailing `~` on any value that was reconstructed
- * rather than timed:
+ * Headings for the meet, then one block per event, each declaring its own
+ * markers, then its runners one per line, tab separated:
  *
- *   Rowan H.  Varsity  2:53.3  5:52.9~  12:04.6  15:58.2  19:08.66  18:42.53
+ *   # meet Yellow Jacket Invitational
+ *   # date 2026-09-12
+ *   # team girls
+ *
+ *   # event Varsity
+ *   # marks 0.5mi 1mi 2mi 2.6mi
+ *   Rowan H.  2:53.3  5:52.9~  12:04.6  15:58.2  19:08.66  18:42.53
+ *
+ *   # event JV
+ *   # marks 1mi 2mi
+ *   Jordan B.  7:54.4  16:54.8  27:04.84  -
+ *
+ * A row is the label, one cell per marker in the order `# marks` gives them, the
+ * finish, and the PR they came in with. `-` where the volunteer missed a runner,
+ * and a trailing `~` on any value reconstructed rather than timed. `# distance
+ * 3200`, in meters, only for an event that is not a 5K.
  *
  * Tabs and not commas, because the source of this is a spreadsheet column and a
  * paste out of one is tab separated already. Positional and not keyed, because
@@ -267,71 +468,175 @@ export function isDerived(row: Row, mark: Mark): boolean {
  * The label is the short form the tap buttons say, never a full name: this ships
  * in a public build, and the argument is written out in teamfile.ts.
  */
-const COLUMNS: Mark[] = ['half', 'mile1', 'twoMile', 'mile26', 'finish']
 
-const SQUAD_WORD: Record<string, Squad> = {
-  varsity: 'varsity',
-  jv: 'jv',
-}
-
+const SQUAD_WORD: Record<string, Squad> = { varsity: 'varsity', jv: 'jv' }
 const SQUAD_LABEL: Record<Squad, string> = { varsity: 'Varsity', jv: 'JV' }
+const TEAM_WORD: Record<string, Team> = { girls: 'girls', boys: 'boys' }
 
 /**
- * A meet out of text. Headings carry the meet itself:
+ * A marker out of its file token: `0.5mi`, `2.6mi`, `800m`, `2K`. Undefined for
+ * anything else, so a typo refuses the file rather than putting a marker
+ * somewhere on the course nobody stood.
+ */
+export function parseMarker(token: string): Marker | undefined {
+  const m = /^(\d+(?:\.\d+)?)(mi|m|k|km)$/i.exec(token.trim())
+  if (!m) return undefined
+  const n = Number(m[1])
+  if (!(n > 0)) return undefined
+  switch (m[2].toLowerCase()) {
+    case 'mi':
+      return { meters: n * METERS_PER_MILE, label: `${n} mi` }
+    case 'm':
+      return { meters: n, label: `${n} m` }
+    default:
+      return { meters: n * 1000, label: `${n}K` }
+  }
+}
+
+/**
+ * A meet out of text, or an Error saying exactly which line is wrong.
  *
- *   # meet Yellow Jacket Invitational
- *   # date 2026-09-12
+ * Refusing is the point. The old format took a short row as absent marks and
+ * silently shifted every value after the gap one column left, so a runner's 2 mi
+ * became her 2.6 mi and nothing on any page could tell. Now a row that is not the
+ * width its event's `# marks` says is refused, naming the runner and the line, and
+ * so is a cell that is not a time. A spreadsheet's header row pasted in with the
+ * data lands here too, which is right: it is not a runner.
  *
- * A line with no letters in the first cell drops out rather than throwing, for the
- * same reason parseRoster does it: a blank row or a rule of dashes pasted along
- * with the data is not a runner and is not worth refusing the whole file over.
- *
- * A spreadsheet's *header* row does have letters and does become a runner here,
- * named "Athlete" with no times on it. That is deliberate rather than overlooked:
- * guessing at which first cells are headings would eventually throw away somebody's
- * actual race. It is caught one layer up instead, where tools/meet-file.ts refuses
- * to write a file containing anybody with no finish time, and says whose.
+ * A line with no letters in the first cell still drops out, the same as
+ * parseRoster does it: a blank row or a rule of dashes pasted along with the data
+ * is not a runner and is not worth refusing the whole file over.
  */
 export function parseMeet(text: string): Meet {
   let name = ''
   let date = ''
-  const runners: Observed[] = []
-  for (const raw of text.split('\n')) {
-    const line = raw.trim()
-    if (line === '') continue
-    if (line.startsWith('#')) {
-      const head = /^#\s*(meet|date)\s+(.*)$/i.exec(line)
-      if (head) {
-        if (head[1].toLowerCase() === 'meet') name = head[2].trim()
-        else date = head[2].trim()
+  let team: Team | undefined
+  const events: Event[] = []
+  let open: (Event & { at: number }) | undefined
+  const labels = new Set<string>()
+
+  const close = () => {
+    if (!open) return
+    const { at, ...event } = open
+    const where = `line ${at}, ${SQUAD_LABEL[event.squad]}`
+    if (event.markers.length === 0) throw new Error(`${where}: no "# marks" line for this event.`)
+    event.markers.forEach((m, i) => {
+      if (i > 0 && m.meters <= event.markers[i - 1].meters)
+        throw new Error(`${where}: the marks have to be in course order, and ${m.label} is not.`)
+      if (m.meters >= event.distance)
+        throw new Error(`${where}: ${m.label} is at or past the finish.`)
+    })
+    events.push(event)
+    open = undefined
+  }
+
+  text.split('\n').forEach((raw, i) => {
+    const n = i + 1
+    const line = raw.replace(/\r$/, '')
+    if (line.trim() === '') return
+
+    if (line.trim().startsWith('#')) {
+      const head = /^#\s*(\w+)\s*(.*)$/.exec(line.trim())
+      if (!head) return
+      const [, key, rest] = head
+      const value = rest.trim()
+      switch (key.toLowerCase()) {
+        case 'meet':
+          name = value
+          return
+        case 'date':
+          date = value
+          return
+        case 'team':
+          team = TEAM_WORD[value.toLowerCase()]
+          if (!team) throw new Error(`line ${n}: "${value}" is not a team. Girls or boys.`)
+          return
+        case 'event': {
+          close()
+          const squad = SQUAD_WORD[value.toLowerCase()]
+          if (!squad) throw new Error(`line ${n}: "${value}" is not an event. Varsity or JV.`)
+          if (events.some((e) => e.squad === squad))
+            throw new Error(`line ${n}: a second ${SQUAD_LABEL[squad]} event in one file.`)
+          open = { squad, distance: PR_METERS, markers: [], runners: [], at: n }
+          return
+        }
+        case 'marks': {
+          if (!open) throw new Error(`line ${n}: "# marks" before any "# event" line.`)
+          if (open.runners.length > 0)
+            throw new Error(`line ${n}: "# marks" after runners, which would realign them.`)
+          const tokens = value.split(/\s+/).filter(Boolean)
+          if (tokens.length === 0) throw new Error(`line ${n}: "# marks" with no markers on it.`)
+          open.markers = tokens.map((token) => {
+            const marker = parseMarker(token)
+            if (!marker) throw new Error(`line ${n}: "${token}" is not a marker. Like 0.5mi, 800m, 2K.`)
+            return marker
+          })
+          return
+        }
+        case 'distance': {
+          if (!open) throw new Error(`line ${n}: "# distance" before any "# event" line.`)
+          const meters = Number(value)
+          if (!/^\d+(\.\d+)?$/.test(value) || !(meters > 0))
+            throw new Error(`line ${n}: "${value}" is not a distance in meters.`)
+          open.distance = meters
+          return
+        }
+        default:
+          // Any other heading is a comment.
+          return
       }
-      continue
     }
+
     const cells = line.split('\t').map((c) => c.trim())
     const label = cells[0] ?? ''
-    if (!/\p{L}/u.test(label)) continue
-    const squad = SQUAD_WORD[(cells[1] ?? '').toLowerCase()]
-    const derived: Mark[] = []
-    const times: Partial<Record<Mark, number>> = {}
-    COLUMNS.forEach((mark, i) => {
-      const cell = cells[i + 2] ?? '-'
-      if (cell === '' || cell === '-') return
+    if (!/\p{L}/u.test(label)) return
+    if (!open) throw new Error(`line ${n}: ${label} is before any "# event" line.`)
+    if (open.markers.length === 0)
+      throw new Error(`line ${n}: ${label} is in an event with no "# marks" line above it.`)
+
+    const width = open.markers.length + 3
+    if (cells.length !== width) {
+      throw new Error(
+        `line ${n}: ${label} has ${cells.length} cells and ${SQUAD_LABEL[open.squad]} needs ${width}: ` +
+          `the name, ${open.markers.map((m) => m.label).join(', ')}, the finish and the PR. ` +
+          `Put a - in any cell with nothing in it.`,
+      )
+    }
+    if (labels.has(label)) throw new Error(`line ${n}: ${label} is in this file twice.`)
+    labels.add(label)
+
+    const read = (cell: string, what: string): { ms: number; soft: boolean } | null => {
+      if (cell === '' || cell === '-') return null
       const soft = cell.endsWith('~')
-      const value = parsePr(soft ? cell.slice(0, -1) : cell)
-      if (value == null) return
-      times[mark] = value
-      if (soft) derived.push(mark)
+      const ms = parsePr(soft ? cell.slice(0, -1) : cell)
+      if (ms == null) throw new Error(`line ${n}: ${label}'s ${what} is "${cell}", which is not a time.`)
+      return { ms, soft }
+    }
+
+    const derived: number[] = []
+    const times = open.markers.map((marker, j) => {
+      const got = read(cells[j + 1], marker.label)
+      if (got?.soft) derived.push(j)
+      return got?.ms ?? null
     })
-    const best = parsePr(cells[COLUMNS.length + 2] ?? '')
-    runners.push({
+    const finish = read(cells[width - 2], 'finish')
+    const best = read(cells[width - 1], 'PR')
+    if (finish?.soft || best?.soft)
+      throw new Error(`line ${n}: ${label}'s finish and PR are published times, never reconstructed.`)
+    open.runners.push({
       label,
-      ...(squad == null ? {} : { squad }),
-      ...times,
-      ...(best == null ? {} : { best }),
+      times,
+      ...(finish == null ? {} : { finish: finish.ms }),
+      ...(best == null ? {} : { best: best.ms }),
       derived,
     })
-  }
-  return { name, date, runners }
+  })
+  close()
+
+  if (name === '') throw new Error('No "# meet <name>" line.')
+  if (date === '') throw new Error('No "# date <yyyy-mm-dd>" line.')
+  if (!team) throw new Error('No "# team girls" or "# team boys" line.')
+  return { name, date, team, events }
 }
 
 /**
@@ -342,24 +647,33 @@ export function parseMeet(text: string): Meet {
  * inventing a time nobody ran.
  */
 export function meetText(meet: Meet): string {
-  const cell = (ms: number | undefined, soft: boolean) =>
+  const cell = (ms: number | null | undefined, soft = false) =>
     ms == null ? '-' : `${hundredths(ms)}${soft ? '~' : ''}`
-  const lines = meet.runners.map((r) =>
+  const blocks = meet.events.map((event) =>
     [
-      r.label,
-      r.squad == null ? '-' : SQUAD_LABEL[r.squad],
-      ...COLUMNS.map((mark) => cell(r[mark], r.derived.includes(mark))),
-      r.best == null ? '-' : hundredths(r.best),
-    ].join('\t'),
+      `# event ${SQUAD_LABEL[event.squad]}`,
+      `# marks ${event.markers.map((m) => m.label.replace(' ', '')).join(' ')}`,
+      ...(event.distance === PR_METERS ? [] : [`# distance ${event.distance}`]),
+      ...event.runners.map((r) =>
+        [
+          r.label,
+          ...event.markers.map((_, i) => cell(r.times[i], r.derived.includes(i))),
+          cell(r.finish),
+          cell(r.best),
+        ].join('\t'),
+      ),
+    ].join('\n'),
   )
-  return [`# meet ${meet.name}`, `# date ${meet.date}`, ...lines].join('\n')
+  return [[`# meet ${meet.name}`, `# date ${meet.date}`, `# team ${meet.team}`].join('\n'), ...blocks].join(
+    '\n\n',
+  )
 }
 
 /**
  * m:ss.hh, the format parsePr reads back. Not clock.ts's formatPr, which is for
- * showing a best time and floors sub-centisecond noise into a display string;
- * this one has to round-trip, so it rounds to the centisecond the same way parsePr
- * will read it.
+ * showing a PR and floors sub-centisecond noise into a display string; this one
+ * has to round-trip, so it rounds to the centisecond the same way parsePr will
+ * read it.
  */
 function hundredths(ms: number): string {
   const total = Math.round(ms / 10)
@@ -368,6 +682,3 @@ function hundredths(ms: number): string {
   const mins = Math.floor(total / 6000)
   return `${mins}:${String(secs).padStart(2, '0')}.${String(cs).padStart(2, '0')}`
 }
-
-/** Every mark, for a page that wants to walk them in course order. */
-export { MARKS }

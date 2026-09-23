@@ -9,8 +9,13 @@ const MEET = parseMeet(
   [
     '# meet Yellow Jacket Invitational',
     '# date 2026-09-12',
-    'Rowan H.\tVarsity\t2:53.30\t5:52.90\t12:04.60\t15:58.20\t19:08.66\t18:42.53',
-    'Jordan B.\tJV\t-\t7:54.40\t16:54.80\t-\t27:04.84\t22:40.25',
+    '# team girls',
+    '# event Varsity',
+    '# marks 0.5mi 1mi 2mi 2.6mi',
+    'Rowan H.\t2:53.30\t5:52.90\t12:04.60\t15:58.20\t19:08.66\t18:42.53',
+    '# event JV',
+    '# marks 1mi 2mi',
+    'Jordan B.\t7:54.40\t16:54.80\t27:04.84\t22:40.25',
   ].join('\n'),
 )
 
@@ -60,7 +65,7 @@ test('anything that is not one of our files is refused', () => {
 })
 
 test('a meet with no runners in it is not a meet', () => {
-  const empty = scrambleMeet({ name: 'Nothing', date: '2026-09-12', runners: [] })
+  const empty = scrambleMeet({ name: 'Nothing', date: '2026-09-12', team: 'girls', events: [] })
   assert.equal(unscrambleMeet(empty), null)
 })
 
@@ -68,5 +73,5 @@ test('trailing whitespace from a file read does not break it', () => {
   // The tool writes a trailing newline, because a text file should end in one.
   const back = unscrambleMeet(`${scrambleMeet(MEET)}\n`)
   assert.ok(back)
-  assert.equal(back.runners.length, 2)
+  assert.equal(back.events.flatMap((e) => e.runners).length, 2)
 })

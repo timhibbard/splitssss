@@ -51,8 +51,13 @@ export function unscrambleMeet(body: string): Meet | null {
   const lines = new TextDecoder().decode(mask(bytes, KEY)).split('\n')
   if (lines.length < 3) return null
   if (lines[0] !== HEADER || lines[lines.length - 1] !== FOOTER) return null
-  const meet = parseMeet(lines.slice(1, -1).join('\n'))
-  return meet.runners.length > 0 ? meet : null
+  let meet: Meet
+  try {
+    meet = parseMeet(lines.slice(1, -1).join('\n'))
+  } catch {
+    return null
+  }
+  return meet.events.some((e) => e.runners.length > 0) ? meet : null
 }
 
 /**
