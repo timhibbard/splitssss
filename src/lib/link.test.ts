@@ -9,7 +9,7 @@ import {
   rosterFromHash,
   rosterLink,
 } from './link.ts'
-import { PUBLISHED } from './pages.ts'
+import { PAGES, pageAt } from './pages.ts'
 import type { Athlete } from './types.ts'
 
 const team: Athlete[] = [
@@ -167,26 +167,24 @@ test('a roster link is never read as a request for the help page', () => {
   assert.deepEqual(rosterFromHash('#help'), [])
 })
 
-test('the athlete results page has an address that can be texted', () => {
-  // A real path, and the year is in it, so next September's Yellow Jacket is a
-  // different address rather than the same link quietly showing different splits.
-  assert.equal(
-    resultsLink('https://example.test', '/splitssss/', {
-      slug: 'yellow-jacket',
-      year: 2026,
-      team: 'girls',
-      date: '2026-09-12',
-      name: 'Yellow Jacket Invitational',
-    }),
-    'https://example.test/splitssss/meets/2026/yellow-jacket/',
-  )
+test('the coach page hands out the athlete page that goes with it', () => {
+  // Never its own address. From the season's coach page that is the season; from a
+  // meet address that was texted out, it is that same meet address, so a link sent
+  // from there keeps meaning that race.
+  for (const page of PAGES) {
+    if (page.kind !== 'coach') continue
+    const link = resultsLink('https://example.test', '/splitssss/', page)
+    assert.equal(link, `https://example.test/splitssss/${page.athlete}`)
+    assert.ok(!link.includes('/coach'), link)
+    assert.equal(pageAt(new URL(link).pathname, '/splitssss/')?.kind, 'results', link)
+  }
 })
 
-test('every published meet has a link that is built, not typed', () => {
-  for (const meet of PUBLISHED) {
-    assert.equal(
-      resultsLink('https://example.test', '/splitssss/', meet),
-      `https://example.test/splitssss/meets/${meet.year}/${meet.slug}/`,
-    )
-  }
+test('the Yellow Jacket coach page still texts the Yellow Jacket link', () => {
+  const coach = PAGES.find((p) => p.path === 'meets/2026/yellow-jacket/coach/')
+  assert.ok(coach && coach.kind === 'coach')
+  assert.equal(
+    resultsLink('https://example.test', '/splitssss/', coach),
+    'https://example.test/splitssss/meets/2026/yellow-jacket/',
+  )
 })

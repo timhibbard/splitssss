@@ -46,7 +46,7 @@ function buildStamp(): string {
 }
 
 /**
- * Writes a real index.html at every address in PAGES, so `/meets/2026/yellow-jacket/`
+ * Writes a real index.html at every address in PAGES, so `/meets/2026/girls/`
  * is a file GitHub Pages can serve rather than a path it has never heard of.
  *
  * This is what makes paths possible on a host with no routing at all. The

@@ -33,13 +33,13 @@ import {
   repeatsAMile,
   type Row,
 } from '../lib/meet'
-import type { Published } from '../lib/pages'
+import { type ResultsPage, seasonName } from '../lib/pages'
 
 type Props = {
   /** `undefined` while the file is still being looked for, `null` if there isn't one. */
   meet: Meet | null | undefined
-  /** Which meet's address this is, so the page has a name before the file lands. */
-  published: Published
+  /** Which address this is and the meet it opens on, so the page has a name before the file lands. */
+  page: ResultsPage
   onBack: () => void
 }
 
@@ -231,7 +231,7 @@ const VIEWS: { view: View; says: string }[] = [
   { view: 'miles', says: 'Mile by mile' },
 ]
 
-export function CoachResults({ meet, published, onBack }: Props) {
+export function CoachResults({ meet, page, onBack }: Props) {
   const [view, setView] = useState<View>('course')
   const [status, setStatus] = useState('')
 
@@ -249,8 +249,8 @@ export function CoachResults({ meet, published, onBack }: Props) {
     // Built from the app's base, not from where this page happens to be. The coach
     // page sits underneath the athlete page, so a link made out of the current
     // pathname would point back at this table.
-    const link = resultsLink(window.location.origin, import.meta.env.BASE_URL, published)
-    const text = `${published.name} splits — pick your name: ${link}`
+    const link = resultsLink(window.location.origin, import.meta.env.BASE_URL, page)
+    const text = `${meet?.name ?? seasonName(page)} splits — pick your name: ${link}`
     if (navigator.share) {
       try {
         await navigator.share({ text })
@@ -274,12 +274,14 @@ export function CoachResults({ meet, published, onBack }: Props) {
           Back
         </button>
         <div className="bar-where">
-          <strong>{meet?.name ?? published.name}</strong>
-          <span>{meet ? `${meet.date} · ${runners} runners` : 'One moment'}</span>
+          <strong>{meet?.name ?? page.meet?.name ?? seasonName(page)}</strong>
+          <span>{meet ? `${meet.date} · ${runners} runners` : page.meet ? 'One moment' : 'Results'}</span>
         </div>
       </header>
 
-      {meet === undefined ? (
+      {page.meet === null ? (
+        <p className="instructions">No results for this season yet.</p>
+      ) : meet === undefined ? (
         <p className="instructions">Looking for the results…</p>
       ) : meet === null ? (
         <p className="instructions">

@@ -238,6 +238,8 @@ export default function App() {
     const meetOf = addressed?.kind === 'results' || addressed?.kind === 'coach'
       ? addressed.meet
       : null
+    // A season with nothing published has no file to look for. The page says so
+    // from its own address.
     if (!meetOf) return
     const file = `${BASE}${meetFilePath(meetOf)}`
     if (askedForMeet.current === file) return
@@ -636,11 +638,11 @@ export default function App() {
    * offer somebody standing at Mile 2 with a phone.
    */
   if (screen === 'results' && addressed?.kind === 'results') {
-    return <AthleteResults meet={meet} published={addressed.meet} onBack={closePage} />
+    return <AthleteResults meet={meet} page={addressed} onBack={closePage} />
   }
 
   if (screen === 'coach' && addressed?.kind === 'coach') {
-    return <CoachResults meet={meet} published={addressed.meet} onBack={closePage} />
+    return <CoachResults meet={meet} page={addressed} onBack={closePage} />
   }
 
   if (showSetup) {
