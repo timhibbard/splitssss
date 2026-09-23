@@ -119,17 +119,23 @@ Live at **https://timhibbard.github.io/splitssss/**
   instructions, with the app and the names one Back away, so a text message is the
   whole briefing. The old `#help` still resolves, because it was texted to parents
   before the page had a path and those messages are not going anywhere.
-- **Results, once a meet has been reconciled.** Two pages behind their own
-  addresses. `/meets/2026/yellow-jacket/` is for the runners: pick your name and get
-  your own race — your finish against your PR, your three miles, both ends of the
-  race as times and then as paces beside your average, and every mark with the time
-  it was taken at. Numbers only; what a race meant is the coach's to say.
-  `/meets/2026/yellow-jacket/coach/` is the spreadsheet, every derived column, with
-  what is measured and what is calculated spelled out at the bottom. Two addresses on purpose, because only the first one
-  should ever be texted to a team. Neither is reachable from the timing screens.
+- **Results, once a meet has been reconciled.** Two pages per team per season.
+  `/meets/2026/girls/` is for the runners: pick your name and get your most recent
+  race, with a Race picker for the other meets you ran — your finish against your
+  PR, your miles, both ends of the race as times and then as paces beside your
+  average, and every mark with the time it was taken at. Numbers only; what a race
+  meant is the coach's to say. `/meets/2026/girls/coach/` is the spreadsheet for
+  whichever meet is picked, every derived column for each race in it, with what is
+  measured and what is calculated spelled out at the bottom. Two addresses on
+  purpose, because only the first one should ever be texted to a team. The boys
+  have the same pair, `/meets/2026/boys/` and its `coach/`, which say there are no
+  results yet until the boys' first meet is published. The Yellow Jacket addresses
+  texted out before seasons existed, `/meets/2026/yellow-jacket/` and its `coach/`,
+  still open on that race and always will. Neither page is reachable from the
+  timing screens.
 - **Real paths, on a host with no routing.** The build writes an actual `index.html`
   at every address, so a texted link is a 200 and a real link preview rather than a
-  404 the app recovers from. The season is in a meet's path because the same
+  404 the app recovers from. The season is in the path because the same
   invitational comes back every September, and a link sent out last year should not
   start showing this year's splits.
 - **No backend.** Static site, all state on the device, exports leave by way of
@@ -157,9 +163,12 @@ the same reason: a PR that has to be sent to a volunteer never reaches the
 one at the two mile mark, and a 5K PR is already published next to a full name
 on the meet's own results page. See DESIGN.md.
 
-`public/meets/2026/girls/yellow-jacket.dat` is a meet's reconciled results and follows the
-same rule: short labels, no surnames, scrambled, with its own key so it can never be
-confused for the team file. Its source, the full-name spreadsheet paste under
+`public/meets/<year>/<team>/<meet>.dat`, such as
+`public/meets/2026/girls/yellow-jacket.dat`, is one meet's reconciled results for one
+team and follows the same rule: short labels, no surnames, scrambled rather than
+encrypted, with its own key so it can never be confused for the team file. The
+older `public/meets/2026/yellow-jacket.dat` is the same meet in the first format,
+and stays because published data is never removed. Its source, the full-name spreadsheet paste under
 `meets/`, is gitignored like `roster.txt`, along with `docs/`, where the notes from
 reconciling a meet by hand quote real rows while the work is going on. The splits are
 not published anywhere else, which is why they travel attached to a first name and an
@@ -236,29 +245,40 @@ pbpaste | npm run roster-link
 ```
 
 Publish a meet's results, once they have been reconciled against the meet's own
-finish times and every station has been put on one gun:
+finish times and every station has been put on one gun. One source file per meet
+per team, named for the meet with `-girls` or `-boys` on the end:
 
 ```sh
-npm run meet-file -- meets/yellow-jacket.txt      # /meets/ is gitignored
-git add public/meets/2026/girls/yellow-jacket.dat # short labels, scrambled, meant to be committed
+npm run meet-file -- meets/yellow-jacket-girls.txt  # /meets/ is gitignored
+git add public/meets/2026/girls/yellow-jacket.dat   # short labels, scrambled, meant to be committed
 ```
 
 The source opens with `# meet`, `# date` and `# team` lines, then one block per
-race: `# event Varsity` (or JV), `# marks 0.5mi 1mi 2mi` for the markers that race
-actually had, and one runner per line, tab separated, full names, a cell per mark,
-the finish, and that runner's 5K PR from *before* this meet. A dash
-is no volunteer at that marker; a trailing `~` marks a value calculated from the
-marks either side of it rather than timed, and the pages keep saying so. Nothing
-derived is stored — every split, net, pace and the 3 mile mark are computed at
-render time, so a hand-edited cell can never disagree with the page. The tool
-prints the whole derived table on the way out; check it against the sheet before
-committing.
+race: `# event Varsity` (or JV), `# marks 0.5mi 1mi 2mi 2.6mi` for the markers that
+race actually had, `# distance 4000` if it was not a 5K, and one runner per line,
+tab separated, full names, a cell per mark, the finish, and that runner's 5K PR from
+*before* this meet. A dash in a mark is the volunteer there missing that runner; a
+dash for the finish is a DNF, which publishes with the marks that were timed and
+nothing derived, and the tool names who it was. A trailing `~` marks a value
+calculated from the marks either side of it rather than timed, and the coach page
+keeps saying so. A row with the wrong number of cells for its race's marks is
+refused with its line number, and nothing is written. Nothing derived is stored —
+every split, net, pace and whole mile is computed at render time, so a hand-edited
+cell can never disagree with the page.
+
+The tool prints the whole derived table on the way out; check it against the sheet
+before committing. It also compares the runners with the meets already published
+that season and lists anyone new, anyone missing, and any pair that might be one
+runner whose label changed ("Same runner?"), since that is how a season is joined
+up.
 
 The file is half of publishing a meet. The other half is a line in `PUBLISHED` in
-`src/lib/pages.ts`, which is what gives the meet its address and what makes the build
-write a real page there — the tool prints the line to add. The year comes off the
-meet's own date line, the team off its team line, and the slug off the input file's name, so the address and the
-data file are derived from the source rather than typed twice.
+`src/lib/pages.ts`, which is what puts the meet on its season's pages and makes the
+build write a real page for that season — the tool prints the line to add, and the
+addresses it will be at. The year comes off the meet's own date line, the team off
+its team line, and the meet's name in the path off the input file's name without its
+suffix, so the address and the data file are derived from the source rather than
+typed twice. A suffix that disagrees with the team line is refused.
 
 Pushing to `main` deploys to GitHub Pages via `.github/workflows/deploy.yml`.
 
