@@ -55,7 +55,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { formatElapsed, formatPr, formatSignedElapsed } from '../src/lib/clock.ts'
 import { anchorLabel, kickAllowances, type Meet, meetRows, meetText, mileage, parseMeet } from '../src/lib/meet.ts'
 import { scrambleMeet, unscrambleMeet } from '../src/lib/meetfile.ts'
-import { meetFilePath, PUBLISHED, resultsPath } from '../src/lib/pages.ts'
+import { meetFilePath, PUBLISHED, seasonCoachPath, seasonPath } from '../src/lib/pages.ts'
 import { shortNames } from '../src/lib/names.ts'
 
 const file = process.argv[2]
@@ -216,7 +216,7 @@ console.error(`Commit ${OUT}. Do not commit ${file}.`)
 const listed = PUBLISHED.find((m) => m.slug === slug && m.year === year && m.team === meet.team)
 if (listed) {
   console.error('')
-  console.error(`Its pages are ${resultsPath(published)} and ${resultsPath(published)}coach/`)
+  console.error(`Its season's pages are ${seasonPath(published)} and ${seasonCoachPath(published)}`)
 } else {
   console.error('')
   console.error('This meet has no address yet. Add it to PUBLISHED in src/lib/pages.ts:')

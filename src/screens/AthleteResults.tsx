@@ -20,23 +20,23 @@ import { useState } from 'react'
 import { formatElapsed, formatPr, formatSignedElapsed } from '../lib/clock'
 import { METERS_PER_MILE } from '../lib/distance'
 import { type Anchor, anchorLabel, comparesToPr, type Event, type Meet, meetRows, mileage, repeatsAMile, type Row } from '../lib/meet'
-import type { Published } from '../lib/pages'
+import { type ResultsPage, seasonName } from '../lib/pages'
 
 type Props = {
   /** `undefined` while the file is still being looked for, `null` if there isn't one. */
   meet: Meet | null | undefined
   /**
-   * Which meet's address this is. The page can name the meet from it before the
-   * file has loaded, so a runner opening a texted link sees where she is rather
-   * than the word "Results" while the fetch is in flight.
+   * Which address this is, and the meet it opens on. The page can name the meet
+   * from it before the file has loaded, so a runner opening a texted link sees
+   * where she is rather than the word "Results" while the fetch is in flight.
    */
-  published: Published
+  page: ResultsPage
   onBack: () => void
 }
 
 const COUNT = ['no', 'one', 'two', 'three', 'four', 'five', 'six']
 
-export function AthleteResults({ meet, published, onBack }: Props) {
+export function AthleteResults({ meet, page, onBack }: Props) {
   const [picked, setPicked] = useState('')
   const rows = meet ? meetRows(meet).flatMap((e) => e.rows) : []
   const row = rows.find((r) => r.observed.label === picked)
@@ -48,12 +48,14 @@ export function AthleteResults({ meet, published, onBack }: Props) {
           Back
         </button>
         <div className="bar-where">
-          <strong>{meet?.name ?? published.name}</strong>
-          <span>{meet ? 'Your race, mile by mile' : 'One moment'}</span>
+          <strong>{meet?.name ?? page.meet?.name ?? seasonName(page)}</strong>
+          <span>{meet ? 'Your race, mile by mile' : page.meet ? 'One moment' : 'Results'}</span>
         </div>
       </header>
 
-      {meet === undefined ? (
+      {page.meet === null ? (
+        <p className="instructions">No results for this season yet.</p>
+      ) : meet === undefined ? (
         <p className="instructions">Looking for the results…</p>
       ) : meet === null ? (
         <p className="instructions">
