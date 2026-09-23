@@ -18,8 +18,21 @@
 
 import { useState } from 'react'
 import { formatElapsed, formatPr, formatSignedElapsed } from '../lib/clock'
+import { METERS_PER_MILE } from '../lib/distance'
 import { resultsLink } from '../lib/link'
-import { isDerived, kickAllowance, type Mark, type Meet, meetRows, type Row } from '../lib/meet'
+import {
+  anchorLabel,
+  comparesToPr,
+  type Event,
+  type EventRows,
+  isDerived,
+  kickAllowances,
+  type Meet,
+  meetRows,
+  mileage,
+  repeatsAMile,
+  type Row,
+} from '../lib/meet'
 import type { Published } from '../lib/pages'
 
 type Props = {
@@ -51,7 +64,7 @@ type Column = {
   signed?: boolean
 }
 
-const time = (ms: number | undefined) => (ms == null ? '' : formatElapsed(ms))
+const time = (ms: number | null | undefined) => (ms == null ? '' : formatElapsed(ms))
 const sign = (ms: number | undefined) => (ms == null ? '' : formatSignedElapsed(ms))
 /** A pace as m:ss. Tenths of a second per mile is precision this does not have. */
 const pace = (ms: number | undefined) => {
@@ -60,54 +73,148 @@ const pace = (ms: number | undefined) => {
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
 }
 
-const COLUMNS: Column[] = [
-  { head: 'Pace', sub: 'per mile', cell: (r) => pace(r.average) },
-  { head: '½ mi', cell: (r) => time(r.observed.half), derived: (r) => isDerived(r, 'half') },
-  { head: '1 mi', cell: (r) => time(r.observed.mile1), derived: (r) => isDerived(r, 'mile1') },
-  { head: '2 mi', cell: (r) => time(r.observed.twoMile), derived: (r) => isDerived(r, 'twoMile') },
-  { head: 'Mile 2', sub: 'split', cell: (r) => time(r.mile2Split) },
-  { head: 'Net', sub: 'vs mile 1', cell: (r) => sign(r.net1), signed: true },
-  { head: '2.6 mi', cell: (r) => time(r.observed.mile26), derived: (r) => isDerived(r, 'mile26') },
-  { head: 'Middle', sub: '½–2.6 pace', cell: (r) => pace(r.middlePace) },
-  { head: '3 mi', sub: 'calculated', soft: true, cell: (r) => time(r.threeMile) },
-  { head: 'Mile 3', sub: 'split', soft: true, cell: (r) => time(r.mile3Split) },
-  { head: 'Net', sub: 'vs mile 2', soft: true, cell: (r) => sign(r.net2), signed: true },
-  { head: 'Last ½ mi', cell: (r) => time(r.lastHalf) },
-  { head: 'Finish', cell: (r) => (r.observed.finish == null ? '' : formatPr(r.observed.finish)) },
-  // "Previous PR", not "Best coming in". PR is the word the team says, and
-  // "previous" carries what "coming in" was there for: this is the time they
-  // arrived with, and a highlighted row has beaten it.
-  { head: 'Previous PR', cell: (r) => (r.observed.best == null ? '' : formatPr(r.observed.best)) },
-  { head: 'vs PR', cell: (r) => sign(r.vsBest), signed: true },
-]
+/** A column head for a distance: "½ mi" reads faster in a header than "0.5 mi". */
+const head = (label: string) => label.replace(/^0\.5 mi$/, '½ mi')
+
+/** How many whole miles an event's rows have, which is how many mile columns it gets. */
+const mileCount = (rows: Row[]) => Math.max(0, ...rows.map((r) => r.miles.length))
+
+/** Whether a runner's mile k (1-based) was interpolated, or rests on one that was. */
+const softMile = (r: Row, k: number) => {
+  const m = r.miles[k - 1]
+  return m != null && (!m.timed || (m.marker != null && isDerived(r, m.marker)))
+}
 
 /**
- * The three miles against each other, for the view that is about how consistent
- * each race was rather than where each mark was taken.
+ * Course order, built from the event's own markers. Each marker, and any whole
+ * mile nobody stood at, in the order a runner reaches them; after every whole mile
+ * from the second on, that mile's split and its net; the middle pace after the
+ * last marker; then the closing stretch, the finish and the PR.
+ */
+function courseColumns(event: Event, rows: Row[]): Column[] {
+  const miles = mileCount(rows)
+  const places = [
+    ...event.markers.map((marker, i) => ({ meters: marker.meters, marker: i })),
+    ...Array.from({ length: miles }, (_, i) => ({ meters: (i + 1) * METERS_PER_MILE, mile: i + 1 })).filter(
+      ({ meters }) => !event.markers.some((m) => Math.abs(m.meters - meters) <= 0.5),
+    ),
+  ].sort((a, b) => a.meters - b.meters)
+
+  const columns: Column[] = [{ head: 'Pace', sub: 'per mile', cell: (r) => pace(r.average) }]
+  const last = event.markers.at(-1)
+  const first = event.markers[0]
+  for (const place of places) {
+    if ('marker' in place && place.marker != null) {
+      const i = place.marker
+      columns.push({
+        head: head(event.markers[i].label),
+        cell: (r) => time(r.observed.times[i]),
+        derived: (r) => isDerived(r, i),
+      })
+    } else {
+      const k = (place as { mile: number }).mile
+      columns.push({
+        head: `${k} mi`,
+        sub: 'calculated',
+        soft: true,
+        cell: (r) => time(r.miles[k - 1]?.at),
+      })
+    }
+    const k = Math.round(place.meters / METERS_PER_MILE)
+    if (k >= 2 && k <= miles && Math.abs(place.meters - k * METERS_PER_MILE) <= 0.5) {
+      const calculated = !event.markers.some((m) => Math.abs(m.meters - place.meters) <= 0.5)
+      columns.push(
+        {
+          head: `Mile ${k}`,
+          sub: 'split',
+          soft: calculated,
+          cell: (r) => time(r.miles[k - 1]?.split),
+          derived: (r) => softMile(r, k) || softMile(r, k - 1),
+        },
+        {
+          head: 'Net',
+          sub: `vs mile ${k - 1}`,
+          soft: calculated,
+          cell: (r) => sign(r.miles[k - 1]?.net),
+          derived: (r) => softMile(r, k) || softMile(r, k - 1),
+          signed: true,
+        },
+      )
+    }
+    if (
+      event.markers.length > 1 &&
+      'marker' in place &&
+      place.marker === event.markers.length - 1 &&
+      !repeatsAMile(first.meters, last!.meters - first.meters)
+    ) {
+      columns.push({
+        head: 'Middle',
+        sub: `${first.label.replace(' mi', '')}–${last!.label} pace`,
+        cell: (r) => pace(r.middle?.pace),
+      })
+    }
+  }
+  if (last) {
+    columns.push({
+      head: `Last ${mileage(event.distance - last.meters)}`,
+      cell: (r) => time(r.closing?.time),
+    })
+  }
+  columns.push({
+    head: 'Finish',
+    cell: (r) => (r.observed.finish == null ? '' : formatPr(r.observed.finish)),
+  })
+  // "Previous PR", not "Best coming in". PR is the word the team says, and
+  // "previous" carries what "coming in" was there for: this is the time they
+  // arrived with, and a highlighted row has beaten it. Only for a 5K, since a PR
+  // is a 5K PR and against anything else it is two different races subtracted.
+  if (comparesToPr(event.distance)) {
+    columns.push(
+      { head: 'Previous PR', cell: (r) => (r.observed.best == null ? '' : formatPr(r.observed.best)) },
+      { head: 'vs PR', cell: (r) => sign(r.vsBest), signed: true },
+    )
+  }
+  return columns
+}
+
+/**
+ * The miles against each other, for the view that is about how consistent each
+ * race was rather than where each mark was taken.
  *
  * Spread is the consistency column: slowest mile less fastest, in seconds, which is
  * the whole question in one number. The Delta is a different question — how far the
  * average mile sits from the middle of that range, which says whether one mile was an
- * outlier or all three stepped evenly — and its sub-label names its inputs, since the
- * name Delta does not and "middle mile", which used to sit there, named the wrong
+ * outlier or all of them stepped evenly — and its sub-label names its inputs, since
+ * the name Delta does not and "middle mile", which used to sit there, named the wrong
  * ones.
  */
-const BY_MILE: Column[] = [
-  { head: 'Mile 1', cell: (r) => time(r.observed.mile1), derived: (r) => isDerived(r, 'mile1') },
-  { head: 'Mile 2', cell: (r) => time(r.mile2Split) },
-  { head: 'Mile 3', sub: 'calculated', soft: true, cell: (r) => time(r.mile3Split) },
-  { head: 'Fastest', cell: (r) => time(r.fastest) },
-  { head: 'Slowest', cell: (r) => time(r.slowest) },
-  {
-    head: 'Spread',
-    sub: 'how consistent',
-    cell: (r) => (r.fastest == null ? '' : formatElapsed(r.slowest! - r.fastest!)),
-  },
-  { head: 'Pace', sub: 'per mile', cell: (r) => pace(r.average) },
-  { head: 'Delta', sub: 'avg vs midrange', cell: (r) => time(r.delta) },
-  { head: 'Open', sub: 'first ½ mi', cell: (r) => pace(r.openPace) },
-  { head: 'Kick', sub: 'last ½ mi', cell: (r) => pace(r.kickPace) },
-]
+function mileColumns(event: Event, rows: Row[]): Column[] {
+  const first = event.markers[0]
+  const last = event.markers.at(-1)
+  const calculated = (k: number) =>
+    !event.markers.some((m) => Math.abs(m.meters - k * METERS_PER_MILE) <= 0.5)
+  return [
+    ...Array.from({ length: mileCount(rows) }, (_, i): Column => ({
+      head: `Mile ${i + 1}`,
+      ...(calculated(i + 1) ? { sub: 'calculated', soft: true } : {}),
+      cell: (r) => time(r.miles[i]?.split),
+      derived: (r) => softMile(r, i + 1) || (i > 0 && softMile(r, i)),
+    })),
+    { head: 'Fastest', cell: (r) => time(r.fastest) },
+    { head: 'Slowest', cell: (r) => time(r.slowest) },
+    {
+      head: 'Spread',
+      sub: 'how consistent',
+      cell: (r) => (r.fastest == null ? '' : formatElapsed(r.slowest! - r.fastest!)),
+    },
+    { head: 'Pace', sub: 'per mile', cell: (r) => pace(r.average) },
+    { head: 'Delta', sub: 'avg vs midrange', cell: (r) => time(r.delta) },
+    ...(first && !repeatsAMile(0, first.meters) ? [{ head: 'Open', sub: `first ${mileage(first.meters)}`, cell: (r: Row) => pace(r.opening?.pace) }] : []),
+    ...(last
+      ? [{ head: 'Kick', sub: `last ${mileage(event.distance - last.meters)}`, cell: (r: Row) => pace(r.closing?.pace) }]
+      : []),
+  ]
+}
 
 /**
  * Two column sets, named for what they hold.
@@ -128,8 +235,8 @@ export function CoachResults({ meet, published, onBack }: Props) {
   const [view, setView] = useState<View>('course')
   const [status, setStatus] = useState('')
 
-  const rows = meet ? meetRows(meet) : []
-  const columns = view === 'course' ? COLUMNS : BY_MILE
+  const events = meet ? meetRows(meet) : []
+  const runners = events.reduce((n, e) => n + e.rows.length, 0)
 
   /**
    * Texts the *athlete* page, not this one. This page is the only thing on the site
@@ -168,7 +275,7 @@ export function CoachResults({ meet, published, onBack }: Props) {
         </button>
         <div className="bar-where">
           <strong>{meet?.name ?? published.name}</strong>
-          <span>{meet ? `${meet.date} · ${rows.length} runners` : 'One moment'}</span>
+          <span>{meet ? `${meet.date} · ${runners} runners` : 'One moment'}</span>
         </div>
       </header>
 
@@ -206,62 +313,82 @@ export function CoachResults({ meet, published, onBack }: Props) {
             ))}
           </div>
 
-          {/*
-            Horizontal scroll with the name column pinned. Fifteen columns will not
-            fit a phone and shrinking the type until they do makes the table
-            unreadable, so it scrolls — but a row of times with the name scrolled off
-            the left edge belongs to nobody, hence the sticky first column.
-          */}
-          <div className="table-scroll">
-            <table className="grid">
-              <thead>
-                <tr>
-                  <th scope="col" className="who">
-                    Runner
-                  </th>
-                  {columns.map((col) => (
-                    <th key={col.head + (col.sub ?? '')} scope="col" className={col.soft ? 'is-soft' : ''}>
-                      {col.head}
-                      {col.sub && <span className="sub">{col.sub}</span>}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.observed.label} className={row.best ? 'is-best' : ''}>
-                    <th scope="row" className="who">
-                      {row.observed.label}
-                      {row.observed.squad && <span className="sub">{row.observed.squad === 'jv' ? 'JV' : 'V'}</span>}
-                    </th>
-                    {columns.map((col) => {
-                      const text = col.cell(row)
-                      const soft = col.soft || (col.derived?.(row) ?? false)
-                      return (
-                        <td
-                          key={col.head + (col.sub ?? '')}
-                          className={[
-                            soft ? 'is-soft' : '',
-                            col.signed && text.startsWith('-') ? 'is-down' : '',
-                            col.signed && text.startsWith('+') ? 'is-up' : '',
-                          ]
-                            .filter(Boolean)
-                            .join(' ')}
-                        >
-                          {text}
-                        </td>
-                      )
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {events.map((e) => (
+            <EventTable key={e.event.squad} {...e} view={view} several={events.length > 1} />
+          ))}
 
-          <Footnotes meet={meet} rows={rows} />
+          <Footnotes meet={meet} events={events} />
         </>
       )}
     </div>
+  )
+}
+
+/**
+ * One event's table. Its own columns, because its own markers: a JV race timed at
+ * 1 and 2 miles and a varsity race timed at four places are two tables, and one
+ * table holding both would be half blanks that read as missed runners.
+ */
+function EventTable({ event, rows, view, several }: EventRows & { view: View; several: boolean }) {
+  const columns = view === 'course' ? courseColumns(event, rows) : mileColumns(event, rows)
+  return (
+    <section className="coach-event">
+      {several && (
+        <h2>
+          {event.squad === 'jv' ? 'JV' : 'Varsity'} · {rows.length} runners
+        </h2>
+      )}
+      {/*
+        Horizontal scroll with the name column pinned. Fifteen columns will not
+        fit a phone and shrinking the type until they do makes the table
+        unreadable, so it scrolls — but a row of times with the name scrolled off
+        the left edge belongs to nobody, hence the sticky first column.
+      */}
+      <div className="table-scroll">
+        <table className="grid">
+          <thead>
+            <tr>
+              <th scope="col" className="who">
+                Runner
+              </th>
+              {columns.map((col) => (
+                <th key={col.head + (col.sub ?? '')} scope="col" className={col.soft ? 'is-soft' : ''}>
+                  {col.head}
+                  {col.sub && <span className="sub">{col.sub}</span>}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.observed.label} className={row.best ? 'is-best' : ''}>
+                <th scope="row" className="who">
+                  {row.observed.label}
+                </th>
+                {columns.map((col) => {
+                  const text = col.cell(row)
+                  const soft = col.soft || (col.derived?.(row) ?? false)
+                  return (
+                    <td
+                      key={col.head + (col.sub ?? '')}
+                      className={[
+                        soft ? 'is-soft' : '',
+                        col.signed && text.startsWith('-') ? 'is-down' : '',
+                        col.signed && text.startsWith('+') ? 'is-up' : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                    >
+                      {text}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   )
 }
 
@@ -274,49 +401,83 @@ export function CoachResults({ meet, published, onBack }: Props) {
  * hand before the file was built, and the file has no memory of them. That is the
  * gap results-import is meant to close.
  */
-function Footnotes({ meet, rows }: { meet: Meet; rows: Row[] }) {
-  const allowance = kickAllowance(meet.runners)
-  const both = meet.runners.filter((r) => r.mile26 != null && r.twoMile != null).length
-  const onMile26 = rows.filter((r) => r.anchor === 'mile26').length
-  const onTwoMile = rows.filter((r) => r.anchor === 'twoMile').length
-  const guessed = rows.flatMap((r) =>
-    r.observed.derived.length > 0 ? [`${r.observed.label} (${r.observed.derived.join(', ')})`] : [],
-  )
-  const counts = (mark: Mark) => rows.filter((r) => r.observed[mark] != null).length
+function Footnotes({ meet, events }: { meet: Meet; events: EventRows[] }) {
+  const allowances = kickAllowances(meet).filter((a) => a.ms !== 0)
+  const several = events.length > 1
+  const span = (distance: number, pair: [number, number]) =>
+    pair.map((m) => (m === 0 ? 'the gun' : m >= distance - 0.5 ? 'the finish' : mileage(m))).join(' to ')
 
   return (
     <section className="footnotes">
       <h2>What is measured, and what is not</h2>
       <ul>
-        <li>
-          <strong>Coverage.</strong> Half mile {counts('half')}, mile 1 {counts('mile1')}, two mile{' '}
-          {counts('twoMile')}, 2.6 mile {counts('mile26')}, finish {counts('finish')}, out of{' '}
-          {rows.length}.
-        </li>
-        <li>
-          <strong>The 3 mile mark is interpolated for everybody.</strong> Nobody stood
-          at 3 miles. {onMile26} {onMile26 === 1 ? 'runner is' : 'runners are'} anchored on
-          the 2.6 mile mark, where the finish carries about 79% of the weight, and{' '}
-          {onTwoMile} on the 2 mile mark, where it carries about 90%. Being that close
-          to the line is why it holds up: a six second error at 2.6 miles comes through
-          here as about one second.
-        </li>
-        {allowance !== 0 && (
-          <li>
-            <strong>The 2 mile anchor gets a {formatSignedElapsed(allowance)} allowance.</strong>{' '}
-            A straight line from 2 miles to the finish ignores the closing kick and
-            reads fast. The {both} runners with both marks let that be measured rather
-            than guessed, and this is what they measured at this meet. It is
-            recalculated per meet, not stored.
+        {events.map(({ event, rows }) => {
+          const who = several ? `${event.squad === 'jv' ? 'JV' : 'Varsity'}: ` : ''
+          const counts = event.markers.map(
+            (m, i) => `${m.label} ${rows.filter((r) => r.observed.times[i] != null).length}`,
+          )
+          const finished = rows.filter((r) => r.observed.finish != null).length
+          const guessed = rows.flatMap((r) =>
+            r.observed.derived.length > 0
+              ? [`${r.observed.label} (${r.observed.derived.map((i) => event.markers[i].label).join(', ')})`]
+              : [],
+          )
+          const miles = mileCount(rows)
+          return [
+            <li key={`${event.squad}-coverage`}>
+              <strong>{who}Coverage.</strong> {counts.join(', ')}, finish {finished}, out of {rows.length}.
+            </li>,
+            ...Array.from({ length: miles }, (_, i) => {
+              // Grouped by what each runner's mile came off, with the weight the
+              // later of the two carries, which is what says how far to trust it.
+              const off = new Map<string, { n: number; weight: number }>()
+              for (const r of rows) {
+                const m = r.miles[i]
+                if (!m?.between) continue
+                const [lo, hi] = m.between
+                const at = (a: typeof lo) =>
+                  a === 'start' ? 0 : a === 'finish' ? event.distance : event.markers[a].meters
+                const phrase = (a: typeof lo) =>
+                  a === 'start' ? 'the gun' : a === 'finish' ? 'the finish' : `the ${anchorLabel(event, a)} mark`
+                const key = `${phrase(lo)} and ${phrase(hi)}`
+                const weight = ((i + 1) * METERS_PER_MILE - at(lo)) / (at(hi) - at(lo))
+                off.set(key, { n: (off.get(key)?.n ?? 0) + 1, weight })
+              }
+              if (off.size === 0) return null
+              const total = [...off.values()].reduce((a, b) => a + b.n, 0)
+              return (
+                <li key={`${event.squad}-mile-${i + 1}`}>
+                  <strong>
+                    {who}Mile {i + 1} is interpolated for {total === rows.length ? 'everybody' : `${total} of ${rows.length}`}.
+                  </strong>{' '}
+                  Nobody stood at it for them.{' '}
+                  {[...off].map(([key, { n, weight }]) =>
+                    `${n} ${n === 1 ? 'is' : 'are'} between ${key}, where the later one carries about ${Math.round(weight * 100)}% of the weight`,
+                  ).join('; ')}
+                  .
+                </li>
+              )
+            }),
+            guessed.length > 0 ? (
+              <li key={`${event.squad}-guessed`}>
+                <strong>{who}Timed marks that are actually estimates:</strong> {guessed.join('; ')}.
+                Filled in from the marks either side. Shown in the lighter type, same as the
+                calculated columns.
+              </li>
+            ) : null,
+          ]
+        })}
+        {allowances.map((a) => (
+          <li key={`${a.distance}-${a.mile}-${a.from.join('/')}`}>
+            <strong>
+              Mile {a.mile} off {span(a.distance, a.from)} gets a {formatSignedElapsed(a.ms)} allowance.
+            </strong>{' '}
+            A straight line over a longer stretch ignores the closing kick and reads fast.
+            The {a.calibrators} {a.calibrators === 1 ? 'runner' : 'runners'} with both {span(a.distance, a.from)}{' '}
+            and {span(a.distance, a.onto)} let that be measured rather than guessed, and this is
+            what they measured at this meet. It is recalculated per meet, not stored.
           </li>
-        )}
-        {guessed.length > 0 && (
-          <li>
-            <strong>Timed marks that are actually estimates:</strong> {guessed.join('; ')}
-            . Filled in from the marks either side. Shown in the lighter type, same as
-            the 3 mile columns.
-          </li>
-        )}
+        ))}
         <li>
           <strong>Every station's gun was corrected by hand.</strong> Three of the four
           volunteers started late — by 2.3 s, 6.6 s and 9.5 s — and the offsets came out
@@ -330,19 +491,24 @@ function Footnotes({ meet, rows }: { meet: Meet; rows: Row[] }) {
           record here.
         </li>
         <li>
+          <strong>Segment paces are over their true distance.</strong> The first, middle
+          and last stretches are each divided by the distance between the markers that
+          bound them, and labelled with it.
+        </li>
+        <li>
           <strong>Nets and vs-PR are signed seconds.</strong> Minus is faster: a
           negative net is a mile quicker than the one before it, a negative vs-PR is a
           new PR.
         </li>
         <li>
           <strong>Spread is the consistency number. The Delta is not.</strong> Spread is
-          the slowest mile less the fastest, so zero is three identical miles and it is
-          the column to read for how even a race was. The Delta is how
-          far the average mile sits from the middle of that fastest–slowest range, which
-          answers a different question — whether one mile was an outlier, or all three
-          stepped evenly. A runner who slows by the same amount every mile has a Delta
-          near zero whatever their spread, so the two disagree constantly and neither one
-          substitutes for the other.
+          the slowest mile less the fastest, so zero is identical miles and it is the
+          column to read for how even a race was. The Delta is how far the average mile
+          sits from the middle of that fastest–slowest range, which answers a different
+          question — whether one mile was an outlier, or all of them stepped evenly. A
+          runner who slows by the same amount every mile has a Delta near zero whatever
+          their spread, so the two disagree constantly and neither one substitutes for
+          the other.
         </li>
       </ul>
     </section>

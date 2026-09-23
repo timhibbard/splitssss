@@ -915,9 +915,9 @@ now that half lived in a spreadsheet on the coach's laptop. Two pages publish it
 **The year is in the address** because a season is the unit a coach thinks in and
 because the same invitational comes back every September. `/meets/2026/` and
 `/meets/2027/` are different races that happen to share a name, and neither one's
-link quietly starts showing the other's splits. The data file is scoped the same way,
-`public/meets/2026/yellow-jacket.dat`, so next year's file cannot overwrite this
-one. Both come off one line in `PUBLISHED`.
+link quietly starts showing the other's splits. The data file is scoped the same way and by team too,
+`public/meets/2026/girls/yellow-jacket.dat`, so next year's file cannot overwrite
+this one and the boys' file cannot overwrite the girls'. Both come off one line in `PUBLISHED`.
 
 **Two addresses, not one page with a switch.** They serve two different people and
 only one of them should be textable to a team. The coach page is the only thing on

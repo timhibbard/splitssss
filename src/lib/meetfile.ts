@@ -29,9 +29,14 @@ import { mask } from './scramble.ts'
  * Its own key and its own header, so a team file served under a results file's
  * name is a clean rejection rather than a plausible-looking mess. Different
  * keystreams mean the bytes do not even decode to text.
+ *
+ * v2 is the event-shaped meet, markers declared per event. There is no v1 reader:
+ * every shipped file was regenerated from its source when the format changed, so a
+ * compatibility path would have nothing left to read, and a v1 body under this key
+ * decodes to noise and is refused like any other stranger.
  */
-const KEY = 'splitssss/meet/v1'
-const HEADER = 'splitssss meet v1'
+const KEY = 'splitssss/meet/v2'
+const HEADER = 'splitssss meet v2'
 const FOOTER = 'splitssss end'
 
 export function scrambleMeet(meet: Meet): string {
@@ -41,7 +46,8 @@ export function scrambleMeet(meet: Meet): string {
 
 /**
  * Null for anything that is not a whole meet file: a truncated body, an unrelated
- * file, a meet with no runners in it. Half a results table is never an answer —
+ * file, a meet with no runners in it, an event with no markers, a meet with no
+ * team — anything parseMeet refuses. Half a results table is never an answer —
  * an athlete scrolling to her own name and not finding it would conclude she was
  * left out, when in fact the download was cut short.
  */
@@ -51,8 +57,13 @@ export function unscrambleMeet(body: string): Meet | null {
   const lines = new TextDecoder().decode(mask(bytes, KEY)).split('\n')
   if (lines.length < 3) return null
   if (lines[0] !== HEADER || lines[lines.length - 1] !== FOOTER) return null
-  const meet = parseMeet(lines.slice(1, -1).join('\n'))
-  return meet.runners.length > 0 ? meet : null
+  let meet: Meet
+  try {
+    meet = parseMeet(lines.slice(1, -1).join('\n'))
+  } catch {
+    return null
+  }
+  return meet.events.some((e) => e.runners.length > 0) ? meet : null
 }
 
 /**

@@ -11,12 +11,18 @@ import {
 } from './pages.ts'
 
 const BASE = '/splitssss/'
-const MEET = { slug: 'yellow-jacket', year: 2026, name: 'Yellow Jacket Invitational' }
+const MEET = {
+  slug: 'yellow-jacket',
+  year: 2026,
+  team: 'girls' as const,
+  date: '2026-09-12',
+  name: 'Yellow Jacket Invitational',
+}
 
 test('a meet address carries its season', () => {
   assert.equal(resultsPath(MEET), 'meets/2026/yellow-jacket/')
   assert.equal(coachPath(MEET), 'meets/2026/yellow-jacket/coach/')
-  assert.equal(meetFilePath(MEET), 'meets/2026/yellow-jacket.dat')
+  assert.equal(meetFilePath(MEET), 'meets/2026/girls/yellow-jacket.dat')
 })
 
 test('the same invitational in two seasons is two addresses', () => {
@@ -26,6 +32,16 @@ test('the same invitational in two seasons is two addresses', () => {
   const next = { ...MEET, year: 2027 }
   assert.notEqual(resultsPath(next), resultsPath(MEET))
   assert.notEqual(meetFilePath(next), meetFilePath(MEET))
+})
+
+test("the girls' and boys' files from one invitational do not collide", () => {
+  assert.notEqual(meetFilePath({ ...MEET, team: 'boys' }), meetFilePath(MEET))
+})
+
+test('the new file is not at the v1 path, which old phones still ask for', () => {
+  // A phone mid-update runs the old bundle, which reads the old path as v1. Putting
+  // the v2 file there would break it; putting it anywhere else leaves it working.
+  assert.notEqual(meetFilePath(MEET), 'meets/2026/yellow-jacket.dat')
 })
 
 test('a pathname resolves to the page it names', () => {

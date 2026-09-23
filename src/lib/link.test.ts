@@ -174,6 +174,8 @@ test('the athlete results page has an address that can be texted', () => {
     resultsLink('https://example.test', '/splitssss/', {
       slug: 'yellow-jacket',
       year: 2026,
+      team: 'girls',
+      date: '2026-09-12',
       name: 'Yellow Jacket Invitational',
     }),
     'https://example.test/splitssss/meets/2026/yellow-jacket/',

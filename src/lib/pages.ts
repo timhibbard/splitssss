@@ -1,3 +1,6 @@
+// Explicit extensions: see the note in link.ts.
+import type { Team } from './types.ts'
+
 /**
  * Every address this app answers on, and the meets whose results are published
  * behind them.
@@ -23,6 +26,13 @@
 
 /** A meet whose reconciled results ship with the build. */
 export type Published = {
+  /**
+   * Whose meet this is. A file is one meet for one team, so the girls' and the
+   * boys' results from the same invitational are two files side by side.
+   */
+  team: Team
+  /** The day it was run, yyyy-mm-dd, so a season can be put in order. */
+  date: string
   /** The last segment of the address, and the name of the data file. */
   slug: string
   /** The season, which is the year in the address and in the data file's path. */
@@ -36,7 +46,7 @@ export type Published = {
  * that `npm run meet-file` wrote; the tool prints the line to add.
  */
 export const PUBLISHED: Published[] = [
-  { slug: 'yellow-jacket', year: 2026, name: 'Yellow Jacket Invitational' },
+  { slug: 'yellow-jacket', year: 2026, team: 'girls', date: '2026-09-12', name: 'Yellow Jacket Invitational' },
 ]
 
 /** What a page is, for the router. `meet` is set on the two results pages. */
@@ -66,9 +76,17 @@ export function coachPath(meet: Published): string {
   return `${resultsPath(meet)}coach/`
 }
 
-/** Where a meet's scrambled results sit, relative to the base. */
+/**
+ * Where a meet's scrambled results sit, relative to the base. Under the team,
+ * because the girls' and boys' files from one invitational share a slug.
+ *
+ * Not where the v1 file sat, `meets/2026/yellow-jacket.dat`, and that is on
+ * purpose: a phone mid-update is still running the old bundle out of its own
+ * precache and asking the old path for the old format. That file stays committed
+ * for one release so those phones keep working, then goes.
+ */
 export function meetFilePath(meet: Published): string {
-  return `meets/${meet.year}/${meet.slug}.dat`
+  return `meets/${meet.year}/${meet.team}/${meet.slug}.dat`
 }
 
 /** Every page the build has to write a file for, and the router has to know. */
