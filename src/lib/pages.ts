@@ -68,6 +68,7 @@ export const PUBLISHED: Published[] = [
         'phone recorded 9.5. This table is the corrected version; the raw exports are not in it.',
     },
   },
+  { slug: 'clinton-home-meet-1', year: 2026, team: 'girls', date: '2026-09-22', name: 'Clinton Home Meet #1' },
 ]
 
 /** One team's year of meets, which is the unit both results pages are addressed by. */
