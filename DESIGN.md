@@ -872,8 +872,9 @@ destroy work nobody asked it to touch:
 ### Addresses are real paths
 
 Every page that can be texted has a real path, and the build writes a real
-`index.html` at it: `/help/`, `/meets/2026/yellow-jacket/`, and
-`/meets/2026/yellow-jacket/coach/`.
+`index.html` at it: `/help/`, a season's `/meets/2026/girls/` and
+`/meets/2026/girls/coach/`, and the two Yellow Jacket addresses that were texted
+out before seasons existed, which stay forever.
 
 GitHub Pages has no routing at all — a URL works if a file is sitting at it and
 doesn't if one isn't — so there were three ways to have paths and only one of them is
@@ -906,24 +907,53 @@ safe to put the names of minors in a link at all.
 This is a Pages constraint and not a preference. On a host that does rewrites, paths
 would have been one config line from the start.
 
-### Results: two pages, one file, nothing derived stored
+### Results: two pages per season, one file per meet, nothing derived stored
 
 Timing a race is half of it. The other half is what the splits are *for*, and until
-now that half lived in a spreadsheet on the coach's laptop. Two pages publish it:
-`/meets/2026/yellow-jacket/` for the runners and `.../coach/` for the coach.
+now that half lived in a spreadsheet on the coach's laptop. Two pages per team per
+season publish it: `/meets/2026/girls/` for the runners and `.../coach/` for the
+coach, and the same pair for the boys. Every season that has a published meet gets
+both teams' pages, so a boys link works before the boys have results, and says
+"No results for this season yet" rather than 404ing.
 
 **The year is in the address** because a season is the unit a coach thinks in and
 because the same invitational comes back every September. `/meets/2026/` and
-`/meets/2027/` are different races that happen to share a name, and neither one's
-link quietly starts showing the other's splits. The data file is scoped the same way and by team too,
-`public/meets/2026/girls/yellow-jacket.dat`, so next year's file cannot overwrite
-this one and the boys' file cannot overwrite the girls'. Both come off one line in `PUBLISHED`.
+`/meets/2027/` are different seasons that happen to share meets, and neither one's
+link quietly starts showing the other's splits. The data file is scoped the same way
+and by team too, `public/meets/2026/girls/yellow-jacket.dat`, so next year's file
+cannot overwrite this one and the boys' file cannot overwrite the girls'. Each comes
+off one line in `PUBLISHED`, which is also where the season's pages come from: a
+season exists because a meet was published into it.
+
+**The page is a season, and a runner's unit is the meet.** The runner page opens on a
+name picker covering everyone who raced for that team that season, and picking a
+name shows that runner's most recent meet with no second tap. A Race picker lists
+only the meets that runner ran, so there is never a meet on it that shows nothing.
+It picks a meet and not an event, because a runner is in one event per meet —
+Varsity or JV, never both — so once the meet is chosen there is nothing left to
+choose. The coach page picks a meet the same way, newest first, and shows each of
+its events as its own table on the one screen. The whole season's files load on
+open, since the name list needs all of them before anyone has chosen a meet; they
+are a kilobyte or so each and precached, so it is a local read on the bus home.
+Loading more files does not make the runner page a leaderboard: a meet file already
+holds the whole field, and the page still renders exactly one runner.
+
+**The Yellow Jacket addresses are permanent.** `/meets/2026/yellow-jacket/` and its
+`coach/` were texted to the team before seasons existed, and a text message is not
+something anyone can take back. They are listed in `HANDED_OUT` in `pages.ts` and
+render the girls 2026 season, opening on Yellow Jacket rather than on the newest
+meet, because that is the race the link was about. A share from that page while it
+is still showing Yellow Jacket hands out the same old address, so a link sent from
+there keeps meaning that race; once another meet is picked, it hands out the season.
+The v1 file at `public/meets/2026/yellow-jacket.dat` stays committed too, beside the
+v2 one that replaced it. Nothing published is ever removed: the data and the links
+are the record, and an address that worked once has to keep working.
 
 **Two addresses, not one page with a switch.** They serve two different people and
 only one of them should be textable to a team. The coach page is the only thing on
 this site with the whole squad's numbers side by side, and a link sent to a group
 chat must not land there. It sits *underneath* the athlete page, because it is the
-same meet in more detail, which means a prefix match would read one as the other:
+same season in more detail, which means a prefix match would read one as the other:
 the router matches whole segments and a test is named after that specific mistake.
 The coach page's own share button hands out the athlete link, built from the app's
 base rather than from where that page happens to be. Neither page is reachable from
@@ -954,25 +984,42 @@ an interpretation the column does not contain.
   doing, in a word that is not a preposition: the column is the time they arrived with,
   and a highlighted row beat it. See the vocabulary rule in "A PR on the button".
 
-**The closing half mile is treated as exactly half a mile, and it is not.** 2.6 mi
-to the line is 815.7 m, 15.7 m more than a half. `kickPace` divides by the flat half
-anyway, so the closing pace is the closing time doubled and a reader can check it in
-one step.
+**The closing stretch was once treated as exactly half a mile, and no longer is.**
+The first version of this said the opposite, and the argument is kept here because
+the failure it was avoiding is still the one to avoid.
 
-Dividing by the true 0.507 mi is what shipped first, and it printed a last half mile
-of 3:10.4 directly above a last half mile pace of 6:16 — while doubling 3:10.4 gives
-6:20.9. Both numbers were right and nothing on the page could account for the five
-seconds between them. That is a worse failure than 1.4% of a distance a volunteer
-paced off behind a flag: a page nobody can reconcile is a page nobody trusts, and
-the precision being defended was never there in the first place. The opening half
-mile is a true 0.5 mi, so it doubled cleanly all along, which is exactly why the
-closing one looked broken.
+It went like this. 2.6 mi to the line is 815.7 m, 15.7 m more than a half. Dividing
+by the true 0.507 mi is what shipped first, and it printed a last half mile of 3:10.4
+directly above a last half mile pace of 6:16 — while doubling 3:10.4 gives 6:20.9.
+Both numbers were right and nothing on the page could account for the five seconds
+between them. A page nobody can reconcile is a page nobody trusts, so `kickPace`
+divided by a flat half, the closing pace was the closing time doubled, and the field,
+the column and the sub-labels all said ½ mi. That was right for one fixed marker in
+one 5K.
 
-So the field is `lastHalf`, not `last800`, the coach column is `Last ½ mi` rather
-than `Last 800`, and Open and Kick are sub-labelled `first ½ mi` and `last ½ mi`. One
-name for it everywhere, and the name is the one the arithmetic uses. The 2.6 mi
-*marker* is still described as roughly 800 to go, because that is what it is and what
-the team calls it; what changed is only the distance the pace is figured over.
+It lost to markers declared per race. Once every event names its own marks, the
+closing stretch is whatever is left after the last one — 0.51 mi at Yellow Jacket,
+0.61 mi behind a 2.5 mi marker, a whole mile for a race with nobody past 2 — and a
+flat half would be wrong by a different amount at every meet, with no single number
+for a reader to allow for. So the pace is now figured over the true distance, and
+the fix for the five seconds is the label, not the arithmetic: the time and the pace
+are both headed `Last 0.51 mi`, the coach columns are sub-labelled `first 0.5 mi` and
+`last 0.51 mi` from the markers, and a reader who doubles the time and gets a
+different pace has been told on the same line that it was not a half. `mileage()`
+prints every such distance to the hundredth, as itself. The field is `closing`,
+named for where it is rather than how long it is. The 2.6 mi *marker* is still
+described as roughly 800 to go, because that is what it is and what the team calls
+it.
+
+**The footnotes are generated from the meet, and a reconciliation note is data.**
+What the coach page says at the bottom — which marks were calculated, who had no
+finish — comes from the file being shown, so a meet with different stations cannot
+ship the previous meet's caveats. The one thing that cannot be derived is how a
+meet was put together by hand: at Yellow Jacket, three of the four volunteers
+started late and every station's gun was corrected from the phones' clock times. That was a hardcoded sentence under every table, true
+of one meet and printed under all of them, and it is now the `reconciled` note on
+that meet's line in `PUBLISHED`. A meet with nothing to say about its reconciliation
+says nothing.
 
 **The coach page has no pronouns in it.** Two teams share this app and one athlete's
 row is the same row as another's, so the text says "the runner" or "each runner" or
@@ -993,11 +1040,59 @@ like `roster.txt`. A 5K finish time is published next to a full name on the meet
 own results page anyway; the splits are not published anywhere, and they are the
 part that belongs to the team.
 
-**Only observations are stored.** Five cumulative marks, a squad, and the PR they
-came in with. Every split, net, pace, the interpolated 3 mile mark, fastest, slowest
-and the Delta are computed at render time in `src/lib/meet.ts`. One source of
-truth, so a hand-edited cell can never disagree with the page — which is precisely
-the failure the spreadsheet pass kept producing.
+**Only observations are stored.** Each event's cumulative marks, its squad, its
+distance, and the PR each runner came in with. Every split, net, pace, every
+interpolated whole mile, fastest, slowest and the Delta are computed at render time
+in `src/lib/meet.ts`. One source of truth, so a hand-edited cell can never disagree
+with the page — which is precisely the failure the spreadsheet pass kept producing.
+
+**Markers are declared data, not named fields.** The first format had five fixed
+columns — 800, 1 mi, 2 mi, 2.6 mi, finish — and a dash in any of them. Two things
+were wrong with that, and the second is the dangerous one. A dash meant both "nobody
+stood there at this meet" and "the volunteer who stood there missed this runner",
+which are different facts: one is about the course, the other about one row, and
+only the second is a gap worth filling in. And a meet with a different set of
+stations had to be typed into columns that did not match it, where one shifted
+column is a runner's 2 mile mark sitting under 2.6 — a plausible, wrong split with
+nothing on the page to say so. So each event opens with `# marks 0.5mi 1mi 2mi
+2.6mi`, naming the stations that race actually had, and a dash now only ever means
+missed. An event can also carry `# distance` for a course that is not a 5K.
+
+**The row width is the guard.** Every row must have exactly one cell per declared
+mark, then the finish and the PR, or the file is refused with the line number. That
+check, and not anything cleverer, is what keeps two events' marker sets from mixing
+and a shifted column from becoming someone's split: a row pasted from the JV block
+into the varsity block is almost always the wrong width. `npm run meet-file` writes
+nothing when it fails.
+
+**A file is one meet for one team, and events own their markers.** Varsity and JV
+run separate races on the same course, often with volunteers standing at different
+places for each, so each `# event` block has its own marks and distance, and the
+coach page builds each event's columns from that event's marks. An event with
+nobody at 0.5 mi gets no empty 0.5 mi column. The boys and the girls are separate
+files, named `yellow-jacket-girls.txt` and `yellow-jacket-boys.txt` in `meets/`,
+and the suffix comes off to make the slug so both land at the same meet name in
+their own season. A suffix that disagrees with the file's `# team` line is refused,
+and so is a slug of `girls`, `boys` or `coach`, which would read as part of an
+address rather than a meet.
+
+**A DNF is a row with no finish.** A `-` in the finish cell publishes: one runner who
+dropped out must not keep a reconciled meet off the site. The marks that were timed
+stay and are shown, since they were really run. Everything derived is blank — no
+miles, no paces, no vs PR — because every one of them depends on the finish, and a
+split interpolated towards a line the runner never crossed is invented. The row
+sorts last, and the coach page's footnotes list who had no finish time in each
+event. The tool prints the same list when it writes the file, so a missing finish
+that was really a typo gets noticed before it ships.
+
+**Labels drift, so the tool says when they might have.** A runner is joined across
+the season by label, "Emma L.", and a label is only as short as the team allows: a
+second Emma L. joining makes the first one "Emma La." from then on, and without a
+warning her season would quietly split into two people. `meet-file` compares the
+new file with the other meets already in that season and prints new runners,
+runners who raced before and are not in this one, and any same-first-name pair as
+"Same runner?". It points and does not fix, since the person who knows is the one
+running the tool.
 
 **Estimates are marked in the file, forever.** A trailing `~` marks a mark nobody
 timed and it survives the round trip, so the record of what was reconstructed cannot
@@ -1013,20 +1108,38 @@ runner reading it. She cannot act on the difference; the person who can is the p
 who filled it in, and that person reads the other page. The coach page still lists
 each one by name in its footnotes and still renders it in lighter type.
 
-The 3 mile mark keeps its label on both pages, because that one is interpolated for
-every runner in the field — nobody stood at 3 miles at all — and the label is a fact
-about the course, not a hedge about one runner's mark.
+A whole mile nobody stood at keeps its "calculated" label on both pages. At Yellow
+Jacket that is the 3 mile mark, interpolated for every runner in the field, and the
+label is a fact about the course, not a hedge about one runner's mark.
 
 **Corrections are measured, not hardcoded.** The 2 mile anchor for the 3 mile mark
 undershoots, because a straight line to the finish ignores the closing kick. Rather
-than a constant, `kickAllowance()` measures it from whoever in the field has *both*
-anchors, and returns 0 when nobody does. A flatter course or a 2.5 mi marker
-changes the number and nobody would remember to edit a constant. The regression
-test that matters is that the allowance is applied to the 2 mile anchor **only** —
-double-applying it was a real error in the sheet this replaces.
+than a constant, `kickAllowances()` measures it from whoever has *both* brackets —
+2 mi to the finish and 2.6 mi to the finish — and returns 0 when nobody does. A
+flatter course or a 2.5 mi marker changes the number and nobody would remember to
+edit a constant. The regression test that matters is that the allowance is applied
+to the wider bracket **only** — applying it to the tight one too was a real error in
+the sheet this replaces.
+
+**The allowance is measured across the file, not the event.** This is the one most
+likely to be "fixed" into a bug. It looks as if it belongs to an event, since the
+events have their own markers, but it is a property of the course, and the runners
+who need it are exactly the ones who cannot measure it. At Yellow Jacket nobody
+stood at 2.6 mi for JV, so every JV 3 mile mark comes off the 2 mile bracket, and
+the only people with both brackets were nine varsity runners. Across the file that
+is +1.84 s from nine calibrators; scoped to the JV event it is zero from none, and
+every JV mile 3 silently moves by about two seconds. One file is one team on one
+course on one day, so the file is the course. Events of different lengths are kept
+apart, because they did not share a finish.
+
+**vs PR is banded around 5 km, not exact.** A PR is a 5K time, and a course that
+measures 4,960 m is still a 5K to everyone who ran it — the PR the runner set there
+is a PR. So the finish is set against the PR when the event's distance is within
+250 m of 5,000, and not otherwise. A 4K is well outside that, and gets no vs PR at
+all, which keeps the rule in `distance.ts` that a 4K is not a 5K.
 
 **The athlete page carries no commentary.** It shows her finish against her PR —
-labelled previous or current, depending on which this race made it — her three
+labelled previous or current, depending on which this race made it — her whole
 miles, how long each end of the race took, those two ends and the 2.1 miles between
 them as paces next to her average, and every mark with the time it was taken at. It
 does not tell her she went out hard, held on well, or had a good race.
@@ -1052,6 +1165,17 @@ Both bars of the mile chart and the "calculated" labels stay, because neither is
 commentary: the chart is three numbers with a shape, and the labels are the one
 thing the page must never stop saying. The Delta stays on the coach page, under a
 sub-label that names its two inputs and claims nothing about what they mean.
+
+**Comparison is decided and not built.** One runner's meets side by side, one row
+per whole mile and per marker, one column per meet, waits for a second meet to
+compare. What is settled: two 5Ks compare directly, with no paired pace column and
+no note about the courses, because a coach comparing two 5Ks knows they were on
+different courses and a page that says so every time is hedging. A meet at a
+different distance is labelled with it, because that is a different race rather
+than a short course. A marker one meet had and the other did not is blank under
+that meet with its markers named, so a station nobody stood at never reads as a
+slow mile. Whether the coach page also gets the squad on one column across two
+meets is still open.
 
 ### Storage: synchronous, one key per tap
 
@@ -1213,5 +1337,8 @@ phone one tap from current.
 3. **Share** (roster links and the shipped team list done). A QR code next, and a
    link that also carries the meet and the split point so a volunteer opens
    straight into position.
-4. **Records.** Long format export, stable split distances per course, season
-   over season comparison.
+4. **Records** (declared markers per race and season pages done). Each race in a
+   meet file names its own markers, and each team and year has one page that
+   picks from its meets. Comparing one runner's races side by side waits for a
+   second meet to compare, and so does season over season. A long format export
+   is still to come.
