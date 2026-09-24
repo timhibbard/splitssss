@@ -984,9 +984,9 @@ an interpretation the column does not contain.
   doing, in a word that is not a preposition: the column is the time they arrived with,
   and a highlighted row beat it. See the vocabulary rule in "A PR on the button".
 
-**The closing stretch was once treated as exactly half a mile, and no longer is.**
-The first version of this said the opposite, and the argument is kept here because
-the failure it was avoiding is still the one to avoid.
+**The closing stretch is paced over its true distance and labelled to the tenth
+of a mile.** This has been decided three times, and each version is kept here,
+because the failure the first one was avoiding is still worth knowing about.
 
 It went like this. 2.6 mi to the line is 815.7 m, 15.7 m more than a half. Dividing
 by the true 0.507 mi is what shipped first, and it printed a last half mile of 3:10.4
@@ -997,29 +997,22 @@ divided by a flat half, the closing pace was the closing time doubled, and the f
 the column and the sub-labels all said ½ mi. That was right for one fixed marker in
 one 5K.
 
-It lost to markers declared per race. Once every event names its own marks, the
-closing stretch is whatever is left after the last one — 0.51 mi at Yellow Jacket,
-0.61 mi behind a 2.5 mi marker, a whole mile for a race with nobody past 2 — and a
-flat half would be wrong by a different amount at every meet, with no single number
-for a reader to allow for. So the pace is now figured over the true distance, and
-the fix for the five seconds is the label, not the arithmetic: the time and the pace
-are both headed `Last 0.51 mi`, the coach columns are sub-labelled `first 0.5 mi` and
-`last 0.51 mi` from the markers, and a reader who doubles the time and gets a
-different pace has been told on the same line that it was not a half. `mileage()`
-prints every such distance to the hundredth, as itself. The field is `closing`,
-named for where it is rather than how long it is. The 2.6 mi *marker* is still
-described as roughly 800 to go, because that is what it is and what the team calls
-it.
+It lost to markers declared per race, for a while. Once every event names its own
+marks, the closing stretch is whatever is left after the last one — 0.51 mi at
+Yellow Jacket, 0.61 behind a 2.5 mi marker, a whole mile for a race with nobody
+past 2 — and a flat half would be wrong by a different amount at every meet. So the
+pace went over the true distance, and the label carried it to the hundredth: `Last
+0.51 mi`.
 
-**The footnotes are generated from the meet, and a reconciliation note is data.**
-What the coach page says at the bottom — which marks were calculated, who had no
-finish — comes from the file being shown, so a meet with different stations cannot
-ship the previous meet's caveats. The one thing that cannot be derived is how a
-meet was put together by hand: at Yellow Jacket, three of the four volunteers
-started late and every station's gun was corrected from the phones' clock times. That was a hardcoded sentence under every table, true
-of one meet and printed under all of them, and it is now the `reconciled` note on
-that meet's line in `PUBLISHED`. A meet with nothing to say about its reconciliation
-says nothing.
+After Clinton the coach asked for the label back to 0.5: the hundredth is true,
+and it is a nuance without value. So labels round to the tenth of a mile —
+`mileage()` in `meet.ts` prints `Last 0.5 mi` — and the arithmetic does not. The
+pace is still over the true 0.507 mi. This change was to labels only, never to the
+data, and the difference between the two is the thing to keep straight: a reader
+who doubles a last 0.5 mi time will land about 1.4% off its pace, which is what
+the true distance says it should be. The field is `closing`, named for where it is
+rather than how long it is. The 2.6 mi *marker* is still described as roughly 800
+to go, because that is what it is and what the team calls it.
 
 **The coach page has no pronouns in it.** Two teams share this app and one athlete's
 row is the same row as another's, so the text says "the runner" or "each runner" or

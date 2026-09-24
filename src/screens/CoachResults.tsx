@@ -534,7 +534,7 @@ function Footnotes({
         <li>
           <strong>Segment paces are over their true distance.</strong> The first, middle
           and last stretches are each divided by the distance between the markers that
-          bound them, and labelled with it.
+          bound them, and labelled with it to the tenth of a mile.
         </li>
         <li>
           <strong>Nets and vs-PR are signed seconds.</strong> Minus is faster: a

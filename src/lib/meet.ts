@@ -72,14 +72,15 @@ export function perMile(ms: number, meters: number): number {
 }
 
 /**
- * A distance as a page says it, to the hundredth of a mile: "0.51 mi", "2.1 mi".
+ * A distance as a page says it, to the tenth of a mile: "0.5 mi", "2.1 mi".
  *
- * The true distance, labelled as itself. 2.6 mi to a 5K line is 815.7 m, and this
- * says 0.51 mi rather than calling it half a mile. With markers declared per race
- * a flat half mile would be right on one course and quietly wrong on the next.
+ * A label and nothing else. 2.6 mi to a 5K line is 815.7 m, 0.507 mi, and this
+ * says 0.5: the last hundredth is true and is a nuance nobody reading the page can
+ * use. The arithmetic does not round with it. Every pace is still over the true
+ * distance, which the segment carries.
  */
 export function mileage(meters: number): string {
-  return `${Number((meters / METERS_PER_MILE).toFixed(2))} mi`
+  return `${Number((meters / METERS_PER_MILE).toFixed(1))} mi`
 }
 
 /**
@@ -301,8 +302,9 @@ export type Row = {
   miles: WholeMile[]
   /**
    * Gun to the event's first marker, first marker to its last, and last marker to
-   * the line. Each is divided by its true distance and carries it, so the page
-   * labels it with that distance: "Last 0.51 mi", not "Last ½ mi".
+   * the line. Each is divided by its true distance and carries it. The page
+   * labels it to the tenth of a mile, "Last 0.5 mi", but the pace is over the
+   * true 0.507.
    *
    * These against the race average are the whole story of how a race was run, and
    * they are why a marker is worth a volunteer even when it is not a mile. Going out
