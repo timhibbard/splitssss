@@ -251,12 +251,11 @@ test('the splits, nets and paces a coach reads off the table', () => {
   close(row.miles[1].split, 371_700, 'mile 2 is the two mile less the one mile')
   close(row.miles[1].net, 371_700 - 352_900, 'net is mile 2 against mile 1, positive being slower')
   close(row.closing?.time, 1_148_660 - 958_200, 'the closing stretch is the finish less the 2.6 mile')
-  // The closing pace is over its true 815.7 m, not a flat half mile. With markers
-  // declared per race a flat half would be right on one course and wrong on the
-  // next, and 15 m is not worth a special case.
+  // The closing pace is over its true 815.7 m, not a flat half mile, and only the
+  // label rounds: it says 0.5 mi, because the hundredth is a nuance without value.
   close(row.closing?.meters, 5000 - 2.6 * M, 'the closing stretch is its true length')
   close(row.closing?.pace, ((1_148_660 - 958_200) * M) / (5000 - 2.6 * M), 'and paced over it')
-  assert.equal(mileage(row.closing!.meters), '0.51 mi')
+  assert.equal(mileage(row.closing!.meters), '0.5 mi')
   close(row.opening?.pace, 173_300 * 2, 'the opening half mile is a true half mile')
   close(row.middle?.meters, 2.1 * M, 'the middle is the 2.1 miles between the first and last marker')
   close(row.vsBest, 1_148_660 - 1_122_530, 'vs PR is positive when slower')

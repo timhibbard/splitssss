@@ -224,8 +224,8 @@ function Race({ row }: { row: Row }) {
 
       {/*
         The two ends as the time each one took, which is the comparison: the opening
-        stretch against the closing one. Each is named with its true length, so the
-        pace in the next section is that time over that distance and nothing else.
+        stretch against the closing one. Each is named with its length to the tenth of a
+        mile, and the pace in the next section is that time over its true distance.
 
         Times here and paces in the next section, deliberately not both in both. The
         same number twice under two headings makes a page longer without making it say
