@@ -25,15 +25,15 @@ export function ExportScreen({ race, taps, onBack, onNewRace }: Props) {
 
   /**
    * The .csv file itself, through the share sheet, which is where a phone offers
-   * Save to Files as well as sending it. The file alone and no text, so saving it
-   * saves a CSV and not a CSV and a note. A phone that cannot share a file
-   * downloads it instead.
+   * Save to Files as well as sending it. The summary goes with it, so a file sent
+   * this way arrives with the list a coach can read without opening it. A phone
+   * that cannot share a file downloads it instead.
    */
   async function saveCsv() {
     const file = new File([csv], csvFilename(race, taps), { type: 'text/csv' })
     if (navigator.canShare?.({ files: [file] })) {
       try {
-        await navigator.share({ files: [file] })
+        await navigator.share({ text: summary, files: [file] })
         return
       } catch (e) {
         // A cancel is an answer. Anything else falls through to a download.
