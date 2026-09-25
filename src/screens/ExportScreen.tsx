@@ -84,7 +84,7 @@ export function ExportScreen({ race, taps, onBack, onNewRace }: Props) {
       )}
 
       <a className="primary text-coach" href={text}>
-        Text Coach Tim
+        Tap to text results
       </a>
 
       <div className="export-actions">
