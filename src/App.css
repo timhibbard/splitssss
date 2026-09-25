@@ -1496,3 +1496,35 @@
 .footnotes strong {
   color: var(--ink);
 }
+
+/* ---------- moving to another marker ---------- */
+
+/* The station in the header is the move button. Kept looking like the title it
+   was, with a caret to say it opens something. */
+button.bar-where {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  border-radius: 6px;
+}
+
+button.bar-where:disabled {
+  opacity: 1;
+}
+
+.bar-caret {
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+/* One header per spot, once the phone has stood at more than one. */
+.splits-leg {
+  padding: 10px 6px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--navy);
+  border-bottom: 1px solid var(--line);
+}

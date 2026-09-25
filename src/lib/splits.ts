@@ -1,7 +1,7 @@
 // Explicit extensions: see the note in link.ts.
 import { elapsedMs } from './clock.ts'
 import { PR_METERS, projectedFinish } from './distance.ts'
-import type { Athlete, Race, Tap } from './types'
+import type { Athlete, Race, Station, Tap } from './types'
 
 /**
  * One crossing, ready to read off a phone: place, split, who it was, and what
@@ -14,8 +14,11 @@ import type { Athlete, Race, Tap } from './types'
  */
 export type SplitRow = {
   tap: Tap
-  /** Crossing order at this station, which is the runner's place. */
+  /** Crossing order at this row's spot, which is the runner's place there. */
   place: number
+  /** Which spot the crossing was taken at. See stationsOf. */
+  leg: number
+  station: Station
   /** Absent when the crossing has not been named yet. */
   athlete?: Athlete
   /** ms since the gun. Absent when no gun time has been set. */
@@ -48,6 +51,44 @@ export function prGap(
 }
 
 /**
+ * Every spot this phone has stood at in the race, first spot first. The last one
+ * is where it is now. A race that never moved has one.
+ */
+export function stationsOf(race: Race): Station[] {
+  return [...(race.earlierStations ?? []), race.station]
+}
+
+/** The index of the spot the phone is at now, which is where new crossings go. */
+export function currentLeg(race: Race): number {
+  return race.earlierStations?.length ?? 0
+}
+
+/** Which spot a crossing was taken at. Crossings from before a phone could move were all at the first. */
+export function legOf(tap: Tap): number {
+  return tap.leg ?? 0
+}
+
+/** The crossings taken at one spot, in the order they passed. */
+export function tapsAt(taps: Tap[], leg: number): Tap[] {
+  return taps.filter((tap) => legOf(tap) === leg)
+}
+
+/**
+ * Each crossing's place, counted from 1 at each spot. A runner who was 4th past
+ * Mile 1 and 6th past Mile 2 is both, so the count cannot be the race-wide seq.
+ */
+export function placesOf(taps: Tap[]): Map<string, number> {
+  const counts = new Map<number, number>()
+  const places = new Map<string, number>()
+  for (const tap of [...taps].sort((a, b) => a.seq - b.seq)) {
+    const place = (counts.get(legOf(tap)) ?? 0) + 1
+    counts.set(legOf(tap), place)
+    places.set(tap.id, place)
+  }
+  return places
+}
+
+/**
  * Builds the running list, in crossing order.
  *
  * `sessionId` is passed in rather than read from the clock module so this stays
@@ -57,7 +98,14 @@ export function prGap(
 export function splitRows(race: Race, taps: Tap[], sessionId: string): SplitRow[] {
   const byId = new Map(race.athletes.map((a) => [a.id, a]))
   const gunSameSession = race.gunSessionId === sessionId
+  const stations = stationsOf(race)
+  const places = placesOf(taps)
   return taps.map((tap) => {
+    const leg = legOf(tap)
+    // A leg past the end would be a crossing from a spot that was taken back,
+    // which Back to only allows when there are none. Read it as where the
+    // phone is now rather than lose the row.
+    const station = stations[leg] ?? race.station
     const elapsed = race.gun
       ? elapsedMs(race.gun, tap, gunSameSession && tap.sessionId === sessionId)
       : undefined
@@ -67,10 +115,12 @@ export function splitRows(race: Race, taps: Tap[], sessionId: string): SplitRow[
     const projected =
       elapsed == null
         ? undefined
-        : projectedFinish(race.station.meters, race.raceMeters, elapsed)
+        : projectedFinish(station.meters, race.raceMeters, elapsed)
     return {
       tap,
-      place: tap.seq,
+      place: places.get(tap.id) ?? tap.seq,
+      leg,
+      station,
       athlete,
       elapsed,
       projected,
@@ -80,20 +130,23 @@ export function splitRows(race: Race, taps: Tap[], sessionId: string): SplitRow[
 }
 
 /**
- * Attaches an athlete to one crossing and off any other, because a
- * runner passes a point once. Returns only the taps that changed, so the caller
- * writes exactly what it has to.
+ * Attaches an athlete to one crossing and off any other at the same spot, because
+ * a runner passes a point once. Crossings at other spots are left alone: the
+ * same runner passing Mile 1 and then Mile 2 is two real splits. Returns only the
+ * taps that changed, so the caller writes exactly what it has to.
  *
  * That invariant is what makes a mis-tap fixable: naming #12 as Rowan when Rowan
  * is already on #7 leaves #7 unnamed and waiting, rather than counting one runner
  * in two places and quietly breaking the count.
  */
 export function assignAthlete(taps: Tap[], tapId: string, athleteId: string): Tap[] {
+  const target = taps.find((tap) => tap.id === tapId)
+  if (!target) return []
   const changed: Tap[] = []
   for (const tap of taps) {
     if (tap.id === tapId) {
       if (tap.athleteId !== athleteId) changed.push({ ...tap, athleteId })
-    } else if (tap.athleteId === athleteId) {
+    } else if (tap.athleteId === athleteId && legOf(tap) === legOf(target)) {
       const freed = { ...tap }
       delete freed.athleteId
       changed.push(freed)

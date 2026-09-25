@@ -283,14 +283,47 @@ setup or the roster from there. Two lessons, both now built in:
 
 - The roster has to be reachable from wherever you are, not only from the screen
   that happens to be first.
-- The capture screen carries quiet Setup and "Who is running" links under the
-  race actions. Leaving is free, because taps are already on disk and the race stays
+- The capture screen carries Home in the top left corner, where every other
+  screen keeps its way out, and a quiet "Who is running" link under the race
+  actions. Leaving is free, because taps are already on disk and the race stays
   the active one, so these are safe to hit by accident. That is why they are
-  small and grey rather than styled like Stop.
+  plain rather than styled like Stop. Home and not Back, because "back" from a
+  running race sounds like it might end it.
 
 Opening setup mid race puts "Back to timing" at the top, and the race in
 progress is left out of the "Earlier today" list so it appears in exactly one
 place.
+
+### Moving to another marker keeps the race
+
+A split taker at Clinton timed the half mile and then walked to the two mile mark.
+The only way to start over from there was a new race, which has no gun, so they
+kept timing in the half mile race and the two mile splits came out labelled 0.5 mi.
+
+The marker name in the capture header is the way to move. It opens a sheet with
+the presets, the ones further along the course first, and a confirm that says
+where to. The race, the gun and the clock carry on. The spot being left goes onto
+`earlierStations` on the race and every crossing carries the index of the spot it
+was taken at (`leg`, absent for the first), so nothing already recorded changes
+what it says. A move can be taken back only while nothing has been tapped at the
+new spot, for the same reason.
+
+Everything already recorded stays on screen, under a header per spot, newest spot
+on top. Old rows can still be named. What resets is what is about the spot the
+phone is at: every name is tappable again, since a runner who passed Mile 1 is
+still to come at Mile 2; the big button's count starts over; Undo only reaches
+crossings here, which is the same as the newest crossing because spots only move
+forward; and places count from 1 at each spot. Naming a runner takes them off
+another crossing at the same spot, never at a different one.
+
+The export is still one file with one row per crossing. Each row carries its own
+station, distance and place there, and its pace and projection are over that
+row's distance, so a runner's Mile 1 and Mile 2 are two rows, the same as two
+volunteers' files would give. The file name and the text message name every spot
+that has crossings. A race that never moved exports exactly as it did before.
+
+The seq a tap is stored under stays race wide rather than restarting per spot,
+because it is the storage key.
 
 ### Earlier meets are reachable
 

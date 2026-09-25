@@ -8,10 +8,10 @@ import { fetchMeet } from './lib/meetfile'
 import { HELP_PATH, meetFilePath, type Page, pageAt, type ResultsPage, seasonMeets } from './lib/pages'
 import { type SeasonMeet, seasonFiles } from './lib/season'
 import { mergeLineup } from './lib/roster'
-import { assignAthlete, clearName } from './lib/splits'
+import { assignAthlete, clearName, currentLeg, legOf, tapsAt } from './lib/splits'
 import * as store from './lib/storage'
 import { fetchTeam, TEAM_FILE, teamText } from './lib/teamfile'
-import type { Athlete, Race, RaceDraft, Stamp, Tap } from './lib/types'
+import type { Athlete, Race, RaceDraft, Stamp, Station, Tap } from './lib/types'
 import { AthleteResults } from './screens/AthleteResults'
 import { Capture } from './screens/Capture'
 import { CoachResults } from './screens/CoachResults'
@@ -457,6 +457,9 @@ export default function App() {
       const tap: Tap = {
         id: store.newId(),
         seq: seqRef.current + 1,
+        // Only written once the phone has moved, so a race that never did stores
+        // exactly what it always has.
+        ...(currentLeg(race) > 0 ? { leg: currentLeg(race) } : {}),
         wallMs: at.wallMs,
         monoMs: at.monoMs,
         sessionId: SESSION_ID,
@@ -534,12 +537,55 @@ export default function App() {
     [race, taps, applyChanged],
   )
 
+  /**
+   * Takes back the newest crossing, and only at the spot the phone is at now.
+   * Spots only ever move forward, so the newest crossing is always here unless
+   * nothing has been tapped here yet, and then there is nothing to undo: a
+   * crossing from the last spot was confirmed by walking away from it.
+   */
   const undoTap = useCallback(() => {
     if (!race || seqRef.current === 0) return
+    const last = taps[taps.length - 1]
+    if (!last || legOf(last) !== currentLeg(race)) return
     store.deleteTap(race.id, seqRef.current)
     seqRef.current -= 1
     setTaps((prev) => prev.slice(0, -1))
-  }, [race])
+  }, [race, taps])
+
+  /**
+   * The split taker walked to another marker. Same race, same gun, same clock:
+   * the spot they were at goes on the list of earlier ones, with its crossings
+   * still saying they were taken there, and new ones are taken at this one.
+   */
+  const moveStation = useCallback(
+    (station: Station) => {
+      if (!race) return
+      const next: Race = {
+        ...race,
+        earlierStations: [...(race.earlierStations ?? []), race.station],
+        station,
+      }
+      store.saveRace(next)
+      setRace(next)
+    },
+    [race],
+  )
+
+  /**
+   * Undoes a move, for the wrong marker picked or a walk that did not happen.
+   * Only while nothing has been tapped at the new spot, so no crossing ever ends
+   * up saying it was taken somewhere it was not.
+   */
+  const moveBack = useCallback(() => {
+    if (!race?.earlierStations?.length) return
+    if (tapsAt(taps, currentLeg(race)).length > 0) return
+    const earlier = race.earlierStations.slice(0, -1)
+    const next: Race = { ...race, station: race.earlierStations[race.earlierStations.length - 1] }
+    if (earlier.length > 0) next.earlierStations = earlier
+    else delete next.earlierStations
+    store.saveRace(next)
+    setRace(next)
+  }, [race, taps])
 
   const setGun = useCallback(() => {
     if (!race) return
@@ -689,6 +735,8 @@ export default function App() {
       onNameFree={nameTapFree}
       onClearName={clearTapName}
       onUndo={undoTap}
+      onMove={moveStation}
+      onMoveBack={moveBack}
       onSetGun={setGun}
       onStop={stopRace}
       onReopen={reopenRace}
