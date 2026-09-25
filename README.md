@@ -142,8 +142,9 @@ Live at **https://timhibbard.github.io/splitssss/**
   404 the app recovers from. The season is in the path because the same
   invitational comes back every September, and a link sent out last year should not
   start showing this year's splits.
-- **No backend.** Static site, all state on the device, exports leave by way of
-  the share sheet.
+- **No backend.** Static site, all state on the device. Results leave as a text
+  message to the coach's number with the summary and CSV rows in the body, or as
+  the .csv file through the share sheet.
 - **Works with no signal.** Fully offline once loaded, which matters at the two
   mile mark of a rural course.
 

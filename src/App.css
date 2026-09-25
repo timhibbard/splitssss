@@ -1040,6 +1040,15 @@
   flex: 1;
 }
 
+/* A link that looks like the main button, since it is the main thing to do here. */
+.text-coach {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  border: 1px solid var(--navy);
+  border-radius: 12px;
+}
+
 .status {
   margin: 0;
   font-size: 15px
