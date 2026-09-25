@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { csvFilename, stationNames, toCsv, toTextSummary } from '../lib/csv'
+import { COACH_PHONE, smsLink } from '../lib/sms'
 import type { Race, Tap } from '../lib/types'
 
 type Props = {
@@ -16,29 +17,30 @@ export function ExportScreen({ race, taps, onBack, onNewRace }: Props) {
   const unassigned = taps.filter((t) => !t.athleteId).length
 
   /**
-   * Share sheet first, since the whole point is texting this to the coach.
-   * Falls back to clipboard, then to a download, because file sharing support
-   * varies and a volunteer cannot troubleshoot.
+   * The text to the coach: the summary to read and the CSV rows under it, since
+   * a text link cannot attach the file. A link and not a button, so it opens
+   * Messages the way any link to a number does.
    */
-  async function share() {
+  const text = smsLink(COACH_PHONE, `${summary}\n\n${csv}`)
+
+  /**
+   * The .csv file itself, through the share sheet, which is where a phone offers
+   * Save to Files as well as sending it. The file alone and no text, so saving it
+   * saves a CSV and not a CSV and a note. A phone that cannot share a file
+   * downloads it instead.
+   */
+  async function saveCsv() {
     const file = new File([csv], csvFilename(race, taps), { type: 'text/csv' })
     if (navigator.canShare?.({ files: [file] })) {
       try {
-        await navigator.share({ text: summary, files: [file] })
+        await navigator.share({ files: [file] })
         return
-      } catch {
-        // Cancelled or unsupported. Fall through to the next option.
+      } catch (e) {
+        // A cancel is an answer. Anything else falls through to a download.
+        if (e instanceof DOMException && e.name === 'AbortError') return
       }
     }
-    if (navigator.share) {
-      try {
-        await navigator.share({ text: summary })
-        return
-      } catch {
-        // Fall through.
-      }
-    }
-    await copy()
+    download()
   }
 
   async function copy() {
@@ -81,14 +83,15 @@ export function ExportScreen({ race, taps, onBack, onNewRace }: Props) {
         </p>
       )}
 
+      <a className="primary text-coach" href={text}>
+        Tap to text results
+      </a>
+
       <div className="export-actions">
-        <button type="button" className="primary" onClick={share}>
-          Share
-        </button>
         <button type="button" onClick={copy}>
           Copy
         </button>
-        <button type="button" onClick={download}>
+        <button type="button" onClick={saveCsv}>
           Save CSV
         </button>
       </div>

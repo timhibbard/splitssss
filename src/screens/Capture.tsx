@@ -307,13 +307,17 @@ export function Capture({
 
   /** A name in the grid means that runner is passing now, so this records it. */
   function recordName(athleteId: string, at: Stamp) {
-    if (stopped) return
+    // A struck through name is disabled, but a disabled button still gets touch
+    // events, and this grid records on those rather than on click. Without this a
+    // runner tapped twice was recorded twice.
+    if (stopped || assigned.has(athleteId)) return
     onTap(athleteId, at)
     confirmFeedback()
   }
 
   function nameDown(e: ReactPointerEvent<HTMLButtonElement>, athleteId: string) {
     pressRecorded.current = false
+    if (stopped || assigned.has(athleteId)) return
     press.current = {
       pointerId: e.pointerId,
       athleteId,
