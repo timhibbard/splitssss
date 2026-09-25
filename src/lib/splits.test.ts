@@ -1,16 +1,29 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { assignAthlete, clearName, gridOrder, namedInOrder, splitRows, stillOut } from './splits.ts'
+import { projectedFinish } from './distance.ts'
+import {
+  assignAthlete,
+  clearName,
+  currentLeg,
+  gridOrder,
+  namedInOrder,
+  placesOf,
+  splitRows,
+  stationsOf,
+  stillOut,
+  tapsAt,
+} from './splits.ts'
 import type { Race, Tap } from './types.ts'
 
 const SESSION = 'here'
 const GUN_WALL = 1_700_000_000_000
 const GUN_MONO = 5_000
 
-function tap(seq: number, secs: number, athleteId?: string, sessionId = SESSION): Tap {
+function tap(seq: number, secs: number, athleteId?: string, sessionId = SESSION, leg?: number): Tap {
   return {
     id: `t${seq}`,
     seq,
+    ...(leg == null ? {} : { leg }),
     wallMs: GUN_WALL + secs * 1000,
     monoMs: GUN_MONO + secs * 1000,
     sessionId,
@@ -228,4 +241,76 @@ test('who has crossed comes back in the order they passed', () => {
   const taps = [tap(1, 400, 'a3'), tap(2, 410), tap(3, 420, 'a1')]
   assert.deepEqual(namedInOrder(taps), ['a3', 'a1'])
   assert.deepEqual(namedInOrder([]), [])
+})
+
+// A split taker who walked from one marker to another mid race.
+const MOVED = {
+  earlierStations: [{ label: 'Mile 1', meters: 1609 }],
+  station: { label: 'Mile 2', meters: 3219 },
+}
+
+test('a race that never moved has one spot, and its crossings are all at it', () => {
+  assert.deepEqual(stationsOf(race()), [{ label: '2K', meters: 2000 }])
+  assert.equal(currentLeg(race()), 0)
+  const taps = [tap(1, 400), tap(2, 410)]
+  assert.deepEqual(tapsAt(taps, 0), taps)
+})
+
+test('a race that moved lists its spots first to last, and new crossings go at the last', () => {
+  const r = race(MOVED)
+  assert.deepEqual(
+    stationsOf(r).map((s) => s.label),
+    ['Mile 1', 'Mile 2'],
+  )
+  assert.equal(currentLeg(r), 1)
+})
+
+test('places count from 1 at each spot', () => {
+  const taps = [tap(1, 400), tap(2, 410), tap(3, 800, undefined, SESSION, 1), tap(4, 810, undefined, SESSION, 1)]
+  const places = placesOf(taps)
+  assert.deepEqual(
+    taps.map((t) => places.get(t.id)),
+    [1, 2, 1, 2],
+  )
+})
+
+test("each row is measured at its own spot's distance", () => {
+  // 8:00 at Mile 1 and 16:00 at Mile 2 are both 8:00 a mile.
+  const taps = [tap(1, 480, 'a1'), tap(2, 960, 'a1', SESSION, 1)]
+  const rows = splitRows(race(MOVED), taps, SESSION)
+  assert.deepEqual(
+    rows.map((r) => [r.station.label, r.place, r.leg]),
+    [
+      ['Mile 1', 1, 0],
+      ['Mile 2', 1, 1],
+    ],
+  )
+  assert.equal(rows[0].projected, projectedFinish(1609, 5000, 480_000))
+  assert.equal(rows[1].projected, projectedFinish(3219, 5000, 960_000))
+})
+
+test('naming a runner at one spot leaves their crossing at another alone', () => {
+  // Rowan passing Mile 1 and then Mile 2 is two real splits, not a duplicate.
+  const taps = [tap(1, 480, 'a2'), tap(2, 960, undefined, SESSION, 1)]
+  assert.deepEqual(assignAthlete(taps, 't2', 'a2'), [{ ...taps[1], athleteId: 'a2' }])
+})
+
+test('naming a runner still takes them off another crossing at the same spot', () => {
+  const taps = [tap(1, 480, 'a2'), tap(2, 960, 'a2', SESSION, 1), tap(3, 970, undefined, SESSION, 1)]
+  const changed = assignAthlete(taps, 't3', 'a2')
+  assert.deepEqual(
+    changed.map((t) => [t.id, t.athleteId]),
+    [
+      ['t2', undefined],
+      ['t3', 'a2'],
+    ],
+  )
+})
+
+test('a runner recorded at the last spot is still out at this one', () => {
+  const taps = [tap(1, 480, 'a1')]
+  assert.deepEqual(
+    stillOut(race(MOVED).athletes, tapsAt(taps, 1)).map((a) => a.id),
+    ['a1', 'a2'],
+  )
 })

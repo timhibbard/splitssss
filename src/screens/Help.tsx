@@ -94,7 +94,11 @@ const WORKFLOW: { title: string; lead?: string; steps: Step[] }[] = [
         act: 'Gun, if you can see the start.',
         note: 'Optional. Tap it when the starter fires and every crossing shows time since the gun, plus a projected 5K. Without it each crossing keeps the time of day, which coach can line up against the other markers afterwards.',
       },
-      { act: 'Undo.', note: 'Removes the most recent crossing. Nothing else.' },
+      { act: 'Undo.', note: 'Removes the most recent crossing at the marker you are at. Nothing else.' },
+      {
+        act: 'Moving to another marker? Tap the marker name at the top.',
+        note: 'Pick where you are going and tap Move. The gun and the clock keep running and your splits so far stay in the list under their own marker. Every name can be tapped again, since everybody is still to come at the new spot.',
+      },
     ],
   },
   {
@@ -181,6 +185,10 @@ const FAQ: { q: string; a: string }[] = [
   {
     q: 'Can two of us time the same race?',
     a: 'Yes, and that is the normal way to use this. One phone per marker, each with its own runner list and its own name in "Your name", and each one sends its own CSV.',
+  },
+  {
+    q: 'I timed Mile 1 and now I am walking to Mile 2. Do I start a new race?',
+    a: 'No. Tap "Mile 1" at the top of the screen and move to Mile 2. It is still one race with one gun, and the CSV has a row for every crossing with the marker it was taken at. If you picked the wrong marker, "Back to Mile 1" is there until you tap anybody at the new one.',
   },
   {
     q: 'Should somebody stand at the finish?',

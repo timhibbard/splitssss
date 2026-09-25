@@ -20,6 +20,10 @@ Live at **https://timhibbard.github.io/splitssss/**
   kilometers, or miles. The distance is
   stored so pace per mile can be computed. There is no finish line station,
   because the meet already provides finish times.
+- **A split taker can move mid race.** Tapping the marker name at the top moves
+  the phone to another marker with the same gun and clock. Earlier splits stay in
+  the list under their own marker, and the one CSV has a row per crossing, each
+  with the station it was taken at and its place there.
 - **The gun time is optional.** Every tap stores an absolute time of day, so
   elapsed times are computed later by subtracting the gun time. A volunteer at
   Mile 2 who cannot hear the start does not need to know when the race began.

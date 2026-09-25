@@ -8,8 +8,18 @@ export type Stamp = {
 
 export type Tap = Stamp & {
   id: string
-  /** 1-based crossing order at this station. This is the athlete's place. */
+  /**
+   * 1-based crossing order over the whole race, across every spot the phone
+   * stood at. It is the storage key, so it never restarts. A runner's place is
+   * counted per spot instead: see placesAt in splits.ts.
+   */
   seq: number
+  /**
+   * Which spot this crossing was taken at, as an index into the race's stations
+   * (see stationsOf). Absent means the first, which is every crossing recorded
+   * before a phone could move.
+   */
+  leg?: number
   /** Which page session captured this, so monotonic times are only compared within a frame. */
   sessionId: string
   /** Attached later, during the assign step. */
@@ -87,7 +97,15 @@ export type Race = {
   meet: string
   /** "JV Girls" */
   race: string
+  /** Where the phone is standing now. New crossings are taken here. */
   station: Station
+  /**
+   * Where the phone stood before it moved, first spot first. A split taker who
+   * walks from Mile 1 to Mile 2 keeps the gun and the race; the old spot goes
+   * here and its crossings keep saying they were taken there. Absent on a race
+   * that never moved.
+   */
+  earlierStations?: Station[]
   /** Full race distance in meters. 5000 for a high school 5K. */
   raceMeters: number
   /**

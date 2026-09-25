@@ -21,9 +21,11 @@ import { buzz, click, undoClick } from '../lib/feedback'
 import { becameScroll, type Point } from '../lib/gesture'
 import { forTeam, varsitySize } from '../lib/lineup'
 import { displayNames } from '../lib/names'
-import { gridOrder, namedInOrder, splitRows, stillOut } from '../lib/splits'
-import type { Athlete, Race, Stamp, Tap } from '../lib/types'
+import { currentLeg, gridOrder, namedInOrder, splitRows, stationsOf, stillOut, tapsAt } from '../lib/splits'
+import type { Athlete, Race, Stamp, Station, Tap } from '../lib/types'
 import { Lineup } from './Lineup'
+import { movePresets, resolveStation, type StationChoice } from '../lib/stations'
+import { StationPicker } from './StationPicker'
 
 /**
  * How long the name grid waits before moving a recorded runner to the back.
@@ -45,6 +47,10 @@ function vsPrClass(ms: number | undefined): string {
   if (ms == null) return 'split-vs'
   if (Math.round(ms / 1000) === 0) return 'split-vs even'
   return ms < 0 ? 'split-vs ahead' : 'split-vs behind'
+}
+
+function crossings(n: number): string {
+  return n === 0 ? 'nothing yet' : `${n} crossing${n === 1 ? '' : 's'}`
 }
 
 /** The same gap in words, since a screen reader gets "+0:12" as "zero twelve". */
@@ -70,6 +76,10 @@ type Props = {
   onNameFree: (name: string, tapId: string) => void
   onClearName: (tapId: string) => void
   onUndo: () => void
+  /** Moves the phone to another marker, keeping the gun and every crossing so far. */
+  onMove: (station: Station) => void
+  /** Undoes a move, allowed only while nothing has been tapped at the new spot. */
+  onMoveBack: () => void
   onSetGun: () => void
   onStop: () => void
   /** Undoes a stop. Never automatic: opening a stopped race must not restart it. */
@@ -89,6 +99,8 @@ export function Capture({
   onNameFree,
   onClearName,
   onUndo,
+  onMove,
+  onMoveBack,
   onSetGun,
   onStop,
   onReopen,
@@ -107,6 +119,8 @@ export function Capture({
   const [namingId, setNamingId] = useState<string | null>(null)
   const [typed, setTyped] = useState('')
   const [showLineup, setShowLineup] = useState(false)
+  /** The marker picked in the move sheet, while it is open. Null when it is closed. */
+  const [moving, setMoving] = useState<StationChoice | null>(null)
   /**
    * The runners whose chip has moved to the back of the grid. Held as state, and
    * not derived from the crossings, because lagging the crossings is the whole
@@ -116,7 +130,7 @@ export function Capture({
    * names opens with them at the back instead of shuffling three seconds after a
    * coach looks at it.
    */
-  const [moved, setMoved] = useState<string[]>(() => namedInOrder(taps))
+  const [moved, setMoved] = useState<string[]>(() => namedInOrder(tapsAt(taps, currentLeg(race))))
   const flashTimer = useRef<number | undefined>(undefined)
   const confirmTimer = useRef<number | undefined>(undefined)
   const moveTimer = useRef<number | undefined>(undefined)
@@ -163,13 +177,30 @@ export function Capture({
 
   const rows = splitRows(race, taps, SESSION_ID)
   /**
+   * Where the phone is standing now, and what has been tapped here. The grid, the
+   * big button's count, Undo and the struck through names are all about this spot:
+   * a runner who passed Mile 1 is still to come at Mile 2. The list keeps every
+   * spot, so nothing recorded earlier leaves the screen.
+   */
+  const stations = stationsOf(race)
+  const leg = currentLeg(race)
+  const here = tapsAt(taps, leg)
+  const hasMoved = stations.length > 1
+  /**
    * The runners the lineup picker can draw from: this race's team only. Twenty
    * eight girls under the boys who are about to run is a list nobody can find a
    * name in.
    */
   const pool = forTeam(team, race.team)
-  const assigned = new Set(taps.map((t) => t.athleteId).filter((id): id is string => !!id))
-  const unnamed = taps.filter((t) => !t.athleteId).length
+  const assigned = new Set(here.map((t) => t.athleteId).filter((id): id is string => !!id))
+  /** Anyone with a crossing at any spot, who the lineup cannot take out. */
+  const anywhere = new Set(taps.map((t) => t.athleteId).filter((id): id is string => !!id))
+  /**
+   * Waiting for a name here, and once the race is stopped anywhere at all. While
+   * runners are still coming a count from the last spot is not what this spot
+   * needs; those rows stay in the list and can be named from there.
+   */
+  const unnamed = (stopped ? taps : here).filter((t) => !t.athleteId).length
   const hasRoster = race.athletes.length > 0
   const paceLabel = race.raceMeters === 5000 ? '5K' : `${race.raceMeters}m`
   /**
@@ -200,7 +231,7 @@ export function Capture({
    * screen and must not keep pushing the wait back forever.
    */
   useEffect(() => {
-    const settle = namedInOrder(taps)
+    const settle = namedInOrder(tapsAt(taps, leg))
     moveTimer.current = window.setTimeout(() => {
       // Same runners in the same order is not worth a render: an unnamed crossing
       // restarts the wait without moving anybody.
@@ -209,7 +240,7 @@ export function Capture({
       )
     }, REORDER_AFTER_MS)
     return () => window.clearTimeout(moveTimer.current)
-  }, [taps])
+  }, [taps, leg])
 
   /**
    * Still running first, already recorded behind them.
@@ -223,14 +254,41 @@ export function Capture({
     moved.filter((id) => assigned.has(id)),
   )
 
+  /** Newest first. Spots only move forward, so this also keeps each spot's rows together. */
+  const listed = rows.slice().reverse()
+
   const namingRow = namingId ? rows.find((r) => r.tap.id === namingId) : undefined
   const namingAt =
     namingRow &&
     (namingRow.elapsed == null
       ? formatWallClock(namingRow.tap.wallMs)
       : formatElapsed(namingRow.elapsed))
-  /** Who this crossing could be: everyone without one here yet, in roster order. */
-  const choices = namingRow ? stillOut(race.athletes, taps) : []
+  /** Who this crossing could be: everyone without one at its spot yet, in roster order. */
+  const choices = namingRow ? stillOut(race.athletes, tapsAt(taps, namingRow.leg)) : []
+
+  const moveTo = moving ? resolveStation(moving) : null
+  /** Only while nothing has been tapped here, so no crossing changes where it was taken. */
+  const canMoveBack = hasMoved && here.length === 0
+  const lastSpot = hasMoved ? stations[stations.length - 2] : undefined
+
+  function openMove() {
+    const presets = movePresets(race.station)
+    setMoving({ pick: presets[0]?.label ?? 'custom', value: '', unit: 'm' })
+    click()
+  }
+
+  function confirmMove() {
+    if (!moveTo || moveTo.label === race.station.label) return
+    onMove(moveTo)
+    setMoving(null)
+    confirmFeedback()
+  }
+
+  function moveBack() {
+    onMoveBack()
+    setMoving(null)
+    click()
+  }
 
   function confirmFeedback() {
     click()
@@ -332,7 +390,7 @@ export function Capture({
   }
 
   function handleUndo() {
-    if (taps.length === 0) return
+    if (here.length === 0) return
     onUndo()
     undoClick()
     buzz(30)
@@ -374,20 +432,35 @@ export function Capture({
           place a volunteer looks: a screen you cannot see your way off of is a
           screen you are stuck on, whatever the markup says.
 
-          It says "Setup" and not "Back" because "back" from a running race
+          It says "Home" and not "Back" because "back" from a running race
           sounds like it might end it, and nothing here does. Leaving costs
           nothing: the crossings are already on disk, the race stays the active
-          one, and Setup opens with a button that comes straight back to this
-          screen. Safe to hit by accident, which is what earns it a place next to
-          a clock somebody is tapping under.
+          one, and the first screen opens with a button that comes straight back
+          to this one. Safe to hit by accident, which is what earns it a place
+          next to a clock somebody is tapping under.
         */}
         <button type="button" className="back" onClick={onSetup}>
-          Setup
+          Home
         </button>
-        <div className="bar-where">
-          <strong>{race.station.label}</strong>
+        {/*
+          Where the phone is standing, and the way to say it moved. A split taker
+          who walks from Mile 1 to Mile 2 mid race keeps the gun, the clock and
+          every crossing so far; only new ones are taken at the new spot. Behind
+          a sheet with its own confirm, since a thumb lands here by accident.
+        */}
+        <button
+          type="button"
+          className="bar-where"
+          onClick={openMove}
+          disabled={stopped}
+          aria-label={`At ${race.station.label}, ${race.race}. Tap to move to another marker.`}
+        >
+          <strong>
+            {race.station.label}
+            {!stopped && <span className="bar-caret" aria-hidden="true"> ⌄</span>}
+          </strong>
           <span>{race.race}</span>
-        </div>
+        </button>
         {race.gun ? (
           <div className="bar-clocks">
             <div className="bar-clock" aria-label="elapsed since gun">
@@ -418,20 +491,22 @@ export function Capture({
         className="tap"
         onPointerDown={handleTap}
         disabled={stopped}
-        aria-label={`Record an unnamed crossing. ${taps.length} recorded so far.`}
+        aria-label={`Record an unnamed crossing. ${here.length} recorded here so far.`}
       >
-        <span className="tap-count">{taps.length}</span>
+        <span className="tap-count">{here.length}</span>
         <span className="tap-word">{stopped ? 'STOPPED' : 'TAP'}</span>
       </button>
 
       <p className="pending" aria-live="polite">
         {unnamed > 0
           ? `${unnamed} ${unnamed === 1 ? 'crossing needs' : 'crossings need'} a name. Tap it in the list.`
-          : stopped
-            ? 'Every crossing has a name.'
-            : hasRoster
-              ? 'Tap a name as that runner passes. The big button is for anyone you cannot name.'
-              : 'Tap as each runner passes. Names can wait until after the race.'}
+          : hasMoved && here.length === 0 && !stopped
+            ? `Now at ${race.station.label}.${hasRoster ? ' Every name is tappable again.' : ''} The gun and your ${lastSpot?.label} splits are kept.`
+            : stopped
+              ? 'Every crossing has a name.'
+              : hasRoster
+                ? 'Tap a name as that runner passes. The big button is for anyone you cannot name.'
+                : 'Tap as each runner passes. Names can wait until after the race.'}
       </p>
 
       {/*
@@ -491,6 +566,13 @@ export function Capture({
           <span>vs PR</span>
         </div>
         <div className="splits-rows">
+          {hasMoved && here.length === 0 && (
+            // Just moved: the new spot's header, over nothing yet, so the list
+            // says where the next crossing will land.
+            <div className="splits-leg">
+              {race.station.label} · {crossings(0)}
+            </div>
+          )}
           {rows.length === 0 ? (
             <p className="splits-empty">
               Nothing recorded yet. {hasRoster
@@ -499,13 +581,19 @@ export function Capture({
               {race.gun ? '' : ' A gun time is optional: every tap keeps the time of day.'}
             </p>
           ) : (
-            rows
-              .slice()
-              .reverse()
-              .map((row) => {
+            listed.map((row, i) => {
                 const name = row.athlete ? labelOf(row.athlete) : undefined
                 const at = row.elapsed == null ? formatWallClock(row.tap.wallMs) : formatElapsed(row.elapsed)
-                return (
+                // A header over each spot's crossings, once the phone has stood at
+                // more than one. The places under it count from 1 at that spot.
+                const heading =
+                  hasMoved && (i === 0 || listed[i - 1].leg !== row.leg) ? (
+                    <div key={`leg-${row.leg}`} className="splits-leg">
+                      {row.station.label} · {crossings(tapsAt(taps, row.leg).length)}
+                    </div>
+                  ) : null
+                return [
+                  heading,
                   <button
                     key={row.tap.id}
                     type="button"
@@ -518,7 +606,7 @@ export function Capture({
                       .join(' ')}
                     onClick={() => openNaming(row.tap)}
                     aria-label={
-                      `Crossing ${row.place} at ${at}, ` +
+                      `${hasMoved ? `${row.station.label}, crossing` : 'Crossing'} ${row.place} at ${at}, ` +
                       `${row.athlete ? row.athlete.name : 'not named yet'}. ` +
                       `${row.projected != null ? `On pace for ${formatMinSec(row.projected)}. ` : ''}` +
                       `${row.vsPr != null ? `${prSpoken(row.vsPr)}. ` : ''}` +
@@ -541,15 +629,15 @@ export function Capture({
                     <span className={vsPrClass(row.vsPr)}>
                       {row.vsPr == null ? '' : formatDelta(row.vsPr)}
                     </span>
-                  </button>
-                )
+                  </button>,
+                ]
               })
           )}
         </div>
       </section>
 
       <footer className="actions">
-        <button type="button" onClick={handleUndo} disabled={taps.length === 0}>
+        <button type="button" onClick={handleUndo} disabled={here.length === 0}>
           Undo
         </button>
         {stopped ? (
@@ -610,6 +698,7 @@ export function Capture({
           <div className="sheet" role="dialog" aria-modal="true" aria-label={`Name crossing ${namingRow.place}`}>
             <div className="sheet-head">
               <strong>#{namingRow.place}</strong>
+              {hasMoved && <span className="sheet-now">{namingRow.station.label}</span>}
               <span className="sheet-time">{namingAt}</span>
               {namingRow.athlete && (
                 <span className="sheet-now">Now {labelOf(namingRow.athlete)}</span>
@@ -638,7 +727,7 @@ export function Capture({
             ) : (
               <p className="hint">
                 {hasRoster
-                  ? 'Everyone on the list already has a crossing here. Type a name instead.'
+                  ? `Everyone on the list already has a crossing at ${namingRow.station.label}. Type a name instead.`
                   : 'No names loaded on this phone. Type who it was.'}
               </p>
             )}
@@ -682,6 +771,50 @@ export function Capture({
       )}
 
       {/*
+        Moving to another marker. Same sheet as naming, anchored where the thumb
+        is. The markers further along come first, and nothing moves until the
+        confirm, which says where to.
+      */}
+      {moving && (
+        <div className="sheet-wrap">
+          <button
+            type="button"
+            className="sheet-back"
+            aria-label="Cancel moving"
+            onClick={() => setMoving(null)}
+          />
+          <div className="sheet" role="dialog" aria-modal="true" aria-label="Move to another marker">
+            <div className="sheet-head">
+              <strong>Move from {race.station.label}</strong>
+            </div>
+            <p className="hint">
+              The gun and the clock keep running, and your {race.station.label} splits stay in the
+              list. Crossings from here on are at the new marker.
+            </p>
+            <StationPicker choice={moving} onChange={setMoving} presets={movePresets(race.station)} />
+            <button
+              type="button"
+              className="primary"
+              onClick={confirmMove}
+              disabled={!moveTo || moveTo.label === race.station.label}
+            >
+              {moveTo ? `Move to ${moveTo.label}` : 'Move'}
+            </button>
+            <div className="sheet-actions">
+              {canMoveBack && lastSpot && (
+                <button type="button" className="dismiss" onClick={moveBack}>
+                  Back to {lastSpot.label}
+                </button>
+              )}
+              <button type="button" className="dismiss" onClick={() => setMoving(null)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/*
         The lineup, changeable at the starting line. A late scratch or a runner
         moved up to varsity is a fact of a meet morning, and it should not cost a
         restart. Anyone already holding a crossing cannot be taken out, since the
@@ -695,7 +828,7 @@ export function Capture({
           onDone={() => setShowLineup(false)}
           onEditTeam={onEditRoster}
           raceName={race.race}
-          locked={assigned}
+          locked={anywhere}
           varsity={varsitySize(pool, race.team)}
         />
       )}

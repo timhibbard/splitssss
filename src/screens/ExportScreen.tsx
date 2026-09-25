@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { csvFilename, toCsv, toTextSummary } from '../lib/csv'
+import { csvFilename, stationNames, toCsv, toTextSummary } from '../lib/csv'
 import type { Race, Tap } from '../lib/types'
 
 type Props = {
@@ -21,7 +21,7 @@ export function ExportScreen({ race, taps, onBack, onNewRace }: Props) {
    * varies and a volunteer cannot troubleshoot.
    */
   async function share() {
-    const file = new File([csv], csvFilename(race), { type: 'text/csv' })
+    const file = new File([csv], csvFilename(race, taps), { type: 'text/csv' })
     if (navigator.canShare?.({ files: [file] })) {
       try {
         await navigator.share({ text: summary, files: [file] })
@@ -54,7 +54,7 @@ export function ExportScreen({ race, taps, onBack, onNewRace }: Props) {
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
     const a = document.createElement('a')
     a.href = url
-    a.download = csvFilename(race)
+    a.download = csvFilename(race, taps)
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -68,7 +68,7 @@ export function ExportScreen({ race, taps, onBack, onNewRace }: Props) {
         <div className="bar-where">
           <strong>Send to coach</strong>
           <span>
-            {race.race} at {race.station.label}
+            {race.race} at {stationNames(race, taps)}
           </span>
         </div>
       </header>

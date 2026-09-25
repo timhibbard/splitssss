@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { formatIsoDate } from '../lib/clock'
-import { distanceLabel, toMeters, type Unit } from '../lib/distance'
+import { stationNames } from '../lib/csv'
+import { FIRST_CHOICE, resolveStation, type StationChoice } from '../lib/stations'
 import { defaultLineup, forTeam, lineupOf, sniffTeam, varsitySize } from '../lib/lineup'
 import { displayNames, summarize } from '../lib/names'
-import type { Athlete, Race, RaceDraft, Station, Team } from '../lib/types'
+import type { Athlete, Race, RaceDraft, Team } from '../lib/types'
 import { refreshApp } from '../lib/update'
 import { Lineup } from './Lineup'
+import { StationPicker } from './StationPicker'
 
 type Props = {
   /** Emits form values only. Identity and timestamps belong to whoever persists them. */
@@ -46,37 +48,6 @@ type Kind = (typeof KINDS)[number] | 'other'
  * silently reinterpret old data.
  */
 const RACE_METERS = 5000
-
-/**
- * The four points this team actually stands at, ordered by distance. No finish
- * line: the meet's own timing provides that, so putting a volunteer there would
- * duplicate work we already get for free.
- *
- * Miles all the way down, because that is the unit the coach and the athletes
- * say out loud. The metric points these replace were never anybody's marker; they
- * were a picker offering every distance a race could have, and the cost of that
- * was four extra chips between a volunteer and the one they came for.
- *
- * 2.6 is the last one because it is roughly 800 to go, and 800 to go is where the
- * athlete is told to start speeding up. That makes it the split worth reading out
- * on a course rather than after: a projection there is a number a runner can still
- * do something about.
- *
- * Exactly 800 left would be 4200m, sixteen metres further on. The chip says the
- * distance the flag says, and sixteen metres is well inside how accurately a
- * course marker paced off by a volunteer sits anyway. See pacePerMile.
- *
- * A course that marks something else gets the custom entry below, which takes
- * meters, kilometers or miles.
- */
-const STATIONS: Station[] = [
-  { label: '0.5 mi', meters: 805 },
-  { label: 'Mile 1', meters: 1609 },
-  { label: 'Mile 2', meters: 3219 },
-  { label: '2.6 mi', meters: 4184 },
-]
-
-const UNITS: Unit[] = ['m', 'km', 'mi']
 
 /**
  * Says what a clear would destroy, so it is a decision and not a surprise. Races
@@ -170,25 +141,11 @@ export function Setup({
     setChosen(null)
   }
 
-  const [stationLabel, setStationLabel] = useState<string>('Mile 1')
-  const [customValue, setCustomValue] = useState('')
-  const [customUnit, setCustomUnit] = useState<Unit>('m')
+  const [spot, setSpot] = useState<StationChoice>(FIRST_CHOICE)
 
   const [timer, setTimer] = useState('')
 
-  const customActive = stationLabel === 'custom'
-  const customNumber = Number.parseFloat(customValue)
-  const customValid = Number.isFinite(customNumber) && customNumber > 0
-
-  function resolvedStation(): Station {
-    if (!customActive) {
-      return STATIONS.find((s) => s.label === stationLabel) ?? STATIONS[1]
-    }
-    return {
-      label: distanceLabel(customNumber, customUnit),
-      meters: toMeters(customNumber, customUnit),
-    }
-  }
+  const station = resolveStation(spot)
 
   /**
    * A typed race name is the only place the team is not already spelled out, so
@@ -201,7 +158,7 @@ export function Setup({
    */
   const which: Team = teamPick ?? (raceKind === 'other' ? sniffTeam(raceOther) : undefined) ?? 'girls'
   const raceName = raceKind === 'other' ? raceOther.trim() : `${raceKind} ${TEAM_LABEL[which]}`
-  const canStart = raceName.length > 0 && (!customActive || customValid)
+  const canStart = raceName.length > 0 && station != null
 
   /**
    * The runners this race can draw from: one team's, since the two never run at
@@ -231,11 +188,11 @@ export function Setup({
   const running = lineupOf(pool, selected)
 
   function start() {
-    if (!canStart) return
+    if (!canStart || !station) return
     onStart({
       meet: meet.trim() || 'Meet',
       race: raceName,
-      station: resolvedStation(),
+      station,
       timer: timer.trim(),
       raceMeters: RACE_METERS,
       team: which,
@@ -278,8 +235,8 @@ export function Setup({
       {active && (
         <button type="button" className="primary" onClick={onBackToTiming}>
           {active.stoppedAt
-            ? `Back to ${active.race} at ${active.station.label}, stopped`
-            : `Back to timing ${active.race} at ${active.station.label}`}
+            ? `Back to ${active.race} at ${stationNames(active)}, stopped`
+            : `Back to timing ${active.race} at ${stationNames(active)}`}
         </button>
       )}
 
@@ -414,58 +371,7 @@ export function Setup({
 
       <fieldset>
         <legend>How far into the 5K are you?</legend>
-        <div className="chips">
-          {STATIONS.map((s) => (
-            <button
-              key={s.label}
-              type="button"
-              className={s.label === stationLabel ? 'chip on' : 'chip'}
-              onClick={() => setStationLabel(s.label)}
-            >
-              {s.label}
-            </button>
-          ))}
-          <button
-            type="button"
-            className={customActive ? 'chip on' : 'chip'}
-            onClick={() => setStationLabel('custom')}
-          >
-            Custom
-          </button>
-        </div>
-
-        {customActive && (
-          <div className="custom-distance">
-            <input
-              className="reveal"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="any"
-              value={customValue}
-              onChange={(e) => setCustomValue(e.target.value)}
-              placeholder="1200"
-              aria-label="Distance from the start"
-            />
-            <div className="chips">
-              {UNITS.map((u) => (
-                <button
-                  key={u}
-                  type="button"
-                  className={u === customUnit ? 'chip on' : 'chip'}
-                  onClick={() => setCustomUnit(u)}
-                >
-                  {u}
-                </button>
-              ))}
-            </div>
-            <p className="hint">
-              {customValid
-                ? `Recorded as ${distanceLabel(customNumber, customUnit)}, ${toMeters(customNumber, customUnit)}m from the start.`
-                : 'Distance from the start line. Needed to compute pace.'}
-            </p>
-          </div>
-        )}
+        <StationPicker choice={spot} onChange={setSpot} />
       </fieldset>
 
       <label>
@@ -492,7 +398,7 @@ export function Setup({
           */}
           {existing.map((r) => (
             <button key={r.id} type="button" className="prior-race" onClick={() => onOpen(r.id)}>
-              <strong>{r.race}</strong> at {r.station.label}
+              <strong>{r.race}</strong> at {stationNames(r)}
               <span className="prior-meta">
                 {r.meet}
                 {r.stoppedAt ? ', stopped' : ', still timing'}
@@ -514,7 +420,7 @@ export function Setup({
               <h2>Earlier meets</h2>
               {earlier.map((r) => (
                 <button key={r.id} type="button" className="prior-race" onClick={() => onOpen(r.id)}>
-                  <strong>{r.race}</strong> at {r.station.label}
+                  <strong>{r.race}</strong> at {stationNames(r)}
                   <span className="prior-meta">
                     {formatIsoDate(r.date)}, {r.meet}
                     {r.stoppedAt ? '' : ', never stopped'}
