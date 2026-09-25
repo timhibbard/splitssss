@@ -9,6 +9,18 @@
 
 /* ---------- setup ---------- */
 
+/* The screens that scroll start a little lower. iOS blurs the band of a
+   scrolling view just under the status bar, and a header sitting right at the
+   safe area came out soft. The capture screen does not scroll and keeps every
+   pixel. */
+.setup,
+.roster,
+.export,
+.help,
+.results {
+  padding-top: calc(max(12px, env(safe-area-inset-top)) + 14px);
+}
+
 .setup {
   overflow-y: auto;
 }

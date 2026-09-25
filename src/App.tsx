@@ -453,13 +453,17 @@ export default function App() {
   const addTap = useCallback(
     (athleteId?: string, held?: Stamp) => {
       if (!race || race.stoppedAt) return
+      // A runner passes a spot once. The grid already refuses a name that has a
+      // crossing here; this is the same rule where the data is written.
+      const leg = currentLeg(race)
+      if (athleteId && taps.some((t) => t.athleteId === athleteId && legOf(t) === leg)) return
       const at = held ?? stamp()
       const tap: Tap = {
         id: store.newId(),
         seq: seqRef.current + 1,
         // Only written once the phone has moved, so a race that never did stores
         // exactly what it always has.
-        ...(currentLeg(race) > 0 ? { leg: currentLeg(race) } : {}),
+        ...(leg > 0 ? { leg } : {}),
         wallMs: at.wallMs,
         monoMs: at.monoMs,
         sessionId: SESSION_ID,
@@ -469,7 +473,7 @@ export default function App() {
       seqRef.current = tap.seq
       setTaps((prev) => [...prev, tap])
     },
-    [race],
+    [race, taps],
   )
 
   /**
