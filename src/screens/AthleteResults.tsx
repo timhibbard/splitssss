@@ -141,6 +141,7 @@ function Race({ row }: { row: Row }) {
   const middle = row.middle && repeatsAMile(first, row.middle.meters) ? undefined : row.middle
   const { closing, plan } = row
   const calculated = row.miles.filter((m) => !m.timed)
+  const planned = observed.plan
 
   /*
     Every place she has a time for, in course order: the markers somebody stood at,
@@ -149,13 +150,16 @@ function Race({ row }: { row: Row }) {
   const where = [
     ...event.markers.flatMap((marker, i) => {
       const at = observed.times[i]
-      return at == null ? [] : [{ meters: marker.meters, says: marker.label, at, calculated: false }]
+      return at == null
+        ? []
+        : [{ meters: marker.meters, says: marker.label, at, calculated: false, plan: planned?.times[i] }]
     }),
     ...calculated.map((m) => ({
       meters: m.mile * METERS_PER_MILE,
       says: `${m.mile} mi`,
       at: m.at,
       calculated: true,
+      plan: undefined,
     })),
   ].sort((a, b) => a.meters - b.meters)
 
@@ -186,13 +190,6 @@ function Race({ row }: { row: Row }) {
             <span className={row.vsBest < 0 ? 'is-down' : 'is-up'}>
               {formatSignedElapsed(row.vsBest)}
             </span>
-          </p>
-        )}
-        {/* The finish she was told to aim for, and the gap to it, the same way the PR reads. */}
-        {plan?.finish != null && plan.vsPlan != null && (
-          <p className="finish-best">
-            Plan {formatPr(plan.finish)}
-            <span className={plan.vsPlan < 0 ? 'is-down' : 'is-up'}>{formatSignedElapsed(plan.vsPlan)}</span>
           </p>
         )}
       </section>
@@ -346,9 +343,26 @@ function Race({ row }: { row: Row }) {
         them pushes that number off the edge every other number lines up on — which
         is the whole reason to have a column of times at all.
       */}
+      {/*
+        With a plan, the time she was aiming for at each mark sits beside the time she
+        got there, and the gap between them, so where the race came off the plan is
+        a column to run a finger down rather than a subtraction per row. The finish
+        against its plan is the last row of that column and not a line on the card
+        up top: it is one of these comparisons, not a headline over them.
+      */}
       <section className="marks">
         <h2>Where you were, and when</h2>
         <table>
+          {planned && (
+            <thead>
+              <tr>
+                <td />
+                <th scope="col">Plan</th>
+                <th scope="col">Ran</th>
+                <th scope="col">Vs plan</th>
+              </tr>
+            </thead>
+          )}
           <tbody>
             {where.map((w) => (
               <tr key={w.meters}>
@@ -356,13 +370,17 @@ function Race({ row }: { row: Row }) {
                   {w.says}
                   {w.calculated && <span className="soft"> (calculated)</span>}
                 </th>
+                {planned && <td className="plan">{w.plan != null ? formatElapsed(w.plan) : ''}</td>}
                 <td>{formatElapsed(w.at)}</td>
+                {planned && <VsPlan ran={w.at} plan={w.plan} />}
               </tr>
             ))}
             {observed.finish != null && (
               <tr>
                 <th scope="row">Finish</th>
+                {planned && <td className="plan">{planned.finish != null ? formatPr(planned.finish) : ''}</td>}
                 <td>{formatPr(observed.finish)}</td>
+                {planned && <VsPlan ran={observed.finish} plan={planned.finish} />}
               </tr>
             )}
           </tbody>
@@ -374,6 +392,13 @@ function Race({ row }: { row: Row }) {
       </section>
     </>
   )
+}
+
+/** How far behind (+) or ahead (−) of the plan she was, or nothing when there is no plan time there. */
+function VsPlan({ ran, plan }: { ran: number; plan: number | null | undefined }) {
+  if (plan == null) return <td className="vs" />
+  const off = ran - plan
+  return <td className={`vs ${off < 0 ? 'is-down' : 'is-up'}`}>{formatSignedElapsed(off)}</td>
 }
 
 /** A known time as it reads in a sentence to her: "your 2.6 mi mark", "the gun". */
