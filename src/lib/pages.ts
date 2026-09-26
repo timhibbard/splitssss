@@ -69,6 +69,22 @@ export const PUBLISHED: Published[] = [
     },
   },
   { slug: 'clinton-home-meet-1', year: 2026, team: 'girls', date: '2026-09-22', name: 'Clinton Home Meet #1' },
+  {
+    slug: 'low-country',
+    year: 2026,
+    team: 'girls',
+    date: '2026-09-26',
+    name: 'Low Country',
+    reconciled: {
+      title: 'Two stations were put on the third phone’s gun.',
+      body:
+        'Three phones each took their own gun. The one timing 0.5 mi and 2.6 mi read 8:46:32.5, ' +
+        'which is the right one; the 1 mi phone read 8:46:34.1, so its splits gained 1.6 s, and ' +
+        'the 2 mi phone read 8:46:32.4, so its splits lost 0.1 s. One 2 mi time is the split ' +
+        'taker’s written note, shifted the same, and two 0.5 mi times the phone missed were ' +
+        'given by the coach.',
+    },
+  },
 ]
 
 /** One team's year of meets, which is the unit both results pages are addressed by. */

@@ -35,6 +35,7 @@ import {
 } from '../lib/meet'
 import { type Published, type ResultsPage, seasonName } from '../lib/pages'
 import type { SeasonMeet } from '../lib/season'
+import { RaceCharts } from './RaceCharts'
 
 type Props = {
   /** The season's meets, newest first, each with its file as far as it has loaded. */
@@ -345,6 +346,14 @@ export function CoachResults({ meets, page, onBack }: Props) {
           ))}
 
           <Footnotes meet={meet} events={events} reconciled={showing?.published.reconciled} />
+
+          {events.map((e) => (
+            <RaceCharts
+              key={`${showing.published.slug}-${e.event.squad}`}
+              event={e.event}
+              heading={events.length > 1 ? `${e.event.squad === 'jv' ? 'JV' : 'Varsity'}, drawn` : undefined}
+            />
+          ))}
         </>
       )}
     </div>
