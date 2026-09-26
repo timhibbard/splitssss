@@ -484,3 +484,50 @@ test('a stretch that is exactly a whole mile repeats a split, and nothing else d
   // A mile long, but not a mile on the course: 0.5 to 1.5 is not a split anyone has.
   assert.equal(repeatsAMile(0.5 * M, M), false)
 })
+
+/* ---------- race plans ---------- */
+
+const PLANNED = [
+  FILE.split('\n# event JV')[0].trimEnd(),
+  '# plan Rowan H.\t2:57.50\t6:04.00\t12:17.00\t16:00.80\t19:00.80',
+  '',
+  '# event JV',
+  '# marks 1mi 2mi',
+  'Jordan B.\t7:54.40\t16:54.80\t27:04.84\t22:40.25',
+].join('\n')
+
+test('a plan survives the round trip, attached to its runner', () => {
+  const meet = parseMeet(PLANNED)
+  assert.equal(meetText(meet), PLANNED)
+  const rowan = meet.events[0].runners[0]
+  assert.deepEqual(rowan.plan?.times, [177_500, 364_000, 737_000, 960_800])
+  assert.equal(rowan.plan?.finish, 1_140_800)
+  assert.equal(meet.events[0].runners[1].plan, undefined)
+})
+
+test('a plan is cut into the same stretches as the race, over the same distances', () => {
+  const [rowan] = meetRows(parseMeet(PLANNED))[0].rows
+  const plan = rowan.plan!
+  assert.equal(plan.opening!.meters, rowan.opening!.meters)
+  assert.equal(plan.middle!.meters, rowan.middle!.meters)
+  assert.equal(plan.closing!.meters, rowan.closing!.meters)
+  // 3:00.0 planned over the true 0.507 mi reads 5:55, not the 6:00 an even 800 would.
+  assert.equal(Math.round(plan.closing!.pace / 1000), 355)
+  assert.equal(plan.vsPlan, rowan.observed.finish! - 1_140_800)
+})
+
+test('a plan changes none of the numbers the race itself makes', () => {
+  // Labels, not data: the plan sits beside the race and never feeds it.
+  const strip = (rows: Row[]) =>
+    rows.map((r) => ({ ...r, plan: undefined, event: null, observed: { ...r.observed, plan: undefined } }))
+  assert.deepEqual(strip(meetRows(parseMeet(PLANNED))[0].rows), strip(meetRows(parseMeet(FILE))[0].rows))
+})
+
+test('a plan for nobody, a second plan, or the wrong width is refused', () => {
+  const base = FILE.split('\n# event JV')[0].trimEnd()
+  refusal(`${base}\n# plan Sloane P.\t1\t2\t3\t4\t5`, /Sloane P\., who has no row above it/)
+  refusal(`${base}\n# plan Rowan H.\t2:57.5\t6:04.0\t12:17.0\t16:00.8`, /needs 6/)
+  const once = '# plan Rowan H.\t2:57.5\t6:04.0\t12:17.0\t16:00.8\t19:00.8'
+  refusal(`${base}\n${once}\n${once}`, /second plan/)
+  refusal(`${base}\n# plan Rowan H.\t2:57.5\tsoon\t12:17.0\t16:00.8\t19:00.8`, /not a time/)
+})

@@ -198,6 +198,35 @@ for (const { event, rows } of meetRows(meet)) {
   }
   bests += rows.filter((r) => r.best).length
 
+  // The plans, as the pages will show them: each stretch's planned pace over its
+  // true distance, then the planned finish and the gap to it.
+  const planned = rows.filter((r) => r.plan)
+  if (planned.length > 0) {
+    const pace = (ms: number | undefined) => {
+      if (ms == null) return ''.padStart(8)
+      const s = Math.round(ms / 1000)
+      return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`.padStart(8)
+    }
+    console.error('')
+    console.error(`Plans for ${planned.length} of ${rows.length}, paces per mile, plan / ran:`)
+    console.error(['runner'.padEnd(14), 'first'.padStart(17), 'middle'.padStart(17), 'last'.padStart(17), 'finish'.padStart(10), 'vs plan'.padStart(10)].join(''))
+    for (const r of planned) {
+      const p = r.plan!
+      console.error(
+        [
+          r.observed.label.padEnd(14),
+          `${pace(p.opening?.pace)} /${pace(r.opening?.pace)}`,
+          `${pace(p.middle?.pace)} /${pace(r.middle?.pace)}`,
+          `${pace(p.closing?.pace)} /${pace(r.closing?.pace)}`,
+          (p.finish == null ? '' : formatPr(p.finish)).padStart(10),
+          (p.vsPlan == null ? '' : formatSignedElapsed(p.vsPlan)).padStart(10),
+        ].join(''),
+      )
+    }
+    const without = rows.filter((r) => !r.plan).map((r) => r.observed.label)
+    if (without.length > 0) console.error(`  No plan: ${without.join(', ')}`)
+  }
+
   console.error('')
   console.error('* interpolated, because nobody stood at that mile for that runner:')
   for (let i = 0; i < miles; i++) {

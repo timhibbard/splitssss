@@ -1649,3 +1649,26 @@ button.bar-where:disabled {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------- race plans ---------- */
+
+/* The plan column beside the paces: headed, right aligned over its numbers, and a
+   shade lighter than what was run, because it is a target and not a reading. */
+.marks thead th {
+  text-align: right;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  padding: 0 0 2px 16px;
+}
+
+.marks td.plan {
+  color: var(--ink-soft);
+  padding-left: 16px;
+}
+
+.chart-who {
+  -webkit-tap-highlight-color: transparent;
+}

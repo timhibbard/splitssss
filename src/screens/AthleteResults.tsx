@@ -139,7 +139,7 @@ function Race({ row }: { row: Row }) {
   const first = event.markers[0]?.meters ?? 0
   const opening = row.opening && repeatsAMile(0, row.opening.meters) ? undefined : row.opening
   const middle = row.middle && repeatsAMile(first, row.middle.meters) ? undefined : row.middle
-  const { closing } = row
+  const { closing, plan } = row
   const calculated = row.miles.filter((m) => !m.timed)
 
   /*
@@ -186,6 +186,13 @@ function Race({ row }: { row: Row }) {
             <span className={row.vsBest < 0 ? 'is-down' : 'is-up'}>
               {formatSignedElapsed(row.vsBest)}
             </span>
+          </p>
+        )}
+        {/* The finish she was told to aim for, and the gap to it, the same way the PR reads. */}
+        {plan?.finish != null && plan.vsPlan != null && (
+          <p className="finish-best">
+            Plan {formatPr(plan.finish)}
+            <span className={plan.vsPlan < 0 ? 'is-down' : 'is-up'}>{formatSignedElapsed(plan.vsPlan)}</span>
           </p>
         )}
       </section>
@@ -268,32 +275,51 @@ function Race({ row }: { row: Row }) {
         Only shown when at least one segment pace exists, so it is never a section
         holding one number the finish card already prints.
       */}
+      {/*
+        With a plan, the plan's pace for each stretch sits in a column beside the
+        race's, cut at the same marks and over the same distances. A column and not
+        a section, because the plan was set in exactly these stretches and the
+        comparison is the point; a second table would be the same rows twice.
+      */}
       {(opening != null || middle != null || closing != null) && (
         <section className="marks">
           <h2>Paces</h2>
           <table>
+            {plan && (
+              <thead>
+                <tr>
+                  <td />
+                  <th scope="col">Plan</th>
+                  <th scope="col">Ran</th>
+                </tr>
+              </thead>
+            )}
             <tbody>
               {opening != null && (
                 <tr>
                   <th scope="row">First {mileage(opening.meters)}</th>
+                  {plan && <td className="plan">{plan.opening ? pace(plan.opening.pace) : ''}</td>}
                   <td>{pace(opening.pace)}</td>
                 </tr>
               )}
               {middle != null && (
                 <tr>
                   <th scope="row">Middle {mileage(middle.meters)}</th>
+                  {plan && <td className="plan">{plan.middle ? pace(plan.middle.pace) : ''}</td>}
                   <td>{pace(middle.pace)}</td>
                 </tr>
               )}
               {closing != null && (
                 <tr>
                   <th scope="row">Last {mileage(closing.meters)}</th>
+                  {plan && <td className="plan">{plan.closing ? pace(plan.closing.pace) : ''}</td>}
                   <td>{pace(closing.pace)}</td>
                 </tr>
               )}
               {row.average != null && (
                 <tr>
                   <th scope="row">Whole race</th>
+                  {plan && <td className="plan">{plan.average != null ? pace(plan.average) : ''}</td>}
                   <td>{pace(row.average)}</td>
                 </tr>
               )}
