@@ -1661,12 +1661,33 @@ button.bar-where:disabled {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--ink-soft);
-  padding: 0 0 2px 16px;
+  padding: 0 0 2px 12px;
+  white-space: nowrap;
 }
 
 .marks td.plan {
   color: var(--ink-soft);
-  padding-left: 16px;
+  padding-left: 12px;
+}
+
+/* Room between columns, which a finish to the hundredth needs beside another. */
+.marks td + td {
+  padding-left: 12px;
+}
+
+/* The gap to the plan, coloured the way the gap to a PR is. */
+.marks td.vs {
+  font-size: 14px;
+  font-weight: 600;
+  padding-left: 12px;
+}
+
+.marks td.vs.is-down {
+  color: var(--ahead);
+}
+
+.marks td.vs.is-up {
+  color: var(--warn);
 }
 
 .chart-who {

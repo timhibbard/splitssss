@@ -18,7 +18,6 @@
 
 import { useState } from 'react'
 import { formatElapsed, formatIsoDate, formatPr, formatSignedElapsed } from '../lib/clock'
-import { METERS_PER_MILE } from '../lib/distance'
 import { type Anchor, anchorLabel, comparesToPr, type Event, meetRows, mileage, repeatsAMile, type Row } from '../lib/meet'
 import { type ResultsPage, seasonName } from '../lib/pages'
 import { firstRace, isHandedOut, racesOf, type SeasonMeet, seasonLabels } from '../lib/season'
@@ -141,23 +140,17 @@ function Race({ row }: { row: Row }) {
   const middle = row.middle && repeatsAMile(first, row.middle.meters) ? undefined : row.middle
   const { closing, plan } = row
   const calculated = row.miles.filter((m) => !m.timed)
+  const planned = observed.plan
 
   /*
-    Every place she has a time for, in course order: the markers somebody stood at,
-    then any whole mile nobody did, which is calculated.
+    Every mark somebody stood at and timed her, in course order. Not the whole miles
+    nobody stood at: those are arithmetic on two of these, and the miles above
+    already say so.
   */
-  const where = [
-    ...event.markers.flatMap((marker, i) => {
-      const at = observed.times[i]
-      return at == null ? [] : [{ meters: marker.meters, says: marker.label, at, calculated: false }]
-    }),
-    ...calculated.map((m) => ({
-      meters: m.mile * METERS_PER_MILE,
-      says: `${m.mile} mi`,
-      at: m.at,
-      calculated: true,
-    })),
-  ].sort((a, b) => a.meters - b.meters)
+  const where = event.markers.flatMap((marker, i) => {
+    const at = observed.times[i]
+    return at == null ? [] : [{ meters: marker.meters, says: marker.label, at, plan: planned?.times[i] }]
+  })
 
   return (
     <>
@@ -186,13 +179,6 @@ function Race({ row }: { row: Row }) {
             <span className={row.vsBest < 0 ? 'is-down' : 'is-up'}>
               {formatSignedElapsed(row.vsBest)}
             </span>
-          </p>
-        )}
-        {/* The finish she was told to aim for, and the gap to it, the same way the PR reads. */}
-        {plan?.finish != null && plan.vsPlan != null && (
-          <p className="finish-best">
-            Plan {formatPr(plan.finish)}
-            <span className={plan.vsPlan < 0 ? 'is-down' : 'is-up'}>{formatSignedElapsed(plan.vsPlan)}</span>
           </p>
         )}
       </section>
@@ -319,7 +305,8 @@ function Race({ row }: { row: Row }) {
               {row.average != null && (
                 <tr>
                   <th scope="row">Whole race</th>
-                  {plan && <td className="plan">{plan.average != null ? pace(plan.average) : ''}</td>}
+                  {/* The planned finish as a pace is still the planned finish. */}
+                  {plan && <td className="plan" />}
                   <td>{pace(row.average)}</td>
                 </tr>
               )}
@@ -334,35 +321,42 @@ function Race({ row }: { row: Row }) {
       )}
 
       {/*
-        Only the calculated miles are labelled here, because nobody was standing at
-        them. A mark that one volunteer missed and the coach reconstructed and then
-        checked is a mark the coach is using, so this page shows it as one. The coach
-        page still lists exactly which marks those were, which is where that belongs:
-        a runner reading her own splits cannot act on the difference, and the person
-        who can is the person who filled it in.
+        With a plan, the time she was aiming for at each mark sits beside the time she
+        got there, and the gap between them, so where the race came off the plan is
+        a column to run a finger down rather than a subtraction per row.
 
-        "calculated" sits in the row's label, not next to its time. The times are
-        right aligned and tabular so they read as a column, and a word after one of
-        them pushes that number off the edge every other number lines up on — which
-        is the whole reason to have a column of times at all.
+        Never the planned finish, here or anywhere on this page. It is the one plan
+        number she would read, and a finish that missed it would be all she took
+        away from marks that went to plan.
       */}
       <section className="marks">
         <h2>Where you were, and when</h2>
         <table>
+          {planned && (
+            <thead>
+              <tr>
+                <td />
+                <th scope="col">Plan</th>
+                <th scope="col">Ran</th>
+                <th scope="col">Vs plan</th>
+              </tr>
+            </thead>
+          )}
           <tbody>
             {where.map((w) => (
               <tr key={w.meters}>
-                <th scope="row">
-                  {w.says}
-                  {w.calculated && <span className="soft"> (calculated)</span>}
-                </th>
+                <th scope="row">{w.says}</th>
+                {planned && <td className="plan">{w.plan != null ? formatElapsed(w.plan) : ''}</td>}
                 <td>{formatElapsed(w.at)}</td>
+                {planned && <VsPlan ran={w.at} plan={w.plan} />}
               </tr>
             ))}
             {observed.finish != null && (
               <tr>
                 <th scope="row">Finish</th>
+                {planned && <td className="plan" />}
                 <td>{formatPr(observed.finish)}</td>
+                {planned && <td className="vs" />}
               </tr>
             )}
           </tbody>
@@ -374,6 +368,13 @@ function Race({ row }: { row: Row }) {
       </section>
     </>
   )
+}
+
+/** How far behind (+) or ahead (−) of the plan she was, or nothing when there is no plan time there. */
+function VsPlan({ ran, plan }: { ran: number; plan: number | null | undefined }) {
+  if (plan == null) return <td className="vs" />
+  const off = ran - plan
+  return <td className={`vs ${off < 0 ? 'is-down' : 'is-up'}`}>{formatSignedElapsed(off)}</td>
 }
 
 /** A known time as it reads in a sentence to her: "your 2.6 mi mark", "the gun". */
