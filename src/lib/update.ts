@@ -86,3 +86,41 @@ export async function refreshApp(): Promise<void> {
   await takeNewBuild()
   window.location.reload()
 }
+
+/**
+ * Switches an open results page over to a newer build as soon as one takes charge.
+ *
+ * This is why a texted link needed refreshing, sometimes more than once, before a
+ * new meet showed up. A phone that has opened the app before is answered straight
+ * out of its precache, so the first thing it shows is the build it already had,
+ * with that build's list of meets. Only then does the browser look for a new
+ * worker, download it and hand it control, and by then the page on screen is the
+ * old one. A refresh tapped before that finishes gets the old copy again.
+ *
+ * So when control changes hands, a page reading results reloads itself, once, onto
+ * the build now in charge. Not on the first visit, when there was no worker and the
+ * page came off the network already current, and not anywhere but an addressed page:
+ * somebody with a thumb over a marker does not get the screen reloaded under it,
+ * and has the refresh button for this.
+ *
+ * Coming back to a tab left open also looks for a new build, because an open page
+ * never navigates and so never asks.
+ */
+export function followNewBuilds(isAddressedPage: () => boolean): void {
+  const sw = navigator.serviceWorker
+  if (!sw?.controller) return
+  let reloading = false
+  sw.addEventListener('controllerchange', () => {
+    if (reloading || !isAddressedPage()) return
+    reloading = true
+    window.location.reload()
+  })
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible' || !isAddressedPage()) return
+    // No signal is normal; the page on screen still works.
+    void sw
+      .getRegistration()
+      .then((reg) => reg?.update())
+      .catch(() => {})
+  })
+}
