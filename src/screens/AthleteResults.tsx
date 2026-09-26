@@ -322,8 +322,8 @@ function Race({ row }: { row: Row }) {
 
       {/*
         With a plan, the time she was aiming for at each mark sits beside the time she
-        got there, and the gap between them, so where the race came off the plan is
-        a column to run a finger down rather than a subtraction per row.
+        got there. Two columns and no third for the gap between them: the two times
+        side by side already say it.
 
         Never the planned finish, here or anywhere on this page. It is the one plan
         number she would read, and a finish that missed it would be all she took
@@ -338,7 +338,6 @@ function Race({ row }: { row: Row }) {
                 <td />
                 <th scope="col">Plan</th>
                 <th scope="col">Ran</th>
-                <th scope="col">Vs plan</th>
               </tr>
             </thead>
           )}
@@ -348,7 +347,6 @@ function Race({ row }: { row: Row }) {
                 <th scope="row">{w.says}</th>
                 {planned && <td className="plan">{w.plan != null ? formatElapsed(w.plan) : ''}</td>}
                 <td>{formatElapsed(w.at)}</td>
-                {planned && <VsPlan ran={w.at} plan={w.plan} />}
               </tr>
             ))}
             {observed.finish != null && (
@@ -356,7 +354,6 @@ function Race({ row }: { row: Row }) {
                 <th scope="row">Finish</th>
                 {planned && <td className="plan" />}
                 <td>{formatPr(observed.finish)}</td>
-                {planned && <td className="vs" />}
               </tr>
             )}
           </tbody>
@@ -368,13 +365,6 @@ function Race({ row }: { row: Row }) {
       </section>
     </>
   )
-}
-
-/** How far behind (+) or ahead (−) of the plan she was, or nothing when there is no plan time there. */
-function VsPlan({ ran, plan }: { ran: number; plan: number | null | undefined }) {
-  if (plan == null) return <td className="vs" />
-  const off = ran - plan
-  return <td className={`vs ${off < 0 ? 'is-down' : 'is-up'}`}>{formatSignedElapsed(off)}</td>
 }
 
 /** A known time as it reads in a sentence to her: "your 2.6 mi mark", "the gun". */
