@@ -18,7 +18,6 @@
 
 import { useState } from 'react'
 import { formatElapsed, formatIsoDate, formatPr, formatSignedElapsed } from '../lib/clock'
-import { METERS_PER_MILE } from '../lib/distance'
 import { type Anchor, anchorLabel, comparesToPr, type Event, meetRows, mileage, repeatsAMile, type Row } from '../lib/meet'
 import { type ResultsPage, seasonName } from '../lib/pages'
 import { firstRace, isHandedOut, racesOf, type SeasonMeet, seasonLabels } from '../lib/season'
@@ -144,24 +143,14 @@ function Race({ row }: { row: Row }) {
   const planned = observed.plan
 
   /*
-    Every place she has a time for, in course order: the markers somebody stood at,
-    then any whole mile nobody did, which is calculated.
+    Every mark somebody stood at and timed her, in course order. Not the whole miles
+    nobody stood at: those are arithmetic on two of these, and the miles above
+    already say so.
   */
-  const where = [
-    ...event.markers.flatMap((marker, i) => {
-      const at = observed.times[i]
-      return at == null
-        ? []
-        : [{ meters: marker.meters, says: marker.label, at, calculated: false, plan: planned?.times[i] }]
-    }),
-    ...calculated.map((m) => ({
-      meters: m.mile * METERS_PER_MILE,
-      says: `${m.mile} mi`,
-      at: m.at,
-      calculated: true,
-      plan: undefined,
-    })),
-  ].sort((a, b) => a.meters - b.meters)
+  const where = event.markers.flatMap((marker, i) => {
+    const at = observed.times[i]
+    return at == null ? [] : [{ meters: marker.meters, says: marker.label, at, plan: planned?.times[i] }]
+  })
 
   return (
     <>
@@ -316,7 +305,8 @@ function Race({ row }: { row: Row }) {
               {row.average != null && (
                 <tr>
                   <th scope="row">Whole race</th>
-                  {plan && <td className="plan">{plan.average != null ? pace(plan.average) : ''}</td>}
+                  {/* The planned finish as a pace is still the planned finish. */}
+                  {plan && <td className="plan" />}
                   <td>{pace(row.average)}</td>
                 </tr>
               )}
@@ -331,24 +321,13 @@ function Race({ row }: { row: Row }) {
       )}
 
       {/*
-        Only the calculated miles are labelled here, because nobody was standing at
-        them. A mark that one volunteer missed and the coach reconstructed and then
-        checked is a mark the coach is using, so this page shows it as one. The coach
-        page still lists exactly which marks those were, which is where that belongs:
-        a runner reading her own splits cannot act on the difference, and the person
-        who can is the person who filled it in.
-
-        "calculated" sits in the row's label, not next to its time. The times are
-        right aligned and tabular so they read as a column, and a word after one of
-        them pushes that number off the edge every other number lines up on — which
-        is the whole reason to have a column of times at all.
-      */}
-      {/*
         With a plan, the time she was aiming for at each mark sits beside the time she
         got there, and the gap between them, so where the race came off the plan is
-        a column to run a finger down rather than a subtraction per row. The finish
-        against its plan is the last row of that column and not a line on the card
-        up top: it is one of these comparisons, not a headline over them.
+        a column to run a finger down rather than a subtraction per row.
+
+        Never the planned finish, here or anywhere on this page. It is the one plan
+        number she would read, and a finish that missed it would be all she took
+        away from marks that went to plan.
       */}
       <section className="marks">
         <h2>Where you were, and when</h2>
@@ -366,10 +345,7 @@ function Race({ row }: { row: Row }) {
           <tbody>
             {where.map((w) => (
               <tr key={w.meters}>
-                <th scope="row">
-                  {w.says}
-                  {w.calculated && <span className="soft"> (calculated)</span>}
-                </th>
+                <th scope="row">{w.says}</th>
                 {planned && <td className="plan">{w.plan != null ? formatElapsed(w.plan) : ''}</td>}
                 <td>{formatElapsed(w.at)}</td>
                 {planned && <VsPlan ran={w.at} plan={w.plan} />}
@@ -378,9 +354,9 @@ function Race({ row }: { row: Row }) {
             {observed.finish != null && (
               <tr>
                 <th scope="row">Finish</th>
-                {planned && <td className="plan">{planned.finish != null ? formatPr(planned.finish) : ''}</td>}
+                {planned && <td className="plan" />}
                 <td>{formatPr(observed.finish)}</td>
-                {planned && <VsPlan ran={observed.finish} plan={planned.finish} />}
+                {planned && <td className="vs" />}
               </tr>
             )}
           </tbody>
