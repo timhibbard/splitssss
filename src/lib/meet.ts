@@ -51,7 +51,17 @@ export type Observed = {
    * a timed 0.5 mi and a timed 2 mi. A year from now nothing else would say so.
    */
   derived: readonly number[]
+  /**
+   * What the coach told this runner to run, when there was a plan: a cumulative
+   * time for each marker, in the same order as `times`, and a finish. Targets and
+   * not observations, so nothing in it is ever `derived`, and a page shows it
+   * beside the race and never in place of any part of it.
+   */
+  plan?: Plan
 }
+
+/** A race plan: where the runner meant to be at each marker, and at the line. */
+export type Plan = { times: (number | null)[]; finish?: number }
 
 /**
  * One race inside a meet. Its markers and its distance are its own, because two
@@ -332,6 +342,23 @@ export type Row = {
   /** Finish against the PR coming in. Negative is a new PR. Only for a 5K. */
   vsBest?: number
   best: boolean
+  /**
+   * The plan's own stretches, cut at the same markers and over the same true
+   * distances as the race's, so a planned pace and a run one are the same
+   * arithmetic and can sit side by side. Absent for a runner with no plan.
+   */
+  plan?: PlannedRace
+}
+
+/** The plan, measured the way a race is. */
+export type PlannedRace = {
+  opening?: Segment
+  middle?: Segment
+  closing?: Segment
+  finish?: number
+  average?: number
+  /** Finish against the planned finish. Negative is quicker than the plan. */
+  vsPlan?: number
 }
 
 export type EventRows = { event: Event; rows: Row[] }
@@ -397,19 +424,7 @@ function row(event: Event, observed: Observed, allowances: Allowance[]): Row {
     })
   }
 
-  const { markers } = event
-  const first = observed.times[0]
-  const last = observed.times.at(-1)
-  const segment = (meters: number, time: number): Segment => ({ meters, time, pace: perMile(time, meters) })
-  const opening = markers.length > 0 && first != null ? segment(markers[0].meters, first) : undefined
-  const closing =
-    markers.length > 0 && last != null && finish != null
-      ? segment(event.distance - markers.at(-1)!.meters, finish - last)
-      : undefined
-  const middle =
-    markers.length > 1 && first != null && last != null
-      ? segment(markers.at(-1)!.meters - markers[0].meters, last - first)
-      : undefined
+  const { opening, middle, closing } = stretches(event, observed.times, finish)
 
   const splits = miles.map((m) => m.split)
   const fastest = splits.length > 0 ? Math.min(...splits) : undefined
@@ -434,6 +449,43 @@ function row(event: Event, observed: Observed, allowances: Allowance[]): Row {
     delta,
     vsBest,
     best: vsBest != null && vsBest < 0,
+    ...(observed.plan ? { plan: planned(event, observed.plan, finish) } : {}),
+  }
+}
+
+/**
+ * Gun to the first marker, first marker to the last, and last marker to the line,
+ * each over its true distance. One function for the race and the plan, so the two
+ * can never be cut at different places.
+ */
+function stretches(
+  event: Event,
+  times: (number | null)[],
+  finish: number | undefined,
+): { opening?: Segment; middle?: Segment; closing?: Segment } {
+  const { markers } = event
+  const first = times[0]
+  const last = times.at(-1)
+  const segment = (meters: number, time: number): Segment => ({ meters, time, pace: perMile(time, meters) })
+  return {
+    opening: markers.length > 0 && first != null ? segment(markers[0].meters, first) : undefined,
+    middle:
+      markers.length > 1 && first != null && last != null
+        ? segment(markers.at(-1)!.meters - markers[0].meters, last - first)
+        : undefined,
+    closing:
+      markers.length > 0 && last != null && finish != null
+        ? segment(event.distance - markers.at(-1)!.meters, finish - last)
+        : undefined,
+  }
+}
+
+function planned(event: Event, plan: Plan, ran: number): PlannedRace {
+  return {
+    ...stretches(event, plan.times, plan.finish),
+    ...(plan.finish == null
+      ? {}
+      : { finish: plan.finish, average: perMile(plan.finish, event.distance), vsPlan: ran - plan.finish }),
   }
 }
 
@@ -471,6 +523,11 @@ export function anchorLabel(event: Event, anchor: Anchor): string {
  * finish, and the PR they came in with. `-` where the volunteer missed a runner,
  * and a trailing `~` on any value reconstructed rather than timed. `# distance
  * 3200`, in meters, only for an event that is not a 5K.
+ *
+ * A race plan is a heading line under its runner's row, the label and then the
+ * same cells without the PR, each one a cumulative target:
+ *
+ *   # plan Rowan H.  2:57.5  6:04.0  12:17.0  16:00.8  19:00.80
  *
  * Tabs and not commas, because the source of this is a spreadsheet column and a
  * paste out of one is tab separated already. Positional and not keyed, because
@@ -593,6 +650,35 @@ export function parseMeet(text: string): Meet {
           open.distance = meters
           return
         }
+        case 'plan': {
+          // A heading and not a row, so a phone still running a build from before
+          // plans existed reads the line as a comment and shows the race without
+          // it, rather than refusing the whole file over a row the wrong width.
+          if (!open) throw new Error(`line ${n}: "# plan" before any "# event" line.`)
+          const cells = value.split('\t').map((c) => c.trim())
+          const who = cells[0] ?? ''
+          const runner = open.runners.find((r) => r.label === who)
+          if (!runner) throw new Error(`line ${n}: a plan for ${who || 'nobody'}, who has no row above it in this event.`)
+          if (runner.plan) throw new Error(`line ${n}: a second plan for ${who}.`)
+          const width = open.markers.length + 2
+          if (cells.length !== width)
+            throw new Error(
+              `line ${n}: ${who}'s plan has ${cells.length} cells and needs ${width}: ` +
+                `the name, ${open.markers.map((m) => m.label).join(', ')} and the finish.`,
+            )
+          const read = (cell: string, what: string) => {
+            if (cell === '' || cell === '-') return null
+            const ms = parsePr(cell)
+            if (ms == null) throw new Error(`line ${n}: ${who}'s planned ${what} is "${cell}", which is not a time.`)
+            return ms
+          }
+          const finish = read(cells[width - 1], 'finish')
+          runner.plan = {
+            times: open.markers.map((m, j) => read(cells[j + 1], m.label)),
+            ...(finish == null ? {} : { finish }),
+          }
+          return
+        }
         default:
           // Any other heading is a comment.
           return
@@ -673,6 +759,11 @@ export function meetText(meet: Meet): string {
           cell(r.finish),
           cell(r.best),
         ].join('\t'),
+      ),
+      ...event.runners.flatMap((r) =>
+        r.plan
+          ? [`# plan ${[r.label, ...event.markers.map((_, i) => cell(r.plan!.times[i])), cell(r.plan.finish)].join('\t')}`]
+          : [],
       ),
     ].join('\n'),
   )

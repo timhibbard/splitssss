@@ -64,7 +64,20 @@ type Column = {
   derived?: (row: Row) => boolean
   /** Signed, and coloured by sign: a net or a gap to a PR. */
   signed?: boolean
+  /**
+   * When a signed plus counts as slower enough to colour. Without it any plus
+   * does; with it, a plus it says no to prints plain.
+   */
+  slowWhen?: (row: Row) => boolean
 }
+
+/**
+ * How much slower mile 2 can be than mile 1 before its net is coloured. The
+ * coach expects a second mile to come back slower than an opening one — the start
+ * is fast — so a few seconds up is the race going to plan and not something to
+ * flag. Only the colour: the number in the cell is the same number either way.
+ */
+const MILE_2_ALLOWED_MS = 30_000
 
 const time = (ms: number | null | undefined) => (ms == null ? '' : formatElapsed(ms))
 const sign = (ms: number | undefined) => (ms == null ? '' : formatSignedElapsed(ms))
@@ -140,6 +153,7 @@ function courseColumns(event: Event, rows: Row[]): Column[] {
           cell: (r) => sign(r.miles[k - 1]?.net),
           derived: (r) => softMile(r, k) || softMile(r, k - 1),
           signed: true,
+          ...(k === 2 ? { slowWhen: (r: Row) => (r.miles[1]?.net ?? 0) > MILE_2_ALLOWED_MS } : {}),
         },
       )
     }
@@ -219,6 +233,32 @@ function mileColumns(event: Event, rows: Row[]): Column[] {
 }
 
 /**
+ * The race against its plan, stretch by stretch, then the finish. The stretches
+ * are the ones the plan is written in, gun to first mark, first to last, last to
+ * the line, and both paces in a pair are over the same true distance, so the gap
+ * between them is only how the runner ran.
+ */
+function planColumns(event: Event): Column[] {
+  const first = event.markers[0]
+  const last = event.markers.at(-1)
+  if (!first || !last) return []
+  const pair = (head: string, meters: number, of: (r: Row) => { plan?: number; ran?: number }): Column[] => [
+    { head: `${head} ${mileage(meters).replace(/^0\.5 mi$/, '½ mi')}`, sub: 'plan', cell: (r) => pace(of(r).plan) },
+    { head: '', sub: 'ran', cell: (r) => pace(of(r).ran) },
+  ]
+  return [
+    ...pair('First', first.meters, (r) => ({ plan: r.plan?.opening?.pace, ran: r.opening?.pace })),
+    ...(event.markers.length > 1
+      ? pair('Middle', last.meters - first.meters, (r) => ({ plan: r.plan?.middle?.pace, ran: r.middle?.pace }))
+      : []),
+    ...pair('Last', event.distance - last.meters, (r) => ({ plan: r.plan?.closing?.pace, ran: r.closing?.pace })),
+    { head: 'Finish', sub: 'plan', cell: (r) => (r.plan?.finish == null ? '' : formatPr(r.plan.finish)) },
+    { head: '', sub: 'ran', cell: (r) => (r.observed.finish == null ? '' : formatPr(r.observed.finish)) },
+    { head: 'vs plan', cell: (r) => sign(r.plan?.vsPlan), signed: true },
+  ]
+}
+
+/**
  * Two column sets, named for what they hold.
  *
  * Neither is called "everything", because neither is: `course` is every mark and
@@ -227,10 +267,11 @@ function mileColumns(event: Event, rows: Row[]): Column[] {
  * they ran", which sounds like a judgement about a race when both are the same
  * arithmetic on the same stopwatch readings.
  */
-type View = 'course' | 'miles'
+type View = 'course' | 'miles' | 'plan'
 const VIEWS: { view: View; says: string }[] = [
   { view: 'course', says: 'Course order' },
   { view: 'miles', says: 'Mile by mile' },
+  { view: 'plan', says: 'Against plan' },
 ]
 
 export function CoachResults({ meets, page, onBack }: Props) {
@@ -243,6 +284,11 @@ export function CoachResults({ meets, page, onBack }: Props) {
 
   const events = meet ? meetRows(meet) : []
   const runners = events.reduce((n, e) => n + e.rows.length, 0)
+  // The plan view is only offered for a meet that had plans, and a meet picked
+  // after it that had none falls back to the course, rather than a table of blanks.
+  const planned = events.some((e) => e.rows.some((r) => r.plan))
+  const views = VIEWS.filter((v) => v.view !== 'plan' || planned)
+  const showingView: View = view === 'plan' && !planned ? 'course' : view
 
   /**
    * Texts the *athlete* page, not this one. This page is the only thing on the site
@@ -328,12 +374,12 @@ export function CoachResults({ meets, page, onBack }: Props) {
           </section>
 
           <div className="views" role="group" aria-label="Which columns">
-            {VIEWS.map(({ view: which, says }) => (
+            {views.map(({ view: which, says }) => (
               <button
                 key={which}
                 type="button"
-                className={view === which ? 'is-on' : ''}
-                aria-pressed={view === which}
+                className={showingView === which ? 'is-on' : ''}
+                aria-pressed={showingView === which}
                 onClick={() => setView(which)}
               >
                 {says}
@@ -342,7 +388,7 @@ export function CoachResults({ meets, page, onBack }: Props) {
           </div>
 
           {events.map((e) => (
-            <EventTable key={e.event.squad} {...e} view={view} several={events.length > 1} />
+            <EventTable key={e.event.squad} {...e} view={showingView} several={events.length > 1} />
           ))}
 
           <Footnotes meet={meet} events={events} reconciled={showing?.published.reconciled} />
@@ -366,7 +412,8 @@ export function CoachResults({ meets, page, onBack }: Props) {
  * table holding both would be half blanks that read as missed runners.
  */
 function EventTable({ event, rows, view, several }: EventRows & { view: View; several: boolean }) {
-  const columns = view === 'course' ? courseColumns(event, rows) : mileColumns(event, rows)
+  const columns =
+    view === 'course' ? courseColumns(event, rows) : view === 'miles' ? mileColumns(event, rows) : planColumns(event)
   return (
     <section className="coach-event">
       {several && (
@@ -387,8 +434,8 @@ function EventTable({ event, rows, view, several }: EventRows & { view: View; se
               <th scope="col" className="who">
                 Runner
               </th>
-              {columns.map((col) => (
-                <th key={col.head + (col.sub ?? '')} scope="col" className={col.soft ? 'is-soft' : ''}>
+              {columns.map((col, i) => (
+                <th key={i} scope="col" className={col.soft ? 'is-soft' : ''}>
                   {col.head}
                   {col.sub && <span className="sub">{col.sub}</span>}
                 </th>
@@ -401,16 +448,16 @@ function EventTable({ event, rows, view, several }: EventRows & { view: View; se
                 <th scope="row" className="who">
                   {row.observed.label}
                 </th>
-                {columns.map((col) => {
+                {columns.map((col, i) => {
                   const text = col.cell(row)
                   const soft = col.soft || (col.derived?.(row) ?? false)
                   return (
                     <td
-                      key={col.head + (col.sub ?? '')}
+                      key={i}
                       className={[
                         soft ? 'is-soft' : '',
                         col.signed && text.startsWith('-') ? 'is-down' : '',
-                        col.signed && text.startsWith('+') ? 'is-up' : '',
+                        col.signed && text.startsWith('+') && (col.slowWhen?.(row) ?? true) ? 'is-up' : '',
                       ]
                         .filter(Boolean)
                         .join(' ')}
@@ -548,8 +595,17 @@ function Footnotes({
         <li>
           <strong>Nets and vs-PR are signed seconds.</strong> Minus is faster: a
           negative net is a mile quicker than the one before it, a negative vs-PR is a
-          new PR.
+          new PR. A mile 2 net is only coloured once it is more than{' '}
+          {MILE_2_ALLOWED_MS / 1000} s slower than mile 1.
         </li>
+        {events.some((e) => e.rows.some((r) => r.plan)) && (
+          <li>
+            <strong>The plan is what each runner was told before the race.</strong>{' '}
+            Its paces are cut at the same marks and over the same distances as the race,
+            so a plan written for an even 800 at the end reads a few seconds a mile
+            quicker here. Minus in vs plan is quicker than the planned finish.
+          </li>
+        )}
         <li>
           <strong>Spread is the consistency number. The Delta is not.</strong> Spread is
           the slowest mile less the fastest, so zero is identical miles and it is the

@@ -45,7 +45,7 @@ function colorOf(i: number): string {
 /** A known time on the course: meters out, milliseconds from the gun. */
 type Known = { meters: number; at: number; mark: number | 'start' | 'finish' }
 
-function knownOf(event: Event, runner: Observed): Known[] {
+function knownOf(event: Event, runner: Pick<Observed, 'times' | 'finish'>): Known[] {
   const known: Known[] = [{ meters: 0, at: 0, mark: 'start' }]
   event.markers.forEach((m, i) => {
     const at = runner.times[i]
@@ -105,13 +105,14 @@ export function RaceCharts({ event: given, heading }: Props) {
 
   const pick = (label: string) => setFocus((f) => (f === label ? null : label))
   const dim = (label: string) => (focus != null && focus !== label ? 'is-dim' : '')
+  const picked = runners.find((r) => r.label === focus)
   const colors = new Map(runners.map((r, i) => [r.label, colorOf(i)]))
 
   return (
     <section className="race-charts">
       <h2>{heading ?? 'The race, drawn'}</h2>
       <p className="hint">Tap a name to pick out one runner in every chart. Tap it again to clear.</p>
-      <Replay event={event} colors={colors} dim={dim} pick={pick} />
+      <Replay event={event} colors={colors} dim={dim} pick={pick} planned={picked?.plan ? picked : undefined} />
       <Gaps event={event} colors={colors} dim={dim} pick={pick} />
       <Order event={event} colors={colors} dim={dim} pick={pick} />
       <Stretches event={event} colors={colors} dim={dim} pick={pick} />
@@ -133,9 +134,12 @@ const W = 360
 
 const SPEEDS = [30, 60, 120]
 
-function Replay({ event, colors, dim, pick }: Chart) {
+function Replay({ event, colors, dim, pick, planned }: Chart & { planned?: Observed }) {
   const runners = event.runners
   const known = runners.map((r) => knownOf(event, r))
+  // The picked runner's plan, run as a hollow dot in their lane. Only for the one
+  // picked: ten ghosts at once is twenty dots and no race.
+  const ghost = planned?.plan ? knownOf(event, planned.plan) : undefined
   const end = Math.max(...known.map((k) => k[k.length - 1].at)) + 4000
   const [t, setT] = useState(0)
   const [playing, setPlaying] = useState(false)
@@ -175,7 +179,10 @@ function Replay({ event, colors, dim, pick }: Chart) {
     <figure className="chart">
       <figcaption>
         <strong>Replay</strong>
-        <span>Each dot moves at the pace between its runner’s times either side.</span>
+        <span>
+          Each dot moves at the pace between its runner’s times either side.
+          {runners.some((r) => r.plan) && ' Pick a runner to see a dashed dot run their plan.'}
+        </span>
       </figcaption>
       <div className="replay-controls">
         <button
@@ -231,6 +238,9 @@ function Replay({ event, colors, dim, pick }: Chart) {
               <text className="chart-name" x={left - 8} y={y + 3.5} textAnchor="end">
                 {r.label}
               </text>
+              {ghost && planned === r && (
+                <circle cx={x(metersAt(ghost, t))} cy={y} r={5.5} fill="none" stroke={color} strokeWidth={1.5} strokeDasharray="2 1.5" />
+              )}
               <circle cx={at} cy={y} r={5.5} fill={color} />
               {finish != null && finish <= t && (
                 <text className="chart-num" x={W - right + 8} y={y + 3.5} fill={color}>
