@@ -80,7 +80,7 @@ export function Setup({
    * volunteer at every marker. It is the first field on the screen and it stays
    * editable, which is what the next meet needs.
    */
-  const [meet, setMeet] = useState('Low Country')
+  const [meet, setMeet] = useState('Fountain Inn')
   /**
    * Earlier meets, folded away. Reaching last Saturday's race is a real need and
    * a rare one, and by November the list is long enough to bury the race being
