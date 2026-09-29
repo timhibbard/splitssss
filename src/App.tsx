@@ -713,6 +713,7 @@ export default function App() {
         onBackToTiming={() => setScreen('capture')}
         stored={stored}
         onClearRaces={clearRaces}
+        onOpenPage={openPage}
       />
     )
   }

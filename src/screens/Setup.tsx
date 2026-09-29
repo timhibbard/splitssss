@@ -5,6 +5,7 @@ import { FIRST_CHOICE, resolveStation, type StationChoice } from '../lib/station
 import { defaultLineup, forTeam, lineupOf, sniffTeam, varsitySize } from '../lib/lineup'
 import { displayNames, summarize } from '../lib/names'
 import type { Athlete, Race, RaceDraft, Team } from '../lib/types'
+import { PAGES, type Page, SEASONS, seasonCoachPath, seasonMeets, seasonName, seasonPath } from '../lib/pages'
 import { refreshApp } from '../lib/update'
 import { Lineup } from './Lineup'
 import { StationPicker } from './StationPicker'
@@ -29,6 +30,8 @@ type Props = {
   onBackToTiming: () => void
   stored: { races: number; taps: number; roster: number }
   onClearRaces: () => void
+  /** Opens a results page in the app, the way the help link opens help. */
+  onOpenPage: (page: Page) => void
 }
 
 const TEAMS: Team[] = ['girls', 'boys']
@@ -48,6 +51,19 @@ type Kind = (typeof KINDS)[number] | 'other'
  * silently reinterpret old data.
  */
 const RACE_METERS = 5000
+
+/**
+ * The results pages worth a link from here: both pages of each season that has a
+ * meet published in it, newest season first. A season with nothing in it yet
+ * would be a link to an empty page.
+ */
+function resultsLinks(): { season: string; athletes: Page; coaches: Page }[] {
+  return SEASONS.filter((season) => seasonMeets(season).length > 0).flatMap((season) => {
+    const athletes = PAGES.find((p) => p.path === seasonPath(season))
+    const coaches = PAGES.find((p) => p.path === seasonCoachPath(season))
+    return athletes && coaches ? [{ season: seasonName({ season }), athletes, coaches }] : []
+  })
+}
 
 /**
  * Says what a clear would destroy, so it is a decision and not a surprise. Races
@@ -74,6 +90,7 @@ export function Setup({
   onBackToTiming,
   stored,
   onClearRaces,
+  onOpenPage,
 }: Props) {
   /**
    * The meet this season opens with, typed once here rather than by every
@@ -450,6 +467,28 @@ export function Setup({
         which is how a phone that dismissed the "use the list that came with the
         app" prompt can still ask for it.
       */}
+
+      {/*
+        The published results, from the app itself rather than only from a texted
+        link, so a coach or a runner who has the app open can get to them. Two
+        links per season because they are two pages for two readers: the athletes'
+        page is the one a runner looks herself up on, the coaches' page is the
+        whole table. Down here with the other things that are not the race being
+        set up.
+      */}
+      {resultsLinks().map(({ season, athletes, coaches }) => (
+        <section key={season} className="results-links">
+          <h2>{season} results</h2>
+          <div className="results-links-row">
+            <button type="button" className="link" onClick={() => onOpenPage(athletes)}>
+              For athletes
+            </button>
+            <button type="button" className="link" onClick={() => onOpenPage(coaches)}>
+              For coaches
+            </button>
+          </div>
+        </section>
+      ))}
 
       <section className="danger">
         <h2>Clear the races</h2>
