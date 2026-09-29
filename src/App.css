@@ -212,6 +212,27 @@
 
 /* Destructive, so it is visually separated from the race setup above it and
    nothing here shares an edge with a button used on race day. */
+/* The results links: a heading like the section under it, and the two links
+   side by side, since they are a pair. */
+.results-links {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.results-links h2 {
+  margin: 0;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+
+.results-links-row {
+  display: flex;
+  justify-content: space-around;
+}
+
 .danger {
   margin-top: 20px;
   padding-top: 16px;
