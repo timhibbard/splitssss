@@ -122,14 +122,14 @@ export function Setup({
   }
 
   /**
-   * Varsity, which with the girls default below is the pair every phone opens on:
-   * the race splits are most wanted for, and the team whose list is the whole team.
+   * The race this week's meet is run for, which with the girls default below is
+   * the pair every phone opens on. Fountain Inn is JV girls only.
    *
    * A fixed default and not the last thing timed, so twelve phones handed out at a
    * meet all say the same thing and the briefing is the same for all of them. One
    * tap changes it.
    */
-  const [raceKind, setRaceKind] = useState<Kind>('Varsity')
+  const [raceKind, setRaceKind] = useState<Kind>('JV')
   const [raceOther, setRaceOther] = useState('')
   /**
    * Which team, once somebody has said. Null follows the race name, which is
