@@ -181,8 +181,9 @@ export function Capture({
   const rows = splitRows(race, taps, SESSION_ID)
   /**
    * Where the phone is standing now, and what has been tapped here. The grid, Undo
-   * and the struck through names are all about this spot: a runner who passed Mile 1 is still to come at Mile 2. The list keeps every
-   * spot, so nothing recorded earlier leaves the screen.
+   * and the struck through names are all about this spot: a runner who passed
+   * Mile 1 is still to come at Mile 2. The list keeps every spot, so nothing
+   * recorded earlier leaves the screen.
    */
   const stations = stationsOf(race)
   const leg = currentLeg(race)
