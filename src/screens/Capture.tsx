@@ -38,6 +38,9 @@ import { StationPicker } from './StationPicker'
  */
 const REORDER_AFTER_MS = 3000
 
+/** The No name cell's stand-in for an athlete id, which no runner has. */
+const NO_NAME = ''
+
 /**
  * Ahead of the PR, behind it, or level with it. Level is its own case rather
  * than a rounding artefact of behind: a runner dead on their PR pace has not
@@ -178,7 +181,7 @@ export function Capture({
   const rows = splitRows(race, taps, SESSION_ID)
   /**
    * Where the phone is standing now, and what has been tapped here. The grid, the
-   * no-name button's count, Undo and the struck through names are all about this spot:
+   * No name count, Undo and the struck through names are all about this spot:
    * a runner who passed Mile 1 is still to come at Mile 2. The list keeps every
    * spot, so nothing recorded earlier leaves the screen.
    */
@@ -223,7 +226,7 @@ export function Capture({
 
   /**
    * The wait before the grid rearranges, restarted by any crossing at all rather
-   * than only a named one: the no-name button gets hit in the middle of a burst of
+   * than only a named one: No name gets hit in the middle of a burst of
    * names, and the grid should be as still for that thumb as for the others.
    *
    * Keyed on the taps themselves, which only become a new array when something
@@ -305,13 +308,18 @@ export function Capture({
     confirmFeedback()
   }
 
-  /** A name in the grid means that runner is passing now, so this records it. */
+  /**
+   * A name in the grid means that runner is passing now, so this records it. The
+   * No name cell comes through here too, as NO_NAME, and records a crossing with
+   * nobody on it: never struck through, since any number of runners can pass
+   * without a name.
+   */
   function recordName(athleteId: string, at: Stamp) {
     // A struck through name is disabled, but a disabled button still gets touch
     // events, and this grid records on those rather than on click. Without this a
     // runner tapped twice was recorded twice.
     if (stopped || assigned.has(athleteId)) return
-    onTap(athleteId, at)
+    onTap(athleteId === NO_NAME ? undefined : athleteId, at)
     confirmFeedback()
   }
 
@@ -422,7 +430,6 @@ export function Capture({
       className={[
         'screen capture',
         flash ? 'flash' : '',
-        hasRoster ? 'has-names' : '',
         stopped ? 'stopped' : '',
       ]
         .filter(Boolean)
@@ -498,16 +505,18 @@ export function Capture({
         gesture to tell apart: a finger landing here means record, and the
         crossing is on disk before the finger is off the glass.
       */}
-      <button
-        type="button"
-        className="tap"
-        onPointerDown={handleTap}
-        disabled={stopped}
-        aria-label={`Record an unnamed crossing. ${here.length} recorded here so far.`}
-      >
-        <span className="tap-count">{here.length}</span>
-        <span className="tap-word">{stopped ? 'STOPPED' : hasRoster ? 'NO NAME' : 'TAP'}</span>
-      </button>
+      {!hasRoster && (
+        <button
+          type="button"
+          className="tap"
+          onPointerDown={handleTap}
+          disabled={stopped}
+          aria-label={`Record an unnamed crossing. ${here.length} recorded here so far.`}
+        >
+          <span className="tap-count">{here.length}</span>
+          <span className="tap-word">{stopped ? 'STOPPED' : 'TAP'}</span>
+        </button>
+      )}
 
       <p className="pending" aria-live="polite">
         {unnamed > 0
@@ -517,7 +526,7 @@ export function Capture({
             : stopped
               ? 'Every crossing has a name.'
               : hasRoster
-                ? 'Tap a name as that runner passes. No name is for anyone you cannot tell.'
+                ? 'Tap a name as that runner passes, or No name for anyone you cannot tell.'
                 : 'Tap as each runner passes. Names can wait until after the race.'}
       </p>
 
@@ -530,9 +539,28 @@ export function Capture({
         tapping are the ones under the thumb rather than scattered among names
         already struck through. Recorded runners fall to the back, but not until
         three seconds after the last crossing.
+
+        No name is the first cell, ahead of every runner, and never moves: it is
+        a name button for anyone the volunteer cannot tell, so it takes a tap the
+        way the names do, with the count of every crossing here under it where a
+        name has its PR.
       */}
       {hasRoster && (
         <div className="names names-pane" onPointerMove={namesMove} onPointerCancel={namesCancel}>
+          <button
+            type="button"
+            className="name-chip no-name"
+            onPointerDown={(e) => nameDown(e, NO_NAME)}
+            onPointerUp={(e) => nameUp(e, NO_NAME)}
+            onClick={(e) => nameClick(e, NO_NAME)}
+            disabled={stopped}
+            aria-label={`No name: record a crossing to name later. ${here.length} recorded here so far.`}
+          >
+            <span className="chip-name">No name</span>
+            <span className="chip-pr" aria-hidden="true">
+              {here.length} so far
+            </span>
+          </button>
           {grid.map((a) => {
             const done = assigned.has(a.id)
             return (

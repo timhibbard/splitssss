@@ -396,29 +396,6 @@
   background: var(--navy-press);
 }
 
-/* With a roster loaded, the name buttons are the whole job and the
-   unnamed-crossing button is the rare exception: a strip the height of any
-   other button, its count and word on one line. The room it gave up went to
-   the clock and the names. */
-.has-names .tap {
-  flex: 0 0 auto;
-  min-height: 0;
-  height: 44px;
-  border-radius: 12px;
-  flex-direction: row;
-  gap: 10px;
-}
-
-.has-names .tap-count {
-  font-size: 24px;
-  letter-spacing: -0.02em;
-}
-
-.has-names .tap-word {
-  font-size: 14px;
-  letter-spacing: 0.2em;
-}
-
 .stopped .tap {
   background: var(--ink-soft);
 }
@@ -540,6 +517,23 @@
   background: var(--bg);
   text-decoration: line-through;
   opacity: 1;
+}
+
+/* The cell for anyone the volunteer cannot tell, filled so it never reads as
+   one more runner. */
+.name-chip.no-name {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #fff;
+}
+
+.name-chip.no-name .chip-pr {
+  color: #fff;
+  opacity: 0.8;
+}
+
+.name-chip.no-name:active {
+  background: var(--navy-press);
 }
 
 .stop {
