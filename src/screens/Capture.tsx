@@ -180,9 +180,8 @@ export function Capture({
 
   const rows = splitRows(race, taps, SESSION_ID)
   /**
-   * Where the phone is standing now, and what has been tapped here. The grid, the
-   * No name count, Undo and the struck through names are all about this spot:
-   * a runner who passed Mile 1 is still to come at Mile 2. The list keeps every
+   * Where the phone is standing now, and what has been tapped here. The grid, Undo
+   * and the struck through names are all about this spot: a runner who passed Mile 1 is still to come at Mile 2. The list keeps every
    * spot, so nothing recorded earlier leaves the screen.
    */
   const stations = stationsOf(race)
@@ -542,8 +541,8 @@ export function Capture({
 
         No name is the first cell, ahead of every runner, and never moves: it is
         a name button for anyone the volunteer cannot tell, so it takes a tap the
-        way the names do, with the count of every crossing here under it where a
-        name has its PR.
+        way the names do. No count under it: the list already numbers every
+        crossing.
       */}
       {hasRoster && (
         <div className="names names-pane" onPointerMove={namesMove} onPointerCancel={namesCancel}>
@@ -554,12 +553,9 @@ export function Capture({
             onPointerUp={(e) => nameUp(e, NO_NAME)}
             onClick={(e) => nameClick(e, NO_NAME)}
             disabled={stopped}
-            aria-label={`No name: record a crossing to name later. ${here.length} recorded here so far.`}
+            aria-label="No name: record a crossing to name later."
           >
             <span className="chip-name">No name</span>
-            <span className="chip-pr" aria-hidden="true">
-              {here.length} so far
-            </span>
           </button>
           {grid.map((a) => {
             const done = assigned.has(a.id)

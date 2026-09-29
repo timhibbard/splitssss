@@ -527,11 +527,6 @@
   color: #fff;
 }
 
-.name-chip.no-name .chip-pr {
-  color: #fff;
-  opacity: 0.8;
-}
-
 .name-chip.no-name:active {
   background: var(--navy-press);
 }
