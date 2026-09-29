@@ -138,6 +138,9 @@ export default defineConfig({
         // resort, for an address with no file: the pages that have one are matched by
         // precache first and keep their own URL.
         navigateFallback: `${BASE}index.html`,
+        // Reloads open results pages onto a new build when it takes over, including
+        // pages running a build too old to know it should. See the file.
+        importScripts: ['sw-takeover.js'],
       },
     }),
   ],
