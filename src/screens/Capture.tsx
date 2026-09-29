@@ -472,19 +472,24 @@ export function Capture({
           </strong>
           <span>{race.race}</span>
         </button>
-        {!race.gun && (
-          <button type="button" className="gun" onClick={onSetGun}>
-            Gun
-          </button>
-        )}
       </header>
 
       {/*
         The clock on a row of its own, as wide as the screen allows. It is the
         number read most on a course: a split taker shouts it at every runner
         going past, from a glance down between two taps, so it is sized to be
-        read at arm's length and not to share the header.
+        read at arm's length and not to share the header. The projection goes on
+        the line under it, so the clock can have the whole width.
+
+        Before the gun, the Gun button stands where the clock will be, as wide
+        and nearly as tall: the one thing to do at the start is hit it when the
+        gun goes, and a target that size can be hit without looking down.
       */}
+      {!race.gun && (
+        <button type="button" className="gun" onClick={onSetGun}>
+          Gun
+        </button>
+      )}
       {race.gun && (
         <div className="race-clock">
           <div className="bar-clock" aria-label="elapsed since gun">
