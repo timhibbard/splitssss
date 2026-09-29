@@ -49,7 +49,7 @@ Live at **https://timhibbard.github.io/splitssss/**
 - **Names go on during the race or after.** The team list is already on the
   phone, and it changes by rebuilding the app rather than by anyone editing it at a
   course. Tapping a name records that runner's crossing at that moment, and the
-  big button records anyone you cannot name. A name tap never fills in an older
+  No name button records anyone you cannot name. A name tap never fills in an older
   crossing, because that would put a stale time on a runner standing in front of
   you.
 - **A button says a first name and an initial.** "Rowan H." fits a phone, and a

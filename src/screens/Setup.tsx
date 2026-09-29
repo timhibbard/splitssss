@@ -258,7 +258,7 @@ export function Setup({
       )}
 
       <p className="instructions">
-        Tap a name as each runner passes you, or tap the big button and add names
+        Tap a name as each runner passes you, or tap No name and add names
         after. You do not need to know when the race started.
       </p>
 

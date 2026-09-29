@@ -178,7 +178,7 @@ export function Capture({
   const rows = splitRows(race, taps, SESSION_ID)
   /**
    * Where the phone is standing now, and what has been tapped here. The grid, the
-   * big button's count, Undo and the struck through names are all about this spot:
+   * no-name button's count, Undo and the struck through names are all about this spot:
    * a runner who passed Mile 1 is still to come at Mile 2. The list keeps every
    * spot, so nothing recorded earlier leaves the screen.
    */
@@ -223,7 +223,7 @@ export function Capture({
 
   /**
    * The wait before the grid rearranges, restarted by any crossing at all rather
-   * than only a named one: the big button gets hit in the middle of a burst of
+   * than only a named one: the no-name button gets hit in the middle of a burst of
    * names, and the grid should be as still for that thumb as for the others.
    *
    * Keyed on the taps themselves, which only become a new array when something
@@ -465,23 +465,31 @@ export function Capture({
           </strong>
           <span>{race.race}</span>
         </button>
-        {race.gun ? (
-          <div className="bar-clocks">
-            <div className="bar-clock" aria-label="elapsed since gun">
-              {formatElapsed(running ?? 0)}
-            </div>
-            {projected != null && (
-              <div className="proj" aria-label="projected finish at this pace">
-                {paceLabel} pace <strong>{formatMinSec(projected)}</strong>
-              </div>
-            )}
-          </div>
-        ) : (
+        {!race.gun && (
           <button type="button" className="gun" onClick={onSetGun}>
             Gun
           </button>
         )}
       </header>
+
+      {/*
+        The clock on a row of its own, as wide as the screen allows. It is the
+        number read most on a course: a split taker shouts it at every runner
+        going past, from a glance down between two taps, so it is sized to be
+        read at arm's length and not to share the header.
+      */}
+      {race.gun && (
+        <div className="race-clock">
+          <div className="bar-clock" aria-label="elapsed since gun">
+            {formatElapsed(running ?? 0)}
+          </div>
+          {projected != null && (
+            <div className="proj" aria-label="projected finish at this pace">
+              {paceLabel} pace <strong>{formatMinSec(projected)}</strong>
+            </div>
+          )}
+        </div>
+      )}
 
       {/*
         pointerdown, not click. click waits for the pointer to lift, which adds
@@ -498,7 +506,7 @@ export function Capture({
         aria-label={`Record an unnamed crossing. ${here.length} recorded here so far.`}
       >
         <span className="tap-count">{here.length}</span>
-        <span className="tap-word">{stopped ? 'STOPPED' : 'TAP'}</span>
+        <span className="tap-word">{stopped ? 'STOPPED' : hasRoster ? 'NO NAME' : 'TAP'}</span>
       </button>
 
       <p className="pending" aria-live="polite">
@@ -509,7 +517,7 @@ export function Capture({
             : stopped
               ? 'Every crossing has a name.'
               : hasRoster
-                ? 'Tap a name as that runner passes. The big button is for anyone you cannot name.'
+                ? 'Tap a name as that runner passes. No name is for anyone you cannot tell.'
                 : 'Tap as each runner passes. Names can wait until after the race.'}
       </p>
 
@@ -580,7 +588,7 @@ export function Capture({
           {rows.length === 0 ? (
             <p className="splits-empty">
               Nothing recorded yet. {hasRoster
-                ? 'Tap a name as that runner passes, or the big button when you cannot tell who it is.'
+                ? 'Tap a name as that runner passes, or No name when you cannot tell who it is.'
                 : 'Tap the big button as each runner passes.'}
               {race.gun ? '' : ' A gun time is optional: every tap keeps the time of day.'}
             </p>
