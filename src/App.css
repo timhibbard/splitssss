@@ -334,19 +334,17 @@
   white-space: nowrap;
 }
 
-/* The clock and, beside it, the projection. Baselines lined up so the small
-   number reads as a footnote to the big one rather than a second headline. */
+/* The clock, and the projection on the line under it. */
 .race-clock {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .bar-clock {
-  /* As big as seven digits can be across a phone and still leave the
-     projection room beside them. */
-  font-size: clamp(48px, 18vw, 96px);
+  /* As big as seven digits ("18:42.7") can be across a phone: they take about
+     3.6 times the font size, and the screen has 24px of padding. */
+  font-size: clamp(56px, 25vw, 128px);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.03em;
@@ -355,7 +353,7 @@
 
 /* Projected finish at the current pace. Secondary to the running clock. */
 .proj {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -363,15 +361,18 @@
 
 .proj strong {
   color: var(--navy);
-  font-size: 15px;
+  font-size: 18px;
 }
 
 .gun {
   background: var(--ink);
   border-color: var(--ink);
   color: var(--bg);
-  font-weight: 700;
-  padding: 14px 24px;
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  min-height: 88px;
+  border-radius: 16px;
 }
 
 .tap {
