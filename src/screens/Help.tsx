@@ -83,7 +83,7 @@ const WORKFLOW: { title: string; lead?: string; steps: Step[] }[] = [
         note: 'The time recorded is the instant your finger landed, not when it lifted. The name is struck through afterwards and drops to the back of the grid, so the runners still coming stay together at the top.',
       },
       {
-        act: 'Tap the big button for anyone you cannot name.',
+        act: 'Tap No name, under the clock, for anyone you cannot name.',
         note: 'It records the crossing with no name on it. The time is what matters and the name can wait until the race is over.',
       },
       {
@@ -132,7 +132,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'Somebody went past and I could not tell who it was.',
-    a: 'Tap the big button. That records the time with no name, and you put the name on afterwards by tapping the row in the list.',
+    a: 'Tap No name, under the clock. That records the time with no name, and you put the name on afterwards by tapping the row in the list.',
   },
   {
     q: 'I tapped the wrong name.',
@@ -172,7 +172,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'A runner from another school came past, or somebody who is not on the list.',
-    a: 'Tap the big button, then tap that row and type the name. It joins this race only, not the team list, so the coach\'s list is never edited from a course.',
+    a: 'Tap No name, then tap that row and type the name. It joins this race only, not the team list, so the coach\'s list is never edited from a course.',
   },
   {
     q: 'Why does the grid only show one team?',
