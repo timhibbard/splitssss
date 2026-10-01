@@ -4,6 +4,7 @@ import type { Meet } from './meet.ts'
 import { PAGES, type Published, type ResultsPage } from './pages.ts'
 import {
   firstRace,
+  hasResults,
   isHandedOut,
   markIndex,
   racesOf,
@@ -145,4 +146,27 @@ test('a mark a meet did not time is not found in it, never estimated', () => {
 
 test('a runner who raced nowhere has no season', () => {
   assert.deepEqual(seasonRows('Nobody Z.', TIMED), [])
+})
+
+test('a meet published ahead with only plans is there to pick but does not open', () => {
+  const ahead: Meet = {
+    ...meet('Upcoming', ['Rowan H.']),
+    events: [
+      {
+        squad: 'varsity',
+        distance: 5000,
+        markers: [],
+        runners: [{ label: 'Rowan H.', times: [], derived: [], plan: { times: [], finish: 1_140_000 } }],
+      },
+    ],
+  }
+  const withAhead: SeasonMeet[] = [{ published: published('upcoming', '2026-10-03'), meet: ahead }, ...SEASON]
+  assert.equal(hasResults(ahead), false)
+  assert.equal(hasResults(SEASON[0].meet), true)
+  assert.deepEqual(racesOf('Rowan H.', withAhead).map((r) => r.published.slug), ['upcoming', 'rockingham', 'yellow-jacket'])
+  assert.equal(firstRace(seasonPage, racesOf('Rowan H.', withAhead))?.published.slug, 'rockingham')
+  // Nothing with results at all, and the newest is still what opens.
+  assert.equal(firstRace(seasonPage, withAhead.slice(0, 1))?.published.slug, 'upcoming')
+  // And it is not a race in the season's comparisons.
+  assert.deepEqual(seasonRows('Rowan H.', withAhead).map((r) => r.published.slug), ['rockingham', 'yellow-jacket'])
 })
