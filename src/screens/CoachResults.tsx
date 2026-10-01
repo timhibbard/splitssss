@@ -32,6 +32,7 @@ import {
   meetRows,
   mileage,
   notRunYet,
+  perMile,
   repeatsAMile,
   type Row,
 } from '../lib/meet'
@@ -207,7 +208,15 @@ function planColumns(event: Event, upcoming = false): Column[] {
     ...pair('Last', event.distance - last.meters, (r) => ({ plan: r.plan?.closing?.pace, ran: r.closing?.pace })),
     { head: 'Finish', sub: 'plan', cell: (r) => (r.plan?.finish == null ? '' : formatPr(r.plan.finish)) },
     ...(upcoming
-      ? []
+      ? [
+          // The one plan number worked out here: the planned finish over the race's
+          // distance, asked for so the coach has it before the race.
+          {
+            head: 'Race pace',
+            sub: 'plan finish',
+            cell: (r: Row) => (r.plan?.finish == null ? '' : pace(perMile(r.plan.finish, event.distance))),
+          },
+        ]
       : [
           { head: '', sub: 'ran', cell: (r: Row) => (r.observed.finish == null ? '' : formatPr(r.observed.finish)) },
           { head: 'vs plan', cell: (r: Row) => sign(r.plan?.vsPlan), signed: true },
@@ -612,6 +621,10 @@ function Footnotes({
           <li>
             <strong>The plan is what each runner was told before the race.</strong> Its paces
             are the ones on the plan sheet, as written.
+          </li>
+          <li>
+            <strong>Race pace is worked out.</strong> The planned finish over the race&rsquo;s
+            full distance, per mile.
           </li>
         </ul>
       </section>
