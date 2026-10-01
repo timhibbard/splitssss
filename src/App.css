@@ -1408,6 +1408,37 @@
 
 /* ---------- results, the coach's table ---------- */
 
+.conditions {
+  display: grid;
+  gap: 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.conditions h2 {
+  margin: 0;
+}
+
+.conditions ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+
+.conditions-time {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.conditions-line {
+  text-align: center;
+  margin: 0;
+}
+
 .views {
   display: flex;
   gap: 8px;

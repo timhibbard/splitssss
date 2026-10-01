@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "roster-link": "node tools/roster-link.ts",
     "team-file": "node tools/team-file.ts",
-    "meet-file": "node tools/meet-file.ts"
+    "meet-file": "node tools/meet-file.ts",
+    "weather": "node tools/weather.ts"
   },
   "dependencies": {
     "react": "^19.2.8",

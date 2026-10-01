@@ -20,6 +20,7 @@ import { useEffect, useState } from 'react'
 import { formatElapsed, formatIsoDate, formatPr, formatSignedElapsed } from '../lib/clock'
 import { METERS_PER_MILE } from '../lib/distance'
 import { athleteLink } from '../lib/link'
+import { clockTime, degrees, feelsLike, sky, type Weather, wind } from '../lib/weather'
 import {
   anchorLabel,
   comparesToPr,
@@ -335,6 +336,8 @@ export function CoachResults({ meets, page, onBack }: Props) {
         </p>
       ) : (
         <>
+          {meet.weather && <Conditions weather={meet.weather} events={meet.events} />}
+
           <div className="views" role="group" aria-label="Which columns">
             {views.map(({ view: which, says }) => (
               <button
@@ -440,6 +443,43 @@ function EventTable({
           </tbody>
         </table>
       </div>
+    </section>
+  )
+}
+
+/**
+ * The station's readings around the guns, as it logged them, and which station.
+ * Figures and where they came from, and no word about what they did to anyone's
+ * race.
+ */
+function Conditions({ weather, events }: { weather: Weather; events: Meet['events'] }) {
+  const guns = events.filter((e) => e.gun)
+  return (
+    <section className="conditions">
+      <h2>Conditions</h2>
+      <ul>
+        {weather.readings.map((r) => (
+          <li key={r.time}>
+            <span className="conditions-time">{clockTime(r.time)}</span>{' '}
+            {[
+              degrees(r.tempF),
+              r.dewF == null ? undefined : `dew point ${degrees(r.dewF)}`,
+              r.humidity == null ? undefined : `${Math.round(r.humidity)}% humidity`,
+              feelsLike(r),
+              wind(r),
+              sky(r),
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </li>
+        ))}
+      </ul>
+      <p className="hint">
+        {weather.name} ({weather.station}).
+        {guns.length === 1 && ` Gun ${clockTime(guns[0].gun!)}.`}
+        {guns.length > 1 &&
+          ` ${guns.map((e) => `${e.squad === 'jv' ? 'JV' : 'Varsity'} gun ${clockTime(e.gun!)}`).join(', ')}.`}
+      </p>
     </section>
   )
 }

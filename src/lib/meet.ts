@@ -2,6 +2,7 @@
 import { parsePr } from './clock.ts'
 import { METERS_PER_MILE, PR_METERS } from './distance.ts'
 import type { Squad, Team } from './types'
+import { minutesOf, parseReading, readingCells, type Weather } from './weather.ts'
 
 /**
  * One meet's reconciled results: what volunteers timed at the markers, joined to
@@ -71,10 +72,24 @@ export type Plan = { times: (number | null)[]; finish?: number }
  * ran 60 m long is still a 5K for the PR line (see `comparesToPr`), but the paces
  * are figured over what was actually run.
  */
-export type Event = { squad: Squad; distance: number; markers: Marker[]; runners: Observed[] }
+export type Event = {
+  squad: Squad
+  distance: number
+  markers: Marker[]
+  runners: Observed[]
+  /** Local time of this race's gun, `HH:MM:SS`, when it was written down. */
+  gun?: string
+}
 
 /** One meet for one team: one course, one afternoon, one set of guns. */
-export type Meet = { name: string; date: string; team: Team; events: Event[] }
+export type Meet = {
+  name: string
+  date: string
+  team: Team
+  events: Event[]
+  /** The nearest station's readings around the guns. See weather.ts. */
+  weather?: Weather
+}
 
 /** Milliseconds per mile at the pace implied by covering `meters` in `ms`. */
 export function perMile(ms: number, meters: number): number {
@@ -529,6 +544,15 @@ export function anchorLabel(event: Event, anchor: Anchor): string {
  *
  *   # plan Rowan H.  2:57.5  6:04.0  12:17.0  16:00.8  19:00.80
  *
+ * The conditions, when there are any, are a station line and its readings among
+ * the meet's headings, and each event's gun is a line in its block:
+ *
+ *   # station KGSP  Greenville-Spartanburg International Airport
+ *   # reading 08:53  71.0  69.0  93  71.0  0  0  OVC
+ *
+ *   # event Varsity
+ *   # gun 08:28:51
+ *
  * Tabs and not commas, because the source of this is a spreadsheet column and a
  * paste out of one is tab separated already. Positional and not keyed, because
  * the same decision is already made for the roster format and one file format per
@@ -583,6 +607,8 @@ export function parseMeet(text: string): Meet {
   const events: Event[] = []
   let open: (Event & { at: number }) | undefined
   const labels = new Set<string>()
+  let station: { id: string; name: string } | undefined
+  const readings: Weather['readings'] = []
 
   const close = () => {
     if (!open) return
@@ -648,6 +674,35 @@ export function parseMeet(text: string): Meet {
           if (!/^\d+(\.\d+)?$/.test(value) || !(meters > 0))
             throw new Error(`line ${n}: "${value}" is not a distance in meters.`)
           open.distance = meters
+          return
+        }
+        case 'station': {
+          // Headings, like a plan, so a build from before weather reads them as
+          // comments and shows the race without it.
+          if (open) throw new Error(`line ${n}: "# station" inside an event. It goes with the meet's headings.`)
+          if (station) throw new Error(`line ${n}: a second "# station" line.`)
+          const [id, ...rest] = value.split('\t').map((c) => c.trim())
+          if (!id || rest.join(' ') === '')
+            throw new Error(`line ${n}: "# station" needs the station, a tab, and what it is called.`)
+          station = { id, name: rest.join(' ') }
+          return
+        }
+        case 'reading': {
+          if (open) throw new Error(`line ${n}: "# reading" inside an event. It goes with the meet's headings.`)
+          const got = parseReading(value.split('\t').map((c) => c.trim()))
+          if (typeof got === 'string') throw new Error(`line ${n}: ${got}`)
+          const last = readings.at(-1)
+          if (last && minutesOf(got.time)! <= minutesOf(last.time)!)
+            throw new Error(`line ${n}: the readings have to be in time order, and ${got.time} is not.`)
+          readings.push(got)
+          return
+        }
+        case 'gun': {
+          if (!open) throw new Error(`line ${n}: "# gun" before any "# event" line.`)
+          if (open.gun) throw new Error(`line ${n}: a second gun for ${SQUAD_LABEL[open.squad]}.`)
+          if (minutesOf(value) == null || value.split(':').length !== 3)
+            throw new Error(`line ${n}: "${value}" is not a gun time. Like 17:23:46, local.`)
+          open.gun = value.padStart(8, '0')
           return
         }
         case 'plan': {
@@ -734,7 +789,15 @@ export function parseMeet(text: string): Meet {
   if (name === '') throw new Error('No "# meet <name>" line.')
   if (date === '') throw new Error('No "# date <yyyy-mm-dd>" line.')
   if (!team) throw new Error('No "# team girls" or "# team boys" line.')
-  return { name, date, team, events }
+  if (readings.length > 0 && !station) throw new Error('Weather readings with no "# station" line saying whose.')
+  if (station && readings.length === 0) throw new Error('A "# station" line with no readings under it.')
+  return {
+    name,
+    date,
+    team,
+    events,
+    ...(station ? { weather: { station: station.id, name: station.name, readings } } : {}),
+  }
 }
 
 /**
@@ -751,6 +814,7 @@ export function meetText(meet: Meet): string {
     [
       `# event ${SQUAD_LABEL[event.squad]}`,
       `# marks ${event.markers.map((m) => m.label.replace(' ', '')).join(' ')}`,
+      ...(event.gun ? [`# gun ${event.gun}`] : []),
       ...(event.distance === PR_METERS ? [] : [`# distance ${event.distance}`]),
       ...event.runners.map((r) =>
         [
@@ -767,7 +831,14 @@ export function meetText(meet: Meet): string {
       ),
     ].join('\n'),
   )
-  return [[`# meet ${meet.name}`, `# date ${meet.date}`, `# team ${meet.team}`].join('\n'), ...blocks].join(
+  const weather = meet.weather
+    ? [
+        `# station ${meet.weather.station}\t${meet.weather.name}`,
+        ...meet.weather.readings.map((r) => `# reading ${readingCells(r).join('\t')}`),
+      ]
+    : []
+  const heads = [`# meet ${meet.name}`, `# date ${meet.date}`, `# team ${meet.team}`, ...weather]
+  return [heads.join('\n'), ...blocks].join(
     '\n\n',
   )
 }

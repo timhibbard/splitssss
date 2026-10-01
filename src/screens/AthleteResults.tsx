@@ -22,6 +22,7 @@ import { formatElapsed, formatIsoDate, formatPr, formatSignedElapsed } from '../
 import { athleteFromHash, athleteHash, labelFor } from '../lib/link'
 import { type Anchor, anchorLabel, comparesToPr, type Event, meetRows, mileage, repeatsAMile, type Row } from '../lib/meet'
 import { type ResultsPage, seasonName } from '../lib/pages'
+import { degrees, readingAt, type Weather } from '../lib/weather'
 import { firstRace, isHandedOut, racesOf, type SeasonMeet, seasonLabels } from '../lib/season'
 
 type Props = {
@@ -144,7 +145,7 @@ export function AthleteResults({ meets, page, onBack }: Props) {
                 : `${labels.length} of us raced in ${loaded.length} meets this season. Pick your name for your marks, your miles and your finish at each.`}
             </p>
           ) : (
-            <Race row={row} />
+            <Race row={row} weather={race?.meet?.weather} />
           )}
         </>
       )}
@@ -152,7 +153,7 @@ export function AthleteResults({ meets, page, onBack }: Props) {
   )
 }
 
-function Race({ row }: { row: Row }) {
+function Race({ row, weather }: { row: Row; weather?: Weather }) {
   const { observed, event } = row
   const first = event.markers[0]?.meters ?? 0
   const opening = row.opening && repeatsAMile(0, row.opening.meters) ? undefined : row.opening
@@ -160,6 +161,7 @@ function Race({ row }: { row: Row }) {
   const { closing, plan } = row
   const calculated = row.miles.filter((m) => !m.timed)
   const planned = observed.plan
+  const conditions = readingAt(weather, event.gun)
 
   /*
     Every mark somebody stood at and timed her, in course order. Not the whole miles
@@ -201,6 +203,18 @@ function Race({ row }: { row: Row }) {
           </p>
         )}
       </section>
+
+      {/*
+        The conditions in two figures, from the reading nearest her gun. Not the
+        station, the wind or the sky: the coach page has those, and on hers the
+        heat and the humidity are the ones a runner feels.
+      */}
+      {conditions && (
+        <p className="hint conditions-line">
+          {degrees(conditions.tempF)}
+          {conditions.humidity != null && ` and ${Math.round(conditions.humidity)}% humidity`} at the gun
+        </p>
+      )}
 
       {/*
         Her miles as bars, because the shape is the point and three numbers in a row
