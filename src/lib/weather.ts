@@ -149,11 +149,15 @@ export function feelsLike(r: Reading): string | undefined {
 
 const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
 
+/** Statute miles per hour in a knot. Stations report knots; nobody at a meet thinks in them. */
+const MPH_PER_KNOT = 1.15078
+
 export function wind(r: Reading): string | undefined {
   if (r.windKt == null) return undefined
-  if (r.windKt === 0) return 'calm'
+  const mph = Math.round(r.windKt * MPH_PER_KNOT)
+  if (mph === 0) return 'calm'
   const from = r.windDeg == null ? '' : `${COMPASS[Math.round(r.windDeg / 45) % 8]} `
-  return `wind ${from}${Math.round(r.windKt)} kt`
+  return `wind ${from}${mph} mph`
 }
 
 export function sky(r: Reading): string | undefined {

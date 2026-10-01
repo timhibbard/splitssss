@@ -22,7 +22,7 @@ import { formatElapsed, formatIsoDate, formatPr, formatSignedElapsed } from '../
 import { athleteFromHash, athleteHash, labelFor } from '../lib/link'
 import { type Anchor, anchorLabel, comparesToPr, type Event, meetRows, mileage, repeatsAMile, type Row } from '../lib/meet'
 import { type ResultsPage, seasonName } from '../lib/pages'
-import { degrees, readingAt, type Weather } from '../lib/weather'
+import { degrees, feelsLike, readingAt, type Weather } from '../lib/weather'
 import { firstRace, isHandedOut, racesOf, type SeasonMeet, seasonLabels } from '../lib/season'
 
 type Props = {
@@ -205,13 +205,13 @@ function Race({ row, weather }: { row: Row; weather?: Weather }) {
       </section>
 
       {/*
-        The conditions in two figures, from the reading nearest her gun. Not the
-        station, the wind or the sky: the coach page has those, and on hers the
-        heat and the humidity are the ones a runner feels.
+        The conditions from the reading nearest her gun: the heat, the heat index
+        when it is a different number, and the humidity, the ones a runner feels.
+        Not the station, the wind or the sky.
       */}
       {conditions && (
         <p className="hint conditions-line">
-          {degrees(conditions.tempF)}
+          {[degrees(conditions.tempF), feelsLike(conditions)].filter(Boolean).join(', ')}
           {conditions.humidity != null && ` and ${Math.round(conditions.humidity)}% humidity`} at the gun
         </p>
       )}
