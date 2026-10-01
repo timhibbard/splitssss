@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig, type Plugin } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { PAGES } from './src/lib/pages.ts'
+import { normalizePhone, scramblePhone } from './src/lib/sms.ts'
 
 /**
  * GitHub Pages serves this from a subpath, so `base` has to be set and every
@@ -43,6 +44,20 @@ function buildStamp(): string {
     parts.find((part) => part.type === type)?.value ?? ''
   // EDT or EST, whichever it was, rather than a season neutral guess.
   return `${at('year')}-${at('month')}-${at('day')} ${at('hour')}:${at('minute')} ${at('timeZoneName')}`
+}
+
+/**
+ * The boys' coach's number, from the BOYS_COACH_PHONE secret the deploy build has,
+ * scrambled for the bundle. Empty without it, which sends boys races to the girls'
+ * coach. Set but unreadable stops the build: a typo in it would otherwise send
+ * every boys race to the wrong coach without a word.
+ */
+function boysCoach(): string {
+  const raw = process.env.BOYS_COACH_PHONE?.trim()
+  if (!raw) return ''
+  const phone = normalizePhone(raw)
+  if (!phone) throw new Error('BOYS_COACH_PHONE is set but is not a US phone number')
+  return scramblePhone(phone)
 }
 
 /**
@@ -94,6 +109,7 @@ export default defineConfig({
   base: BASE,
   define: {
     __BUILD__: JSON.stringify(buildStamp()),
+    __BOYS_COACH__: JSON.stringify(boysCoach()),
   },
   plugins: [
     react(),

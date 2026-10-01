@@ -109,8 +109,8 @@ const WORKFLOW: { title: string; lead?: string; steps: Step[] }[] = [
         note: 'It asks again on purpose. The button sits inches from one you have been hitting under pressure.',
       },
       {
-        act: 'Tap to text results.',
-        note: 'Opens a text to coach with every time already in it. Just hit send. Save CSV is for the file itself, to save it or send it somewhere else, and Copy is for a phone that will not do either.',
+        act: 'Tap to text to coach.',
+        note: 'Opens a text to the coach of the team you timed, the girls coach for a girls race and the boys coach for a boys race, with every time already in it. Just hit send. Save CSV is for the file itself, to save it or send it somewhere else, and Copy is for a phone that will not do either.',
       },
       {
         act: 'Time another race.',
