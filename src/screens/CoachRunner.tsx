@@ -12,7 +12,7 @@
  */
 
 import { formatIsoDate, formatPr } from '../lib/clock'
-import { comparesToPr, isDerived, type Marker, mileage, type Segment } from '../lib/meet'
+import { comparesToPr, isDerived, type Marker, mileage, type PlanStretch, type Segment } from '../lib/meet'
 import { markIndex, type SeasonRace, seasonMarks } from '../lib/season'
 import { cellClass, type Column, head, MILE_2_ALLOWED_MS, pace, sign, softMile, time } from './coachColumns'
 
@@ -72,7 +72,8 @@ function seasonColumns(races: SeasonRace[]): Column[] {
     }
   }
   const planned = rows.some((r) => r.plan)
-  const stretch = (name: string, ran: (r: (typeof rows)[number]) => Segment | undefined, plan: typeof ran) => {
+  type R = (typeof rows)[number]
+  const stretch = (name: string, ran: (r: R) => Segment | undefined, plan: (r: R) => PlanStretch | undefined) => {
     columns.push({ head: name, sub: planned ? 'ran' : 'pace', cell: (r) => pace(ran(r)?.pace) })
     if (planned) columns.push({ head: '', sub: 'plan', cell: (r) => pace(plan(r)?.pace) })
   }
