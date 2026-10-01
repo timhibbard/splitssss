@@ -2,7 +2,17 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { Meet } from './meet.ts'
 import { PAGES, type Published, type ResultsPage } from './pages.ts'
-import { firstRace, isHandedOut, racesOf, type SeasonMeet, seasonLabels, shareAddress } from './season.ts'
+import {
+  firstRace,
+  isHandedOut,
+  markIndex,
+  racesOf,
+  type SeasonMeet,
+  seasonLabels,
+  seasonMarks,
+  seasonRows,
+  shareAddress,
+} from './season.ts'
 
 function runner(label: string) {
   return { label, times: [], finish: 1_200_000, derived: [] }
@@ -67,4 +77,72 @@ test('the coach texts the handed-out address only for its own meet', () => {
   assert.equal(shareAddress(handedOut, ROCK), 'meets/2026/girls/')
   assert.equal(shareAddress(seasonPage, ROCK), 'meets/2026/girls/')
   assert.equal(shareAddress(seasonPage, YJ), 'meets/2026/girls/')
+})
+
+/* ---------- one runner's season, for the coach ---------- */
+
+const mark = (label: string, meters: number) => ({ label, meters })
+const HALF = mark('0.5 mi', 804.672)
+const ONE = mark('1 mi', 1609.344)
+const TWO = mark('2 mi', 3218.688)
+
+function timedMeet(name: string, events: { squad: 'varsity' | 'jv'; markers: { label: string; meters: number }[]; labels: string[] }[]): Meet {
+  return {
+    name,
+    date: '2026-09-12',
+    team: 'girls',
+    events: events.map(({ squad, markers, labels }) => ({
+      squad,
+      distance: 5000,
+      markers,
+      runners: labels.map((label) => ({
+        label,
+        times: markers.map((m) => (1_200_000 * m.meters) / 5000),
+        finish: 1_200_000,
+        derived: [],
+      })),
+    })),
+  }
+}
+
+const TIMED: SeasonMeet[] = [
+  { published: ROCK, meet: timedMeet('Rockingham', [{ squad: 'jv', markers: [ONE, TWO], labels: ['Rowan H.'] }]) },
+  {
+    published: YJ,
+    meet: timedMeet('Yellow Jacket', [
+      { squad: 'varsity', markers: [HALF, TWO], labels: ['Rowan H.', 'Marlowe H.'] },
+      { squad: 'jv', markers: [ONE, TWO], labels: ['Jordan B.'] },
+    ]),
+  },
+]
+
+test("a runner's season is her rows, newest first, with the race each was in", () => {
+  const races = seasonRows('Rowan H.', TIMED)
+  assert.deepEqual(
+    races.map((r) => [r.published.slug, r.row.event.squad, r.row.observed.label]),
+    [
+      ['rockingham', 'jv', 'Rowan H.'],
+      ['yellow-jacket', 'varsity', 'Rowan H.'],
+    ],
+  )
+})
+
+test('a mark timed at any meet is one column, in course order', () => {
+  const races = seasonRows('Rowan H.', TIMED)
+  assert.deepEqual(
+    seasonMarks(races).map((m) => m.label),
+    ['0.5 mi', '1 mi', '2 mi'],
+  )
+})
+
+test('a mark a meet did not time is not found in it, never estimated', () => {
+  const [rock, yj] = seasonRows('Rowan H.', TIMED)
+  assert.equal(markIndex(rock.row, HALF), -1)
+  assert.equal(markIndex(yj.row, HALF), 0)
+  assert.equal(markIndex(yj.row, ONE), -1)
+  assert.equal(markIndex(yj.row, TWO), 1)
+})
+
+test('a runner who raced nowhere has no season', () => {
+  assert.deepEqual(seasonRows('Nobody Z.', TIMED), [])
 })

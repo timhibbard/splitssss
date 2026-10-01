@@ -16,10 +16,10 @@
  * table that does not say so is a table that will be trusted too much next spring.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { formatElapsed, formatIsoDate, formatPr, formatSignedElapsed } from '../lib/clock'
 import { METERS_PER_MILE } from '../lib/distance'
-import { athleteLink } from '../lib/link'
+import { athleteFromHash, athleteHash, athleteLink, labelFor } from '../lib/link'
 import { clockTime, degrees, feelsLike, sky, type Weather, wind } from '../lib/weather'
 import {
   anchorLabel,
@@ -35,7 +35,9 @@ import {
   type Row,
 } from '../lib/meet'
 import { type Published, type ResultsPage, seasonName } from '../lib/pages'
-import type { SeasonMeet } from '../lib/season'
+import { type SeasonMeet, seasonLabels, seasonRows } from '../lib/season'
+import { cellClass, type Column, head, MILE_2_ALLOWED_MS, pace, sign, softMile, time } from './coachColumns'
+import { CoachRunner } from './CoachRunner'
 import { RaceCharts } from './RaceCharts'
 
 type Props = {
@@ -46,60 +48,8 @@ type Props = {
   onBack: () => void
 }
 
-/**
- * The columns, in the order the spreadsheet has them, which is course order with
- * each derived number immediately after the marks it came from. A split next to
- * its own net is the comparison; a split three columns from its net is arithmetic
- * to do in your head.
- *
- * `soft` marks a column whose every value is interpolated, so the header can say
- * so once instead of the body marking each cell.
- */
-type Column = {
-  head: string
-  /** Short enough for a phone's column, since the header row is the widest thing. */
-  sub?: string
-  soft?: boolean
-  cell: (row: Row) => string
-  /** Whether this particular runner's value was reconstructed. */
-  derived?: (row: Row) => boolean
-  /** Signed, and coloured by sign: a net or a gap to a PR. */
-  signed?: boolean
-  /**
-   * When a signed plus counts as slower enough to colour. Without it any plus
-   * does; with it, a plus it says no to prints plain.
-   */
-  slowWhen?: (row: Row) => boolean
-}
-
-/**
- * How much slower mile 2 can be than mile 1 before its net is coloured. The
- * coach expects a second mile to come back slower than an opening one — the start
- * is fast — so a few seconds up is the race going to plan and not something to
- * flag. Only the colour: the number in the cell is the same number either way.
- */
-const MILE_2_ALLOWED_MS = 30_000
-
-const time = (ms: number | null | undefined) => (ms == null ? '' : formatElapsed(ms))
-const sign = (ms: number | undefined) => (ms == null ? '' : formatSignedElapsed(ms))
-/** A pace as m:ss. Tenths of a second per mile is precision this does not have. */
-const pace = (ms: number | undefined) => {
-  if (ms == null) return ''
-  const total = Math.round(ms / 1000)
-  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
-}
-
-/** A column head for a distance: "½ mi" reads faster in a header than "0.5 mi". */
-const head = (label: string) => label.replace(/^0\.5 mi$/, '½ mi')
-
 /** How many whole miles an event's rows have, which is how many mile columns it gets. */
 const mileCount = (rows: Row[]) => Math.max(0, ...rows.map((r) => r.miles.length))
-
-/** Whether a runner's mile k (1-based) was interpolated, or rests on one that was. */
-const softMile = (r: Row, k: number) => {
-  const m = r.miles[k - 1]
-  return m != null && (!m.timed || (m.marker != null && isDerived(r, m.marker)))
-}
 
 /**
  * Course order, built from the event's own markers. Each marker, and any whole
@@ -297,8 +247,73 @@ export function CoachResults({ meets, page, onBack }: Props) {
   const linkFor = (label: string) =>
     showing ? athleteLink(window.location.origin, import.meta.env.BASE_URL, page, showing.published, label) : ''
 
+  /**
+   * The runner whose season is open, by the name in the fragment, the same form
+   * her own link uses. An entry in history of its own, so Back, the button or the
+   * phone's, comes back to this table where it was left.
+   */
+  const [named, setNamed] = useState(() => athleteFromHash(window.location.hash).name ?? '')
+  /** Whether this page pushed the runner's entry, so there is a table behind it to go back to. */
+  const pushedRunner = useRef(false)
+  /** The table's own scroll, which is the screen's and not the window's, kept for coming back. */
+  const screen = useRef<HTMLDivElement>(null)
+  const tableScroll = useRef(0)
+  useEffect(() => {
+    const onPop = () => {
+      const name = athleteFromHash(window.location.hash).name ?? ''
+      setNamed(name)
+      pushedRunner.current = name !== ''
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+  const loading = meets.some((m) => m.meet === undefined)
+  const loaded = meets.filter((m) => m.meet)
+  const runner = labelFor(named, seasonLabels(loaded))
+  // Back to the table at the row that was tapped, once it has drawn again.
+  useLayoutEffect(() => {
+    if (!named && screen.current) screen.current.scrollTop = tableScroll.current
+  }, [named])
+
+  const openRunner = (label: string) => {
+    tableScroll.current = screen.current?.scrollTop ?? 0
+    pushedRunner.current = true
+    const { pathname, search } = window.location
+    window.history.pushState(null, '', `${pathname}${search}#${athleteHash(label)}`)
+    setNamed(label)
+  }
+  const closeRunner = () => {
+    if (pushedRunner.current) {
+      window.history.back()
+      return
+    }
+    const { pathname, search } = window.location
+    window.history.replaceState(null, '', `${pathname}${search}`)
+    setNamed('')
+  }
+
+  // A name the season has none of, misspelt or since relabelled, is the table.
+  if (named && (loading || runner)) {
+    return loading ? (
+      <div key="runner" className="screen results coach">
+        <header className="bar">
+          <button type="button" className="back" onClick={closeRunner}>
+            Back
+          </button>
+          <div className="bar-where">
+            <strong>{named}</strong>
+            <span>One moment</span>
+          </div>
+        </header>
+        <p className="instructions">Looking for the results…</p>
+      </div>
+    ) : (
+      <CoachRunner label={runner} races={seasonRows(runner, loaded)} onBack={closeRunner} />
+    )
+  }
+
   return (
-    <div className="screen results coach">
+    <div key="table" ref={screen} className="screen results coach">
       <header className="bar">
         <button type="button" className="back" onClick={onBack}>
           Back
@@ -353,7 +368,14 @@ export function CoachResults({ meets, page, onBack }: Props) {
           </div>
 
           {events.map((e) => (
-            <EventTable key={e.event.squad} {...e} view={showingView} several={events.length > 1} linkFor={linkFor} />
+            <EventTable
+              key={e.event.squad}
+              {...e}
+              view={showingView}
+              several={events.length > 1}
+              linkFor={linkFor}
+              onRunner={openRunner}
+            />
           ))}
 
           <Footnotes meet={meet} events={events} reconciled={showing?.published.reconciled} />
@@ -382,7 +404,13 @@ function EventTable({
   view,
   several,
   linkFor,
-}: EventRows & { view: View; several: boolean; linkFor: (label: string) => string }) {
+  onRunner,
+}: EventRows & {
+  view: View
+  several: boolean
+  linkFor: (label: string) => string
+  onRunner: (label: string) => void
+}) {
   const columns =
     view === 'course' ? courseColumns(event, rows) : view === 'miles' ? mileColumns(event, rows) : planColumns(event)
   return (
@@ -417,23 +445,26 @@ function EventTable({
             {rows.map((row) => (
               <tr key={row.observed.label} className={row.best ? 'is-best' : ''}>
                 <th scope="row" className="who">
-                  {row.observed.label}
+                  {/*
+                    A real link to her season on this page, so it reads as one and
+                    can be opened in a tab, and a tap stays in the app.
+                  */}
+                  <a
+                    className="runner-link"
+                    href={`#${athleteHash(row.observed.label)}`}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      onRunner(row.observed.label)
+                    }}
+                  >
+                    {row.observed.label}
+                  </a>
                   <CopyLink label={row.observed.label} link={linkFor(row.observed.label)} />
                 </th>
                 {columns.map((col, i) => {
                   const text = col.cell(row)
-                  const soft = col.soft || (col.derived?.(row) ?? false)
                   return (
-                    <td
-                      key={i}
-                      className={[
-                        soft ? 'is-soft' : '',
-                        col.signed && text.startsWith('-') ? 'is-down' : '',
-                        col.signed && text.startsWith('+') && (col.slowWhen?.(row) ?? true) ? 'is-up' : '',
-                      ]
-                        .filter(Boolean)
-                        .join(' ')}
-                    >
+                    <td key={i} className={cellClass(col, row, text)}>
                       {text}
                     </td>
                   )

@@ -169,6 +169,11 @@ export default function App() {
    * means: going back, or clearing an address with nothing behind it.
    */
   const pushedPage = useRef(false)
+  /** The path of the addressed page on screen, for telling a new page from a fragment change. */
+  const shownPath = useRef<string | null>(null)
+  useEffect(() => {
+    shownPath.current = addressed?.path ?? null
+  }, [addressed])
 
   /**
    * Opens one of the addressed pages. Each has an address of its own, so it can be
@@ -214,8 +219,10 @@ export default function App() {
     const onPop = () => {
       const asked = pageAt(window.location.pathname, BASE)
       if (asked) {
-        pushedPage.current = true
-        setAddressed(asked)
+        // Back and forth within one page, the coach page's runner and its table,
+        // is that page's own business. It says nothing about who opened the page.
+        if (asked.path !== shownPath.current) pushedPage.current = true
+        setAddressed((prev) => (prev?.path === asked.path ? prev : asked))
         setScreen(asked.kind)
         return
       }

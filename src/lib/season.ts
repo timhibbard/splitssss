@@ -1,5 +1,5 @@
 // Explicit extensions: see the note in link.ts.
-import type { Meet } from './meet.ts'
+import { type Marker, type Meet, meetRows, type Row } from './meet.ts'
 import { HANDED_OUT, type Published, type ResultsPage, type Season, seasonMeets, seasonPath } from './pages.ts'
 
 /**
@@ -71,4 +71,37 @@ export function firstRace(page: ResultsPage, races: SeasonMeet[]): SeasonMeet | 
  */
 export function shareAddress(page: ResultsPage, showing: Published): string {
   return page.meet && sameMeet(page.meet, showing) ? page.athlete : seasonPath(page.season)
+}
+
+/** One race of one runner's season: the meet, and her row in it. */
+export type SeasonRace = { published: Published; row: Row }
+
+/**
+ * Every race this runner ran this season, newest first, each as the row the race
+ * table has for her. A meet she ran twice, varsity and JV, is two races.
+ */
+export function seasonRows(label: string, meets: SeasonMeet[]): SeasonRace[] {
+  return racesOf(label, meets).flatMap(({ published, meet }) =>
+    meetRows(meet!).flatMap((e) =>
+      e.rows.filter((r) => r.observed.label === label).map((row) => ({ published, row })),
+    ),
+  )
+}
+
+/**
+ * Every mark any of these races was timed at, once each and in course order, so
+ * the same mark from two meets sits in one column. Matched by label, which is the
+ * distance as the meet file wrote it.
+ */
+export function seasonMarks(races: SeasonRace[]): Marker[] {
+  const marks = new Map<string, Marker>()
+  for (const { row } of races) {
+    for (const m of row.event.markers) if (!marks.has(m.label)) marks.set(m.label, m)
+  }
+  return [...marks.values()].sort((a, b) => a.meters - b.meters)
+}
+
+/** Where a mark sits in this race's own markers, or -1 for a mark this meet did not time. */
+export function markIndex(row: Row, mark: Marker): number {
+  return row.event.markers.findIndex((m) => m.label === mark.label)
 }

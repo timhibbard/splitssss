@@ -1741,3 +1741,19 @@ button.bar-where:disabled {
 .chart-who {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* The name in a race table opens her season. Underlined, so it reads as a link
+   without being the blue of one in a table of numbers. */
+.grid .runner-link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 3px;
+}
+
+/* A race's date and Varsity or JV, under its name in the pinned column. */
+.grid tbody .who .sub {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
