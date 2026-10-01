@@ -36,7 +36,7 @@ import {
   type Row,
 } from '../lib/meet'
 import { type Published, type ResultsPage, seasonName } from '../lib/pages'
-import { type SeasonMeet, seasonLabels, seasonRows } from '../lib/season'
+import { firstRace, isHandedOut, type SeasonMeet, seasonLabels, seasonRows } from '../lib/season'
 import { cellClass, type Column, head, MILE_2_ALLOWED_MS, pace, sign, softMile, time } from './coachColumns'
 import { CoachRunner } from './CoachRunner'
 import { RaceCharts } from './RaceCharts'
@@ -190,13 +190,14 @@ function mileColumns(event: Event, rows: Row[]): Column[] {
  * the line. The plan pace is the coach's sheet as written and the ran pace is over
  * the true distance, so neither is a number anyone worked out to make them match.
  */
-function planColumns(event: Event): Column[] {
+function planColumns(event: Event, upcoming = false): Column[] {
   const first = event.markers[0]
   const last = event.markers.at(-1)
   if (!first || !last) return []
+  // Before the race there is nothing ran to sit beside the plan, so no column for it.
   const pair = (head: string, meters: number, of: (r: Row) => { plan?: number; ran?: number }): Column[] => [
     { head: `${head} ${mileage(meters).replace(/^0\.5 mi$/, '½ mi')}`, sub: 'plan', cell: (r) => pace(of(r).plan) },
-    { head: '', sub: 'ran', cell: (r) => pace(of(r).ran) },
+    ...(upcoming ? [] : [{ head: '', sub: 'ran', cell: (r: Row) => pace(of(r).ran) }]),
   ]
   return [
     ...pair('First', first.meters, (r) => ({ plan: r.plan?.opening?.pace, ran: r.opening?.pace })),
@@ -205,8 +206,12 @@ function planColumns(event: Event): Column[] {
       : []),
     ...pair('Last', event.distance - last.meters, (r) => ({ plan: r.plan?.closing?.pace, ran: r.closing?.pace })),
     { head: 'Finish', sub: 'plan', cell: (r) => (r.plan?.finish == null ? '' : formatPr(r.plan.finish)) },
-    { head: '', sub: 'ran', cell: (r) => (r.observed.finish == null ? '' : formatPr(r.observed.finish)) },
-    { head: 'vs plan', cell: (r) => sign(r.plan?.vsPlan), signed: true },
+    ...(upcoming
+      ? []
+      : [
+          { head: '', sub: 'ran', cell: (r: Row) => (r.observed.finish == null ? '' : formatPr(r.observed.finish)) },
+          { head: 'vs plan', cell: (r: Row) => sign(r.plan?.vsPlan), signed: true },
+        ]),
   ]
 }
 
@@ -229,8 +234,8 @@ const VIEWS: { view: View; says: string }[] = [
 export function CoachResults({ meets, page, onBack }: Props) {
   const [view, setView] = useState<View>('course')
   /** The meet on screen, by slug: the one the address opens on until another is picked. */
-  const [chosen, setChosen] = useState(page.meet?.slug ?? '')
-  const showing = meets.find((m) => m.published.slug === chosen) ?? meets[0]
+  const [chosen, setChosen] = useState(isHandedOut(page) ? (page.meet?.slug ?? '') : '')
+  const showing = meets.find((m) => m.published.slug === chosen) ?? firstRace(page, meets) ?? undefined
   const meet = showing?.meet
 
   const events = meet ? meetRows(meet) : []
@@ -356,19 +361,22 @@ export function CoachResults({ meets, page, onBack }: Props) {
         <>
           {meet.weather && <Conditions weather={meet.weather} events={meet.events} />}
 
-          <div className="views" role="group" aria-label="Which columns">
-            {views.map(({ view: which, says }) => (
-              <button
-                key={which}
-                type="button"
-                className={showingView === which ? 'is-on' : ''}
-                aria-pressed={showingView === which}
-                onClick={() => setView(which)}
-              >
-                {says}
-              </button>
-            ))}
-          </div>
+          {/* Before the race the plans are the only view, so there is nothing to switch. */}
+          {!upcoming && (
+            <div className="views" role="group" aria-label="Which columns">
+              {views.map(({ view: which, says }) => (
+                <button
+                  key={which}
+                  type="button"
+                  className={showingView === which ? 'is-on' : ''}
+                  aria-pressed={showingView === which}
+                  onClick={() => setView(which)}
+                >
+                  {says}
+                </button>
+              ))}
+            </div>
+          )}
 
           {events.map((e) => (
             <EventTable
@@ -383,13 +391,15 @@ export function CoachResults({ meets, page, onBack }: Props) {
 
           <Footnotes meet={meet} events={events} reconciled={showing?.published.reconciled} />
 
-          {events.map((e) => (
-            <RaceCharts
-              key={`${showing.published.slug}-${e.event.squad}`}
-              event={e.event}
-              heading={events.length > 1 ? `${e.event.squad === 'jv' ? 'JV' : 'Varsity'}, drawn` : undefined}
-            />
-          ))}
+          {/* Drawn from the marks, so not until there are some. */}
+          {!upcoming &&
+            events.map((e) => (
+              <RaceCharts
+                key={`${showing.published.slug}-${e.event.squad}`}
+                event={e.event}
+                heading={events.length > 1 ? `${e.event.squad === 'jv' ? 'JV' : 'Varsity'}, drawn` : undefined}
+              />
+            ))}
         </>
       )}
     </div>
@@ -415,7 +425,11 @@ function EventTable({
   onRunner: (label: string) => void
 }) {
   const columns =
-    view === 'course' ? courseColumns(event, rows) : view === 'miles' ? mileColumns(event, rows) : planColumns(event)
+    view === 'course'
+      ? courseColumns(event, rows)
+      : view === 'miles'
+        ? mileColumns(event, rows)
+        : planColumns(event, rows.every(notRunYet))
   return (
     <section className="coach-event">
       {several && (
@@ -585,19 +599,30 @@ function Footnotes({
   const span = (distance: number, pair: [number, number]) =>
     pair.map((m) => (m === 0 ? 'the gun' : m >= distance - 0.5 ? 'the finish' : mileage(m))).join(' to ')
 
+  // Before the race, what there is to say about the plans and nothing about results.
+  if (events.every((e) => e.rows.every(notRunYet)))
+    return (
+      <section className="footnotes">
+        <h2>What is here</h2>
+        <ul>
+          <li>
+            <strong>Not run yet.</strong> The plans only. The marks, finishes and the rest of
+            the table go here once it has been.
+          </li>
+          <li>
+            <strong>The plan is what each runner was told before the race.</strong> Its paces
+            are the ones on the plan sheet, as written.
+          </li>
+        </ul>
+      </section>
+    )
+
   return (
     <section className="footnotes">
       <h2>What is measured, and what is not</h2>
       <ul>
         {events.map(({ event, rows }) => {
           const who = several ? `${event.squad === 'jv' ? 'JV' : 'Varsity'}: ` : ''
-          if (rows.every(notRunYet))
-            return [
-              <li key={`${event.squad}-upcoming`}>
-                <strong>{who}Not run yet.</strong> The plans only. The marks and finishes go
-                in the same table once it has been.
-              </li>,
-            ]
           const counts = event.markers.map(
             (m, i) => `${m.label} ${rows.filter((r) => r.observed.times[i] != null).length}`,
           )

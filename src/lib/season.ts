@@ -51,16 +51,23 @@ export function isHandedOut(page: ResultsPage): boolean {
   return HANDED_OUT.some((alias) => alias.path === page.athlete)
 }
 
+/** Whether anything in this meet has been timed, as opposed to one published ahead with its plans. */
+export function hasResults(meet: Meet | null | undefined): boolean {
+  return meet != null && meetRows(meet).some((e) => e.rows.some((r) => !notRunYet(r)))
+}
+
 /**
- * Which of a runner's races to show first: the meet a handed-out address was
- * about, if she ran it, and otherwise her most recent. `null` if she ran none.
+ * Which meet to open on: the one a handed-out address was about, if it is in the
+ * list, and otherwise the most recent with results, so a meet published ahead of
+ * the race with only its plans is there to pick and is not what opens. The most
+ * recent of any kind when none has results. `null` for an empty list.
  */
 export function firstRace(page: ResultsPage, races: SeasonMeet[]): SeasonMeet | null {
   if (isHandedOut(page) && page.meet) {
     const named = races.find((r) => sameMeet(r.published, page.meet as Published))
     if (named) return named
   }
-  return races[0] ?? null
+  return races.find((r) => hasResults(r.meet)) ?? races[0] ?? null
 }
 
 /**

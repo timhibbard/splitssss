@@ -36,6 +36,7 @@ import { type ResultsPage, seasonName } from '../lib/pages'
 import { degrees, feelsLike, readingAt, type Weather } from '../lib/weather'
 import {
   firstRace,
+  hasResults,
   isHandedOut,
   markIndex,
   racesOf,
@@ -88,7 +89,7 @@ export function AthleteResults({ meets, page, onBack }: Props) {
   const slug = race?.published.slug
   const upcoming = row != null && notRunYet(row)
   const compared = name ? seasonRows(name, races) : []
-  const run = loaded.filter((m) => meetRows(m.meet!).some((e) => e.rows.some((r) => !notRunYet(r))))
+  const run = loaded.filter((m) => hasResults(m.meet))
   useEffect(() => {
     if (loading) return
     const hash = name ? `#${athleteHash(name, slug)}` : ''
@@ -175,7 +176,8 @@ export function AthleteResults({ meets, page, onBack }: Props) {
               ) : (
                 <Race row={row} weather={race?.meet?.weather} />
               )}
-              {compared.length > 1 && (
+              {/* Before the race, the plan and nothing else. */}
+              {!upcoming && compared.length > 1 && (
                 <Season
                   races={[...compared].reverse()}
                   showing={race!.published.slug}
@@ -460,7 +462,8 @@ function Race({ row, weather }: { row: Row; weather?: Weather }) {
 /**
  * A race not run yet: her plan, as the coach wrote it, and nothing else, because
  * there is nothing else. Each stretch's pace and time, then where to be at each
- * mark. Never the planned finish, the same as beside a race that has been run.
+ * mark and at the finish. The planned finish only here, before the race: once
+ * there is a finish of her own, it is the only plan number she would read.
  */
 function Plan({ row, date }: { row: Row; date: string }) {
   const { event, plan, observed } = row
@@ -508,7 +511,7 @@ function Plan({ row, date }: { row: Row; date: string }) {
           <p className="hint">Paces are minutes per mile. Each time is that stretch on its own.</p>
         </section>
       )}
-      {marks.length > 0 && (
+      {(marks.length > 0 || plan?.finish != null) && (
         <section className="marks">
           <h2>Where to be, and when</h2>
           <table>
@@ -519,12 +522,18 @@ function Plan({ row, date }: { row: Row; date: string }) {
                   <td className="plan">{formatElapsed(m.at)}</td>
                 </tr>
               ))}
+              {plan?.finish != null && (
+                <tr>
+                  <th scope="row">Finish</th>
+                  <td className="plan">{formatElapsed(plan.finish)}</td>
+                </tr>
+              )}
             </tbody>
           </table>
           <p className="hint">Every one of these is time since the gun.</p>
         </section>
       )}
-      {stretches.length === 0 && marks.length === 0 && <p className="hint">No plan for this race yet.</p>}
+      {stretches.length === 0 && marks.length === 0 && plan?.finish == null && <p className="hint">No plan for this race yet.</p>}
     </>
   )
 }
