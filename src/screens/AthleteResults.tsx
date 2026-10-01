@@ -1,10 +1,11 @@
 /**
  * One runner's race, in numbers.
  *
- * Reached from a link the coach texts the team, so the person opening this has
- * never seen the app, is on a phone, and is looking for exactly one thing: her own
- * name. So the whole page is a dropdown and then her race — no navigation, no
- * team table she has to scan, nothing to set up.
+ * Reached from a link the coach texts, the team's or her own, so whoever opens
+ * this has never seen the app, is on a phone, and is looking for exactly one
+ * thing: her own name. So the whole page is a dropdown and then her race — no
+ * navigation, no team table she has to scan, nothing to set up. Her own link
+ * names her and the race, and opens on it.
  *
  * She picks from first names and an initial, which is all this build holds.
  *
@@ -16,8 +17,9 @@
  * field already; what the team's own splits add is where she was and when.
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { formatElapsed, formatIsoDate, formatPr, formatSignedElapsed } from '../lib/clock'
+import { athleteFromHash, athleteHash } from '../lib/link'
 import { type Anchor, anchorLabel, comparesToPr, type Event, meetRows, mileage, repeatsAMile, type Row } from '../lib/meet'
 import { type ResultsPage, seasonName } from '../lib/pages'
 import { firstRace, isHandedOut, racesOf, type SeasonMeet, seasonLabels } from '../lib/season'
@@ -37,20 +39,37 @@ type Props = {
 const COUNT = ['no', 'one', 'two', 'three', 'four', 'five', 'six']
 
 export function AthleteResults({ meets, page, onBack }: Props) {
-  const [picked, setPicked] = useState('')
+  // Her own link names her and the race, so she lands on it without picking.
+  const [opened] = useState(() => athleteFromHash(window.location.hash))
+  const [picked, setPicked] = useState(opened.name ?? '')
   /** The race on screen, by slug, once she has picked one other than her first. */
-  const [chosen, setChosen] = useState('')
+  const [chosen, setChosen] = useState(opened.meet ?? '')
 
   const loading = meets.some((m) => m.meet === undefined)
   const loaded = meets.filter((m) => m.meet)
   const labels = seasonLabels(loaded)
-  const races = picked ? racesOf(picked, loaded) : []
+  // A name from a link that no meet has, misspelt or from a label that has since
+  // changed, is no name: she gets the picker, as if the link had not named her.
+  const name = labels.includes(picked) ? picked : ''
+  const races = name ? racesOf(name, loaded) : []
   const race = races.find((r) => r.published.slug === chosen) ?? firstRace(page, races)
   const row = race?.meet
     ? meetRows(race.meet)
         .flatMap((e) => e.rows)
-        .find((r) => r.observed.label === picked)
+        .find((r) => r.observed.label === name)
     : undefined
+
+  // The address follows what is on screen, so a link copied out of it opens the
+  // same race. Replaced rather than pushed: picking a name is not a page to go
+  // Back through. Not until the files are in, when a name from the link can be
+  // told apart from one no meet has.
+  const slug = race?.published.slug
+  useEffect(() => {
+    if (loading) return
+    const hash = name ? `#${athleteHash(name, slug)}` : ''
+    if (window.location.hash === hash) return
+    window.history.replaceState(null, '', window.location.pathname + window.location.search + hash)
+  }, [loading, name, slug])
 
   // Before a name is picked, a texted meet address is about its meet and a season
   // is about the season.
@@ -89,7 +108,7 @@ export function AthleteResults({ meets, page, onBack }: Props) {
               control every person opening this already knows how to use.
             */}
             <select
-              value={picked}
+              value={name}
               onChange={(e) => {
                 setPicked(e.target.value)
                 setChosen('')

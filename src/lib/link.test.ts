@@ -3,6 +3,9 @@ import { test } from 'node:test'
 import {
   decodeRoster,
   encodeRoster,
+  athleteFromHash,
+  athleteHash,
+  athleteLink,
   helpLink,
   isLegacyHelpHash,
   resultsLink,
@@ -197,4 +200,25 @@ test('a different race picked there texts the season, not the Yellow Jacket link
     resultsLink('https://example.test', '/splitssss/', coach, other),
     'https://example.test/splitssss/meets/2026/girls/',
   )
+})
+
+test('a runner link opens the athlete page on her name and that race', () => {
+  const coach = PAGES.find((p) => p.kind === 'coach' && p.path === 'meets/2026/girls/coach/')
+  assert.ok(coach && coach.kind === 'coach')
+  const showing = { ...PUBLISHED[0], slug: 'rockingham', name: 'Rockingham' }
+  const link = athleteLink('https://example.test', '/splitssss/', coach, showing, 'Mary Eliza D.')
+  assert.equal(link, 'https://example.test/splitssss/meets/2026/girls/#name=Mary%20Eliza%20D.&meet=rockingham')
+  assert.deepEqual(athleteFromHash(new URL(link).hash), { name: 'Mary Eliza D.', meet: 'rockingham' })
+})
+
+test('a runner link is never read as a roster or as the help page', () => {
+  const hash = `#${athleteHash('Rowan H.', 'rockingham')}`
+  assert.deepEqual(rosterFromHash(hash), [])
+  assert.equal(isLegacyHelpHash(hash), false)
+})
+
+test('a missing or mangled runner fragment reads as nothing picked', () => {
+  assert.deepEqual(athleteFromHash(''), { name: undefined, meet: undefined })
+  assert.deepEqual(athleteFromHash('#name=%E0%A4%A'), { name: undefined, meet: undefined })
+  assert.deepEqual(athleteFromHash('#name=Rowan%20H.'), { name: 'Rowan H.', meet: undefined })
 })
