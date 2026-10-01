@@ -16,10 +16,10 @@
  * table that does not say so is a table that will be trusted too much next spring.
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { formatElapsed, formatIsoDate, formatPr, formatSignedElapsed } from '../lib/clock'
 import { METERS_PER_MILE } from '../lib/distance'
-import { resultsLink } from '../lib/link'
+import { athleteLink } from '../lib/link'
 import {
   anchorLabel,
   comparesToPr,
@@ -276,7 +276,6 @@ const VIEWS: { view: View; says: string }[] = [
 
 export function CoachResults({ meets, page, onBack }: Props) {
   const [view, setView] = useState<View>('course')
-  const [status, setStatus] = useState('')
   /** The meet on screen, by slug: the one the address opens on until another is picked. */
   const [chosen, setChosen] = useState(page.meet?.slug ?? '')
   const showing = meets.find((m) => m.published.slug === chosen) ?? meets[0]
@@ -291,34 +290,11 @@ export function CoachResults({ meets, page, onBack }: Props) {
   const showingView: View = view === 'plan' && !planned ? 'course' : view
 
   /**
-   * Texts the *athlete* page, not this one. This page is the only thing on the site
-   * with the whole team's numbers side by side, and a team group text is exactly
-   * where it should not end up — one runner reading their own splits is one thing and
-   * reading them ranked against six teammates is another. So the button here sends
-   * the address that shows one runner one race, their own.
+   * Each runner's own link, to the athlete page on their name and this race. Never
+   * this page: it is the only thing on the site with the whole team side by side.
    */
-  async function share() {
-    // Built from the app's base, not from where this page happens to be. The coach
-    // page sits underneath the athlete page, so a link made out of the current
-    // pathname would point back at this table.
-    if (!showing) return
-    const link = resultsLink(window.location.origin, import.meta.env.BASE_URL, page, showing.published)
-    const text = `${showing.published.name} splits — pick your name: ${link}`
-    if (navigator.share) {
-      try {
-        await navigator.share({ text })
-        return
-      } catch {
-        // Cancelled or unsupported. Fall through to the clipboard.
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(text)
-      setStatus('Link copied. Paste it into the team text.')
-    } catch {
-      setStatus(`Could not copy it. The link is ${link}`)
-    }
-  }
+  const linkFor = (label: string) =>
+    showing ? athleteLink(window.location.origin, import.meta.env.BASE_URL, page, showing.published, label) : ''
 
   return (
     <div className="screen results coach">
@@ -337,10 +313,7 @@ export function CoachResults({ meets, page, onBack }: Props) {
           <span>Race</span>
           <select
             value={showing.published.slug}
-            onChange={(e) => {
-              setChosen(e.target.value)
-              setStatus('')
-            }}
+            onChange={(e) => setChosen(e.target.value)}
           >
             {meets.map(({ published }) => (
               <option key={published.slug} value={published.slug}>
@@ -362,17 +335,6 @@ export function CoachResults({ meets, page, onBack }: Props) {
         </p>
       ) : (
         <>
-          <section className="coach-share">
-            <button type="button" onClick={share}>
-              Text the team their splits
-            </button>
-            <p className="hint">
-              Sends the athlete page, where each runner picks their own name. Not this
-              page.
-            </p>
-            {status && <p className="status">{status}</p>}
-          </section>
-
           <div className="views" role="group" aria-label="Which columns">
             {views.map(({ view: which, says }) => (
               <button
@@ -388,7 +350,7 @@ export function CoachResults({ meets, page, onBack }: Props) {
           </div>
 
           {events.map((e) => (
-            <EventTable key={e.event.squad} {...e} view={showingView} several={events.length > 1} />
+            <EventTable key={e.event.squad} {...e} view={showingView} several={events.length > 1} linkFor={linkFor} />
           ))}
 
           <Footnotes meet={meet} events={events} reconciled={showing?.published.reconciled} />
@@ -411,7 +373,13 @@ export function CoachResults({ meets, page, onBack }: Props) {
  * 1 and 2 miles and a varsity race timed at four places are two tables, and one
  * table holding both would be half blanks that read as missed runners.
  */
-function EventTable({ event, rows, view, several }: EventRows & { view: View; several: boolean }) {
+function EventTable({
+  event,
+  rows,
+  view,
+  several,
+  linkFor,
+}: EventRows & { view: View; several: boolean; linkFor: (label: string) => string }) {
   const columns =
     view === 'course' ? courseColumns(event, rows) : view === 'miles' ? mileColumns(event, rows) : planColumns(event)
   return (
@@ -447,6 +415,7 @@ function EventTable({ event, rows, view, several }: EventRows & { view: View; se
               <tr key={row.observed.label} className={row.best ? 'is-best' : ''}>
                 <th scope="row" className="who">
                   {row.observed.label}
+                  <CopyLink label={row.observed.label} link={linkFor(row.observed.label)} />
                 </th>
                 {columns.map((col, i) => {
                   const text = col.cell(row)
@@ -472,6 +441,50 @@ function EventTable({ event, rows, view, several }: EventRows & { view: View; se
         </table>
       </div>
     </section>
+  )
+}
+
+/**
+ * A runner's own link, onto the clipboard, to text to that one runner. A tick for
+ * a moment says it went; where the clipboard is refused, the link is put up to
+ * copy by hand.
+ */
+function CopyLink({ label, link }: { label: string; link: string }) {
+  const [copied, setCopied] = useState(false)
+  useEffect(() => {
+    if (!copied) return
+    const t = setTimeout(() => setCopied(false), 1500)
+    return () => clearTimeout(t)
+  }, [copied])
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(link)
+      setCopied(true)
+    } catch {
+      window.prompt(`${label}'s link`, link)
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      className={`copy-link${copied ? ' is-copied' : ''}`}
+      onClick={copy}
+      aria-label={copied ? `${label}'s link copied` : `Copy ${label}'s link`}
+      title={copied ? 'Copied' : `Copy ${label}'s link`}
+    >
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+        {copied ? (
+          <path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        ) : (
+          <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M10 13.5a4 4 0 0 0 6 .4l3-3a4 4 0 0 0-5.7-5.7l-1.6 1.6" />
+            <path d="M14 10.5a4 4 0 0 0-6-.4l-3 3a4 4 0 0 0 5.7 5.7l1.6-1.6" />
+          </g>
+        )}
+      </svg>
+    </button>
   )
 }
 

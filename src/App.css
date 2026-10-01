@@ -1408,15 +1408,6 @@
 
 /* ---------- results, the coach's table ---------- */
 
-.coach-share {
-  display: grid;
-  gap: 8px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 12px 14px;
-}
-
 .views {
   display: flex;
   gap: 8px;
@@ -1508,6 +1499,22 @@
 
 .grid thead .who {
   z-index: 3;
+}
+
+/* A runner's own link, beside the name it belongs to. */
+.grid .copy-link {
+  margin-left: 6px;
+  padding: 2px;
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  vertical-align: middle;
+  line-height: 0;
+  cursor: pointer;
+}
+
+.grid .copy-link.is-copied {
+  color: var(--ahead);
 }
 
 .grid tbody tr.is-best .who,

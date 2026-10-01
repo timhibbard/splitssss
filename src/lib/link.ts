@@ -86,6 +86,50 @@ export function resultsLink(
 }
 
 /**
+ * One runner's own link: the athlete page, opened on her name and on one race.
+ *
+ * In the fragment, for the same reason the roster is: a name in it never reaches a
+ * server log. It is the label the page already lists, first name and an initial,
+ * and the race by slug. Both are read when the page opens and either can be
+ * missing or stale; the page then just asks, as it would with no fragment at all.
+ *
+ * Permanent once texted, like the page addresses: `name` and `meet` mean what they
+ * mean here for good.
+ */
+const NAME = 'name='
+const MEET = 'meet='
+
+export function athleteHash(label: string, slug?: string): string {
+  const parts = [`${NAME}${encodeURIComponent(label)}`]
+  if (slug) parts.push(`${MEET}${encodeURIComponent(slug)}`)
+  return parts.join('&')
+}
+
+export function athleteFromHash(hash: string): { name?: string; meet?: string } {
+  const raw = hash.startsWith('#') ? hash.slice(1) : hash
+  const read = (key: string) => {
+    const part = raw.split('&').find((p) => p.startsWith(key))
+    if (!part) return undefined
+    try {
+      return decodeURIComponent(part.slice(key.length)) || undefined
+    } catch {
+      return undefined
+    }
+  }
+  return { name: read(NAME), meet: read(MEET) }
+}
+
+export function athleteLink(
+  origin: string,
+  base: string,
+  page: ResultsPage,
+  showing: Published,
+  label: string,
+): string {
+  return `${resultsLink(origin, base, page, showing)}#${athleteHash(label, showing.slug)}`
+}
+
+/**
  * The old `#help` address, kept working because it has been texted to parents and
  * a link somebody already has in a message thread has to keep landing somewhere.
  * It is read once at startup and turned into the real path.
