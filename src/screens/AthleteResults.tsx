@@ -422,7 +422,8 @@ function Race({ row, weather }: { row: Row; weather?: Weather }) {
 
 /**
  * Her races side by side, a column each, oldest to newest so the season reads left
- * to right. One row per mark, and each whole mile's pace after the mark it ends at. A mark a meet did not time is a blank, never an
+ * to right. One row per mark, and each whole mile's pace after the mark it ends at,
+ * but not mile 1's where it is the 1 mi mark again. A mark a meet did not time is a blank, never an
  * estimate, and the note under the table says which marks each meet had, so a blank
  * does not read as a slow mile. Two 5Ks are compared straight, with nothing said
  * about the courses; a race at another distance says its distance.
@@ -513,7 +514,11 @@ function Season({
             */}
             {[
               ...marks.map((mark) => ({ meters: mark.meters, mark })),
-              ...Array.from({ length: miles }, (_, k) => ({ meters: (k + 1) * METERS_PER_MILE + 1, mile: k })),
+              ...Array.from({ length: miles }, (_, k) => ({ meters: (k + 1) * METERS_PER_MILE + 1, mile: k })).filter(
+                // Mile 1's pace is the 1 mi mark again wherever somebody stood there,
+                // so it only gets a row when some meet had to calculate it.
+                ({ mile }) => mile > 0 || races.some((r) => r.row.miles[0] && !r.row.miles[0].timed),
+              ),
             ]
               .sort((a, b) => a.meters - b.meters)
               .map((place) =>
