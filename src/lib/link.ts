@@ -90,7 +90,8 @@ export function resultsLink(
  *
  * In the fragment, for the same reason the roster is: a name in it never reaches a
  * server log. It is the label the page already lists, first name and an initial,
- * and the race by slug. Both are read when the page opens and either can be
+ * written to read cleanly in a text, `Mary+Eliza+D`: spaces as `+` and no period.
+ * The race is by slug. Both are read when the page opens and either can be
  * missing or stale; the page then just asks, as it would with no fragment at all.
  *
  * Permanent once texted, like the page addresses: `name` and `meet` mean what they
@@ -100,7 +101,7 @@ const NAME = 'name='
 const MEET = 'meet='
 
 export function athleteHash(label: string, slug?: string): string {
-  const parts = [`${NAME}${encodeURIComponent(label)}`]
+  const parts = [`${NAME}${encodeURIComponent(label.replaceAll('.', '')).replaceAll('%20', '+')}`]
   if (slug) parts.push(`${MEET}${encodeURIComponent(slug)}`)
   return parts.join('&')
 }
@@ -111,12 +112,22 @@ export function athleteFromHash(hash: string): { name?: string; meet?: string } 
     const part = raw.split('&').find((p) => p.startsWith(key))
     if (!part) return undefined
     try {
-      return decodeURIComponent(part.slice(key.length)) || undefined
+      return decodeURIComponent(part.slice(key.length).replaceAll('+', ' ')) || undefined
     } catch {
       return undefined
     }
   }
   return { name: read(NAME), meet: read(MEET) }
+}
+
+/**
+ * The label a link's name is, out of the labels the season has. Without its period
+ * as the links write it, and with it as the first ones did, `Zoe%20W.`, which were
+ * already texted and have to keep opening.
+ */
+export function labelFor(name: string | undefined, labels: string[]): string {
+  if (!name) return ''
+  return labels.find((l) => l === name || l.replaceAll('.', '') === name) ?? ''
 }
 
 export function athleteLink(
