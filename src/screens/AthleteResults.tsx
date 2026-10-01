@@ -19,6 +19,7 @@
 
 import { useEffect, useState } from 'react'
 import { formatElapsed, formatIsoDate, formatPr, formatSignedElapsed } from '../lib/clock'
+import { METERS_PER_MILE } from '../lib/distance'
 import { athleteFromHash, athleteHash, labelFor } from '../lib/link'
 import { type Anchor, anchorLabel, comparesToPr, type Event, meetRows, mileage, repeatsAMile, type Row } from '../lib/meet'
 import { type ResultsPage, seasonName } from '../lib/pages'
@@ -159,7 +160,7 @@ export function AthleteResults({ meets, page, onBack }: Props) {
               <Race row={row} weather={race?.meet?.weather} />
               {races.length > 1 && (
                 <Season
-                  races={seasonRows(name, races)}
+                  races={seasonRows(name, races).reverse()}
                   showing={race!.published.slug}
                   onPick={setChosen}
                 />
@@ -420,8 +421,8 @@ function Race({ row, weather }: { row: Row; weather?: Weather }) {
 }
 
 /**
- * Her races side by side, a column each, newest first like the picker. One row per
- * mark and per whole mile. A mark a meet did not time is a blank, never an
+ * Her races side by side, a column each, oldest to newest so the season reads left
+ * to right. One row per mark, and each whole mile's pace after the mark it ends at. A mark a meet did not time is a blank, never an
  * estimate, and the note under the table says which marks each meet had, so a blank
  * does not read as a slow mile. Two 5Ks are compared straight, with nothing said
  * about the courses; a race at another distance says its distance.
@@ -505,25 +506,34 @@ function Season({
                 text: r.vsBest == null ? '' : formatSignedElapsed(r.vsBest),
                 sign: r.vsBest ?? undefined,
               }))}
-            {marks.map((mark) =>
-              line(mark.label, (r) => {
-                const i = markIndex(r, mark)
-                const at = i < 0 ? null : r.observed.times[i]
-                return { text: at == null ? '' : formatElapsed(at) }
-              }),
-            )}
-            {Array.from({ length: miles }, (_, k) =>
-              line(`Mile ${k + 1}`, (r) => {
-                const m = r.miles[k]
-                return { text: m ? formatElapsed(m.split) : '', soft: m != null && !m.timed }
-              }),
-            )}
+            {/*
+              Course order: each mark, and each mile's pace straight after the mark
+              that ends it, or after the last mark before it where nobody stood at
+              the mile.
+            */}
+            {[
+              ...marks.map((mark) => ({ meters: mark.meters, mark })),
+              ...Array.from({ length: miles }, (_, k) => ({ meters: (k + 1) * METERS_PER_MILE + 1, mile: k })),
+            ]
+              .sort((a, b) => a.meters - b.meters)
+              .map((place) =>
+                'mark' in place
+                  ? line(place.mark.label, (r) => {
+                      const i = markIndex(r, place.mark)
+                      const at = i < 0 ? null : r.observed.times[i]
+                      return { text: at == null ? '' : formatElapsed(at) }
+                    })
+                  : line(`Mile ${place.mile + 1} pace`, (r) => {
+                      const m = r.miles[place.mile]
+                      return { text: m ? formatElapsed(m.split) : '', soft: m != null && !m.timed }
+                    }),
+              )}
           </tbody>
         </table>
       </div>
       <p className="hint">
-        The marks are time since the gun and the miles are each mile on its own.
-        {calculated && ' Lighter miles are calculated, because nobody stood at that mile.'}{' '}
+        A mark is the time since the gun. A mile&rsquo;s pace is that mile on its own.
+        {calculated && ' A lighter pace is calculated, because nobody stood at that mile.'}{' '}
         {sets.size === 1
           ? 'A blank is a mark where nobody caught you.'
           : `${[...sets.values()]
