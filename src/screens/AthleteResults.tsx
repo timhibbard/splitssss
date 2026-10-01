@@ -21,7 +21,17 @@ import { useEffect, useState } from 'react'
 import { formatElapsed, formatIsoDate, formatPr, formatSignedElapsed } from '../lib/clock'
 import { METERS_PER_MILE } from '../lib/distance'
 import { athleteFromHash, athleteHash, labelFor } from '../lib/link'
-import { type Anchor, anchorLabel, comparesToPr, type Event, meetRows, mileage, repeatsAMile, type Row } from '../lib/meet'
+import {
+  type Anchor,
+  anchorLabel,
+  comparesToPr,
+  type Event,
+  meetRows,
+  mileage,
+  notRunYet,
+  repeatsAMile,
+  type Row,
+} from '../lib/meet'
 import { type ResultsPage, seasonName } from '../lib/pages'
 import { degrees, feelsLike, readingAt, type Weather } from '../lib/weather'
 import {
@@ -76,6 +86,9 @@ export function AthleteResults({ meets, page, onBack }: Props) {
   // Back through. Not until the files are in, when a name from the link can be
   // told apart from one no meet has.
   const slug = race?.published.slug
+  const upcoming = row != null && notRunYet(row)
+  const compared = name ? seasonRows(name, races) : []
+  const run = loaded.filter((m) => meetRows(m.meet!).some((e) => e.rows.some((r) => !notRunYet(r))))
   useEffect(() => {
     if (loading) return
     const hash = name ? `#${athleteHash(name, slug)}` : ''
@@ -96,7 +109,7 @@ export function AthleteResults({ meets, page, onBack }: Props) {
         </button>
         <div className="bar-where">
           <strong>{title}</strong>
-          <span>{row ? 'Your race, mile by mile' : meets.length === 0 ? 'Results' : loading ? 'One moment' : 'Your races'}</span>
+          <span>{upcoming ? 'Your plan' : row ? 'Your race, mile by mile' : meets.length === 0 ? 'Results' : loading ? 'One moment' : 'Your races'}</span>
         </div>
       </header>
 
@@ -151,16 +164,20 @@ export function AthleteResults({ meets, page, onBack }: Props) {
 
           {row == null ? (
             <p className="hint">
-              {loaded.length === 1
-                ? `${labels.length} of us raced at ${loaded[0].published.name}. Pick your name for your marks, your miles and your finish.`
-                : `${labels.length} of us raced in ${loaded.length} meets this season. Pick your name for your marks, your miles and your finish at each.`}
+              {run.length === 1
+                ? `${labels.length} of us raced at ${run[0].published.name}. Pick your name for your marks, your miles and your finish.`
+                : `${labels.length} of us raced in ${run.length} meets this season. Pick your name for your marks, your miles and your finish at each.`}
             </p>
           ) : (
             <>
-              <Race row={row} weather={race?.meet?.weather} />
-              {races.length > 1 && (
+              {upcoming ? (
+                <Plan row={row} date={race!.published.date} />
+              ) : (
+                <Race row={row} weather={race?.meet?.weather} />
+              )}
+              {compared.length > 1 && (
                 <Season
-                  races={seasonRows(name, races).reverse()}
+                  races={[...compared].reverse()}
                   showing={race!.published.slug}
                   onPick={setChosen}
                 />
@@ -436,6 +453,78 @@ function Race({ row, weather }: { row: Row; weather?: Weather }) {
           its own.
         </p>
       </section>
+    </>
+  )
+}
+
+/**
+ * A race not run yet: her plan, as the coach wrote it, and nothing else, because
+ * there is nothing else. Each stretch's pace and time, then where to be at each
+ * mark. Never the planned finish, the same as beside a race that has been run.
+ */
+function Plan({ row, date }: { row: Row; date: string }) {
+  const { event, plan, observed } = row
+  const first = event.markers[0]
+  const last = event.markers.at(-1)
+  const stretches =
+    first && last
+      ? [
+          { says: `First ${mileage(first.meters)}`, s: plan?.opening },
+          ...(event.markers.length > 1 ? [{ says: `Middle ${mileage(last.meters - first.meters)}`, s: plan?.middle }] : []),
+          { says: `Last ${mileage(event.distance - last.meters)}`, s: plan?.closing },
+        ].filter((x) => x.s)
+      : []
+  const marks = event.markers.flatMap((marker, i) => {
+    const at = observed.plan?.times[i]
+    return at == null ? [] : [{ says: marker.label, at }]
+  })
+  return (
+    <>
+      <p className="hint">
+        Not run yet: {formatIsoDate(date)}. Your marks and your finish go here once it has
+        been.
+      </p>
+      {stretches.length > 0 && (
+        <section className="marks">
+          <h2>Your plan</h2>
+          <table>
+            <thead>
+              <tr>
+                <td />
+                <th scope="col">Pace</th>
+                <th scope="col">Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stretches.map(({ says, s }) => (
+                <tr key={says}>
+                  <th scope="row">{says}</th>
+                  <td className="plan">{s!.pace != null ? pace(s!.pace) : ''}</td>
+                  <td className="plan">{s!.time != null ? formatElapsed(s!.time) : ''}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="hint">Paces are minutes per mile. Each time is that stretch on its own.</p>
+        </section>
+      )}
+      {marks.length > 0 && (
+        <section className="marks">
+          <h2>Where to be, and when</h2>
+          <table>
+            <tbody>
+              {marks.map((m) => (
+                <tr key={m.says}>
+                  <th scope="row">{m.says}</th>
+                  <td className="plan">{formatElapsed(m.at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="hint">Every one of these is time since the gun.</p>
+        </section>
+      )}
+      {stretches.length === 0 && marks.length === 0 && <p className="hint">No plan for this race yet.</p>}
     </>
   )
 }

@@ -415,8 +415,9 @@ function row(event: Event, observed: Observed, allowances: Allowance[]): Row {
   // finish somewhere, and the ones that are not would be a partial race dressed as
   // a whole one: two miles and a pace next to twenty finishers. Her marks stay,
   // because those were timed.
+  // The plan is still hers, and before the race it is all there is.
   if (finish == null) {
-    return { event, observed, miles: [], best: false }
+    return { event, observed, miles: [], best: false, ...(observed.plan ? { plan: planned(observed.plan) } : {}) }
   }
 
   const known = points(event, observed)
@@ -511,13 +512,23 @@ function stretches(
  * distance: a sheet that says 6:30 for the last 800 says 6:30, even though 3:15 over
  * the true 0.507 mi is quicker than that.
  */
-function planned(plan: Plan, ran: number): PlannedRace {
+function planned(plan: Plan, ran?: number): PlannedRace {
   return {
     ...(plan.opening ? { opening: plan.opening } : {}),
     ...(plan.middle ? { middle: plan.middle } : {}),
     ...(plan.closing ? { closing: plan.closing } : {}),
-    ...(plan.finish == null ? {} : { finish: plan.finish, vsPlan: ran - plan.finish }),
+    ...(plan.finish == null ? {} : { finish: plan.finish }),
+    ...(plan.finish == null || ran == null ? {} : { vsPlan: ran - plan.finish }),
   }
+}
+
+/**
+ * A race with nothing timed in it yet: no finish and no mark. A meet is published
+ * this way before it is run, so each runner can see her plan, and republished in
+ * place once it has been.
+ */
+export function notRunYet(row: Row): boolean {
+  return row.observed.finish == null && row.observed.times.every((t) => t == null)
 }
 
 /** Whether a marker's time on this row is a real observation or something reconstructed. */

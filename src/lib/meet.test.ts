@@ -8,6 +8,7 @@ import {
   type Marker,
   type Meet,
   meetRows,
+  notRunYet,
   meetText,
   mileage,
   type Observed,
@@ -554,4 +555,24 @@ test('a plan for nobody, a second plan, or the wrong width is refused', () => {
   const once = '# plan Rowan H.\t2:57.5\t6:04.0\t12:17.0\t16:00.8\t19:00.8'
   refusal(`${base}\n${once}\n${once}`, /second plan/)
   refusal(`${base}\n# plan Rowan H.\t2:57.5\tsoon\t12:17.0\t16:00.8\t19:00.8`, /not a time/)
+})
+
+test('a race not run yet keeps its plan and is told apart from a DNF', () => {
+  const upcoming = [
+    '# meet Upcoming',
+    '# date 2026-10-03',
+    '# team girls',
+    '',
+    '# event Varsity',
+    '# marks 0.5mi 1mi 2mi 2.6mi',
+    'Rowan H.\t-\t-\t-\t-\t-\t18:42.53',
+    '# plan Rowan H.\t2:57.50\t6:04.00\t12:17.00\t16:00.80\t19:00.80',
+    '# stretchplan Rowan H.\t5:55.00\t6:13.00\t6:00.00\t2:57.50\t13:03.30\t3:00.00',
+  ].join('\n')
+  const [rowan] = meetRows(parseMeet(upcoming))[0].rows
+  assert.equal(notRunYet(rowan), true)
+  assert.deepEqual(rowan.plan!.closing, { pace: 360_000, time: 180_000 })
+  assert.equal(rowan.plan!.vsPlan, undefined)
+  const [ran] = meetRows(parseMeet(PLANNED))[0].rows
+  assert.equal(notRunYet(ran), false)
 })

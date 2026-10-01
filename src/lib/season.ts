@@ -1,5 +1,5 @@
 // Explicit extensions: see the note in link.ts.
-import { type Marker, type Meet, meetRows, type Row } from './meet.ts'
+import { type Marker, type Meet, meetRows, notRunYet, type Row } from './meet.ts'
 import { HANDED_OUT, type Published, type ResultsPage, type Season, seasonMeets, seasonPath } from './pages.ts'
 
 /**
@@ -78,12 +78,13 @@ export type SeasonRace = { published: Published; row: Row }
 
 /**
  * Every race this runner ran this season, newest first, each as the row the race
- * table has for her. A meet she ran twice, varsity and JV, is two races.
+ * table has for her. A meet she ran twice, varsity and JV, is two races. One not
+ * run yet is not a race to compare, only a plan.
  */
 export function seasonRows(label: string, meets: SeasonMeet[]): SeasonRace[] {
   return racesOf(label, meets).flatMap(({ published, meet }) =>
     meetRows(meet!).flatMap((e) =>
-      e.rows.filter((r) => r.observed.label === label).map((row) => ({ published, row })),
+      e.rows.filter((r) => r.observed.label === label && !notRunYet(r)).map((row) => ({ published, row })),
     ),
   )
 }
