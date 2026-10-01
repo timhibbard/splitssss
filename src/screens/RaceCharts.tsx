@@ -19,7 +19,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { formatPr } from '../lib/clock'
+import { formatElapsed, formatPr } from '../lib/clock'
 import { METERS_PER_MILE } from '../lib/distance'
 import type { Event, Observed } from '../lib/meet'
 
@@ -390,6 +390,8 @@ function Order({ event, colors, dim, pick }: Chart) {
               {ps.map((p, j) =>
                 p == null ? null : (
                   <g key={j}>
+                    {/* The time behind the place, on hover. Same digits as the table. */}
+                    <title>{`${r.label}, ${stops[j].label}, ${j === stops.length - 1 ? formatPr(r.finish!) : formatElapsed(stops[j].at(r)!)}`}</title>
                     <circle cx={x(j)} cy={y(p)} r={7} fill={color} />
                     <text className="order-place" x={x(j)} y={y(p) + 3} textAnchor="middle">
                       {p}
