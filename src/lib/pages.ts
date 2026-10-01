@@ -98,7 +98,7 @@ export const PUBLISHED: Published[] = [
         'gun. All of them are on the coach’s gun; one 1 mi and 2.6 mi phone started 1.2 s late ' +
         'and the others were within a tenth. At 0.5 mi and 2 mi the time is the middle of the ' +
         'three phones where all three had the runner. At 1 mi and 2.6 mi it is one phone’s, ' +
-        'except one 1 mi time the coach took from the other.',
+        'except one runner’s 1 mi and 2.6 mi, which the coach took from the other.',
     },
   },
 ]
