@@ -23,7 +23,17 @@ import { athleteFromHash, athleteHash, labelFor } from '../lib/link'
 import { type Anchor, anchorLabel, comparesToPr, type Event, meetRows, mileage, repeatsAMile, type Row } from '../lib/meet'
 import { type ResultsPage, seasonName } from '../lib/pages'
 import { degrees, feelsLike, readingAt, type Weather } from '../lib/weather'
-import { firstRace, isHandedOut, racesOf, type SeasonMeet, seasonLabels } from '../lib/season'
+import {
+  firstRace,
+  isHandedOut,
+  markIndex,
+  racesOf,
+  type SeasonMeet,
+  type SeasonRace,
+  seasonLabels,
+  seasonMarks,
+  seasonRows,
+} from '../lib/season'
 
 type Props = {
   /** The season's meets, newest first, each with its file as far as it has loaded. */
@@ -145,7 +155,16 @@ export function AthleteResults({ meets, page, onBack }: Props) {
                 : `${labels.length} of us raced in ${loaded.length} meets this season. Pick your name for your marks, your miles and your finish at each.`}
             </p>
           ) : (
-            <Race row={row} weather={race?.meet?.weather} />
+            <>
+              <Race row={row} weather={race?.meet?.weather} />
+              {races.length > 1 && (
+                <Season
+                  races={seasonRows(name, races)}
+                  showing={race!.published.slug}
+                  onPick={setChosen}
+                />
+              )}
+            </>
           )}
         </>
       )}
@@ -398,6 +417,126 @@ function Race({ row, weather }: { row: Row; weather?: Weather }) {
       </section>
     </>
   )
+}
+
+/**
+ * Her races side by side, a column each, newest first like the picker. One row per
+ * mark and per whole mile. A mark a meet did not time is a blank, never an
+ * estimate, and the note under the table says which marks each meet had, so a blank
+ * does not read as a slow mile. Two 5Ks are compared straight, with nothing said
+ * about the courses; a race at another distance says its distance.
+ *
+ * Never the plan, which is per race and is already beside that race above.
+ */
+function Season({
+  races,
+  showing,
+  onPick,
+}: {
+  races: SeasonRace[]
+  showing: string
+  onPick: (slug: string) => void
+}) {
+  const marks = seasonMarks(races)
+  const miles = Math.max(0, ...races.map((r) => r.row.miles.length))
+  const anyPr = races.some((r) => r.row.vsBest != null)
+  // Which meets had which marks, the meets with the same ones together.
+  const sets = new Map<string, { marks: string[]; meets: string[] }>()
+  for (const r of races) {
+    const marks = r.row.event.markers.map((m) => m.label.replace(' mi', ''))
+    const key = marks.join(',')
+    const set = sets.get(key) ?? { marks, meets: [] }
+    if (!set.meets.includes(r.published.name)) set.meets.push(r.published.name)
+    sets.set(key, set)
+  }
+  const calculated = races.some((r) => r.row.miles.some((m) => !m.timed))
+
+  const line = (says: string, cell: (row: Row) => { text: string; soft?: boolean; sign?: number }) => (
+    <tr key={says}>
+      <th scope="row">{says}</th>
+      {races.map((r) => {
+        const { text, soft, sign } = cell(r.row)
+        return (
+          <td
+            key={`${r.published.slug}-${r.row.event.squad}`}
+            className={[soft ? 'is-soft' : '', sign == null ? '' : sign < 0 ? 'is-down' : 'is-up']
+              .filter(Boolean)
+              .join(' ')}
+          >
+            {text}
+          </td>
+        )
+      })}
+    </tr>
+  )
+
+  return (
+    <section className="marks season">
+      <h2>Your races side by side</h2>
+      <div className="season-scroll">
+        <table>
+          <thead>
+            <tr>
+              <td />
+              {races.map((r) => (
+                <th key={`${r.published.slug}-${r.row.event.squad}`} scope="col">
+                  {/* A tap on a race opens it above. */}
+                  <button
+                    type="button"
+                    className={r.published.slug === showing ? 'is-on' : ''}
+                    aria-pressed={r.published.slug === showing}
+                    onClick={() => onPick(r.published.slug)}
+                  >
+                    {formatIsoDate(r.published.date).replace(/^\w+, /, '')}
+                    <span className="sub">
+                      {r.published.name}
+                      {comparesToPr(r.row.event.distance) ? '' : `, ${r.row.event.distance} m`}
+                    </span>
+                  </button>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {line('Finish', (r) => ({ text: r.observed.finish == null ? '' : formatPr(r.observed.finish) }))}
+            {line('Pace', (r) => ({ text: r.average == null ? '' : pace(r.average) }))}
+            {anyPr &&
+              line('vs PR', (r) => ({
+                text: r.vsBest == null ? '' : formatSignedElapsed(r.vsBest),
+                sign: r.vsBest ?? undefined,
+              }))}
+            {marks.map((mark) =>
+              line(mark.label, (r) => {
+                const i = markIndex(r, mark)
+                const at = i < 0 ? null : r.observed.times[i]
+                return { text: at == null ? '' : formatElapsed(at) }
+              }),
+            )}
+            {Array.from({ length: miles }, (_, k) =>
+              line(`Mile ${k + 1}`, (r) => {
+                const m = r.miles[k]
+                return { text: m ? formatElapsed(m.split) : '', soft: m != null && !m.timed }
+              }),
+            )}
+          </tbody>
+        </table>
+      </div>
+      <p className="hint">
+        The marks are time since the gun and the miles are each mile on its own.
+        {calculated && ' Lighter miles are calculated, because nobody stood at that mile.'}{' '}
+        {sets.size === 1
+          ? 'A blank is a mark where nobody caught you.'
+          : `${[...sets.values()]
+              .map(({ marks, meets }) => `${listOf(meets)} timed ${listOf(marks)} mi`)
+              .join('. ')}. A blank is a mark that meet did not have, or one where nobody caught you.`}
+      </p>
+    </section>
+  )
+}
+
+/** "0.5, 1, 2 and 2.6", or two meets' names with an "and". */
+function listOf(items: string[]): string {
+  return items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`
 }
 
 /** A known time as it reads in a sentence to her: "your 2.6 mi mark", "the gun". */
