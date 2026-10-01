@@ -12,7 +12,7 @@
  */
 
 import { formatIsoDate, formatPr } from '../lib/clock'
-import { comparesToPr, isDerived, type Marker, mileage, type PlanStretch, type Segment } from '../lib/meet'
+import { comparesToPr, isDerived, type Marker, type PlanStretch, type Segment } from '../lib/meet'
 import { markIndex, type SeasonRace, seasonMarks } from '../lib/season'
 import { cellClass, type Column, head, MILE_2_ALLOWED_MS, pace, sign, softMile, time } from './coachColumns'
 
@@ -80,16 +80,6 @@ function seasonColumns(races: SeasonRace[]): Column[] {
   stretch('First', (r) => r.opening, (r) => r.plan?.opening)
   if (rows.some((r) => r.middle)) stretch('Middle', (r) => r.middle, (r) => r.plan?.middle)
   stretch('Last', (r) => r.closing, (r) => r.plan?.closing)
-  // How long each meet's stretches were, since the marks that cut them differ.
-  columns.push({
-    head: 'Stretches',
-    sub: 'first · middle · last',
-    cell: (r) =>
-      [r.opening, r.middle, r.closing]
-        .filter((s): s is Segment => s != null)
-        .map((s) => mileage(s.meters).replace(/^0\.5 mi$/, '½ mi').replace(' mi', ''))
-        .join(' · '),
-  })
   if (planned) {
     columns.push(
       { head: 'Finish', sub: 'plan', cell: (r) => (r.plan?.finish == null ? '' : formatPr(r.plan.finish)) },
@@ -179,8 +169,8 @@ export function CoachRunner({ label, races, onBack }: Props) {
               </li>
               <li>
                 <strong>The stretches are each meet&rsquo;s own.</strong> First is the gun to that
-                meet&rsquo;s first mark, last is its last mark to the finish, and the Stretches
-                column gives their lengths in miles. Paces are over the true distance.
+                meet&rsquo;s first mark, last is its last mark to the finish. Paces are over
+                the true distance.
               </li>
               <li>
                 <strong>The PR column is the one the runner came in with.</strong> A highlighted
