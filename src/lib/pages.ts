@@ -85,6 +85,22 @@ export const PUBLISHED: Published[] = [
         'given by the coach.',
     },
   },
+  {
+    slug: 'fountain-inn',
+    year: 2026,
+    team: 'girls',
+    date: '2026-09-30',
+    name: 'Fountain Inn',
+    reconciled: {
+      title: 'Five phones were put on one gun.',
+      body:
+        'Three phones timed 0.5 mi and 2 mi and two timed 1 mi and 2.6 mi, each with its own ' +
+        'gun. All of them are on the coach’s gun; one 1 mi and 2.6 mi phone started 1.2 s late ' +
+        'and the others were within a tenth. At 0.5 mi and 2 mi the time is the middle of the ' +
+        'three phones where all three had the runner. At 1 mi and 2.6 mi it is one phone’s, ' +
+        'except one 1 mi time the coach took from the other.',
+    },
+  },
 ]
 
 /** One team's year of meets, which is the unit both results pages are addressed by. */
