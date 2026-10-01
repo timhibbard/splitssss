@@ -101,6 +101,9 @@ export const PUBLISHED: Published[] = [
         'except one runner’s 1 mi and 2.6 mi, which the coach took from the other.',
     },
   },
+  // Published before it is run, with the plans only. Republished in place with the
+  // results, the same address, once it has been.
+  { slug: 'wendys', year: 2026, team: 'girls', date: '2026-10-03', name: "Wendy's" },
 ]
 
 /** One team's year of meets, which is the unit both results pages are addressed by. */

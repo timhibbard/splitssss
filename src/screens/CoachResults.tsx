@@ -31,6 +31,7 @@ import {
   type Meet,
   meetRows,
   mileage,
+  notRunYet,
   repeatsAMile,
   type Row,
 } from '../lib/meet'
@@ -237,8 +238,10 @@ export function CoachResults({ meets, page, onBack }: Props) {
   // The plan view is only offered for a meet that had plans, and a meet picked
   // after it that had none falls back to the course, rather than a table of blanks.
   const planned = events.some((e) => e.rows.some((r) => r.plan))
-  const views = VIEWS.filter((v) => v.view !== 'plan' || planned)
-  const showingView: View = view === 'plan' && !planned ? 'course' : view
+  // A meet published before it is run has only its plans, so it opens on them.
+  const upcoming = events.length > 0 && events.every((e) => e.rows.every(notRunYet))
+  const views = VIEWS.filter((v) => (v.view !== 'plan' || planned) && (v.view === 'plan' || !upcoming))
+  const showingView: View = upcoming && planned ? 'plan' : view === 'plan' && !planned ? 'course' : view
 
   /**
    * Each runner's own link, to the athlete page on their name and this race. Never
@@ -588,6 +591,13 @@ function Footnotes({
       <ul>
         {events.map(({ event, rows }) => {
           const who = several ? `${event.squad === 'jv' ? 'JV' : 'Varsity'}: ` : ''
+          if (rows.every(notRunYet))
+            return [
+              <li key={`${event.squad}-upcoming`}>
+                <strong>{who}Not run yet.</strong> The plans only. The marks and finishes go
+                in the same table once it has been.
+              </li>,
+            ]
           const counts = event.markers.map(
             (m, i) => `${m.label} ${rows.filter((r) => r.observed.times[i] != null).length}`,
           )
