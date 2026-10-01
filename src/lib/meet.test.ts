@@ -505,15 +505,39 @@ test('a plan survives the round trip, attached to its runner', () => {
   assert.equal(meet.events[0].runners[1].plan, undefined)
 })
 
-test('a plan is cut into the same stretches as the race, over the same distances', () => {
+test('a plan with no stretch line has no stretches, and nothing is worked out for one', () => {
   const [rowan] = meetRows(parseMeet(PLANNED))[0].rows
   const plan = rowan.plan!
-  assert.equal(plan.opening!.meters, rowan.opening!.meters)
-  assert.equal(plan.middle!.meters, rowan.middle!.meters)
-  assert.equal(plan.closing!.meters, rowan.closing!.meters)
-  // 3:00.0 planned over the true 0.507 mi reads 5:55, not the 6:00 an even 800 would.
-  assert.equal(Math.round(plan.closing!.pace / 1000), 355)
+  assert.equal(plan.opening, undefined)
+  assert.equal(plan.middle, undefined)
+  assert.equal(plan.closing, undefined)
+  assert.equal(plan.finish, 1_140_800)
   assert.equal(plan.vsPlan, rowan.observed.finish! - 1_140_800)
+})
+
+const STATED = PLANNED.replace(
+  '19:00.80\n',
+  '19:00.80\n# stretchplan Rowan H.\t5:55.00\t6:13.00\t6:30.00\t2:57.50\t-\t3:00.00\n',
+)
+
+test('a stretch plan is the sheet as written, and survives the round trip', () => {
+  const meet = parseMeet(STATED)
+  assert.equal(meetText(meet), STATED)
+  const [rowan] = meetRows(meet)[0].rows
+  // 3:00.0 over the true 0.507 mi would be 5:55. The sheet says 6:30, so 6:30 it is.
+  assert.deepEqual(rowan.plan!.closing, { pace: 390_000, time: 180_000 })
+  assert.deepEqual(rowan.plan!.opening, { pace: 355_000, time: 177_500 })
+  assert.deepEqual(rowan.plan!.middle, { pace: 373_000 })
+})
+
+test('a stretch plan with no plan above it, twice, or the wrong width is refused', () => {
+  const base = FILE.split('\n# event JV')[0].trimEnd()
+  const plan = '# plan Rowan H.\t2:57.5\t6:04.0\t12:17.0\t16:00.8\t19:00.8'
+  const line = '# stretchplan Rowan H.\t5:55\t6:13\t6:00\t-\t-\t-'
+  refusal(`${base}\n${line}`, /no "# plan" line above it/)
+  refusal(`${base}\n${plan}\n${line}\n${line}`, /second stretch plan/)
+  refusal(`${base}\n${plan}\n# stretchplan Rowan H.\t5:55\t6:13\t6:00`, /needs 7/)
+  refusal(`${base}\n${plan}\n# stretchplan Rowan H.\t5:55\tquick\t6:00\t-\t-\t-`, /middle pace is "quick"/)
 })
 
 test('a plan changes none of the numbers the race itself makes', () => {

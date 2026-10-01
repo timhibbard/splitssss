@@ -61,8 +61,22 @@ export type Observed = {
   plan?: Plan
 }
 
-/** A race plan: where the runner meant to be at each marker, and at the line. */
-export type Plan = { times: (number | null)[]; finish?: number }
+/**
+ * A race plan: where the runner meant to be at each marker, and at the line, and
+ * what the coach wrote for each stretch. The stretches are the coach's numbers as
+ * written and are never worked out from the marks, so a plan pace on a page is the
+ * one on the coach's sheet and not that time over a distance.
+ */
+export type Plan = {
+  times: (number | null)[]
+  finish?: number
+  opening?: PlanStretch
+  middle?: PlanStretch
+  closing?: PlanStretch
+}
+
+/** One stretch of a plan as the coach wrote it, a pace per mile and a time, either one absent. */
+export type PlanStretch = { pace?: number; time?: number }
 
 /**
  * One race inside a meet. Its markers and its distance are its own, because two
@@ -358,20 +372,18 @@ export type Row = {
   vsBest?: number
   best: boolean
   /**
-   * The plan's own stretches, cut at the same markers and over the same true
-   * distances as the race's, so a planned pace and a run one are the same
-   * arithmetic and can sit side by side. Absent for a runner with no plan.
+   * The plan beside the race: its stretches exactly as the coach wrote them, its
+   * finish, and the finish against it. Absent for a runner with no plan.
    */
   plan?: PlannedRace
 }
 
-/** The plan, measured the way a race is. */
+/** The plan as stated. Nothing in it is calculated but the gap to the finish. */
 export type PlannedRace = {
-  opening?: Segment
-  middle?: Segment
-  closing?: Segment
+  opening?: PlanStretch
+  middle?: PlanStretch
+  closing?: PlanStretch
   finish?: number
-  average?: number
   /** Finish against the planned finish. Negative is quicker than the plan. */
   vsPlan?: number
 }
@@ -464,14 +476,13 @@ function row(event: Event, observed: Observed, allowances: Allowance[]): Row {
     delta,
     vsBest,
     best: vsBest != null && vsBest < 0,
-    ...(observed.plan ? { plan: planned(event, observed.plan, finish) } : {}),
+    ...(observed.plan ? { plan: planned(observed.plan, finish) } : {}),
   }
 }
 
 /**
  * Gun to the first marker, first marker to the last, and last marker to the line,
- * each over its true distance. One function for the race and the plan, so the two
- * can never be cut at different places.
+ * each over its true distance.
  */
 function stretches(
   event: Event,
@@ -495,12 +506,17 @@ function stretches(
   }
 }
 
-function planned(event: Event, plan: Plan, ran: number): PlannedRace {
+/**
+ * The plan's stretches are what the coach wrote, never the marks' times over a
+ * distance: a sheet that says 6:30 for the last 800 says 6:30, even though 3:15 over
+ * the true 0.507 mi is quicker than that.
+ */
+function planned(plan: Plan, ran: number): PlannedRace {
   return {
-    ...stretches(event, plan.times, plan.finish),
-    ...(plan.finish == null
-      ? {}
-      : { finish: plan.finish, average: perMile(plan.finish, event.distance), vsPlan: ran - plan.finish }),
+    ...(plan.opening ? { opening: plan.opening } : {}),
+    ...(plan.middle ? { middle: plan.middle } : {}),
+    ...(plan.closing ? { closing: plan.closing } : {}),
+    ...(plan.finish == null ? {} : { finish: plan.finish, vsPlan: ran - plan.finish }),
   }
 }
 
@@ -543,6 +559,12 @@ export function anchorLabel(event: Event, anchor: Anchor): string {
  * same cells without the PR, each one a cumulative target:
  *
  *   # plan Rowan H.  2:57.5  6:04.0  12:17.0  16:00.8  19:00.80
+ *
+ * and, when the coach's sheet gives them, the stretches as written on a second
+ * line: the pace for the first, middle and last stretch, then the time for each,
+ * `-` for any the sheet leaves out:
+ *
+ *   # stretchplan Rowan H.  5:55.00  6:13.00  6:00.00  2:57.5  13:03.3  3:00.0
  *
  * The conditions, when there are any, are a station line and its readings among
  * the meet's headings, and each event's gun is a line in its block:
@@ -734,6 +756,37 @@ export function parseMeet(text: string): Meet {
           }
           return
         }
+        case 'stretchplan': {
+          // One word, because a heading's key is one word: a build from before
+          // these reads the line as a comment, not as a plan the wrong width.
+          if (!open) throw new Error(`line ${n}: "# stretchplan" before any "# event" line.`)
+          const cells = value.split('\t').map((c) => c.trim())
+          const who = cells[0] ?? ''
+          const runner = open.runners.find((r) => r.label === who)
+          if (!runner?.plan) throw new Error(`line ${n}: stretches for ${who || 'nobody'}, who has no "# plan" line above it.`)
+          if (runner.plan.opening || runner.plan.middle || runner.plan.closing)
+            throw new Error(`line ${n}: a second stretch plan for ${who}.`)
+          if (cells.length !== 7)
+            throw new Error(
+              `line ${n}: ${who}'s stretch plan has ${cells.length} cells and needs 7: the name, ` +
+                'the first, middle and last paces, and the first, middle and last times.',
+            )
+          const read = (cell: string, what: string) => {
+            if (cell === '' || cell === '-') return undefined
+            const ms = parsePr(cell)
+            if (ms == null) throw new Error(`line ${n}: ${who}'s planned ${what} is "${cell}", which is not a time.`)
+            return ms
+          }
+          const names = ['first', 'middle', 'last'] as const
+          const keys = ['opening', 'middle', 'closing'] as const
+          keys.forEach((key, j) => {
+            const pace = read(cells[1 + j], `${names[j]} pace`)
+            const time = read(cells[4 + j], `${names[j]} time`)
+            if (pace == null && time == null) return
+            runner.plan![key] = { ...(pace == null ? {} : { pace }), ...(time == null ? {} : { time }) }
+          })
+          return
+        }
         default:
           // Any other heading is a comment.
           return
@@ -826,7 +879,18 @@ export function meetText(meet: Meet): string {
       ),
       ...event.runners.flatMap((r) =>
         r.plan
-          ? [`# plan ${[r.label, ...event.markers.map((_, i) => cell(r.plan!.times[i])), cell(r.plan.finish)].join('\t')}`]
+          ? [
+              `# plan ${[r.label, ...event.markers.map((_, i) => cell(r.plan!.times[i])), cell(r.plan.finish)].join('\t')}`,
+              ...(r.plan.opening || r.plan.middle || r.plan.closing
+                ? [
+                    `# stretchplan ${[
+                      r.label,
+                      ...[r.plan.opening, r.plan.middle, r.plan.closing].map((s) => cell(s?.pace)),
+                      ...[r.plan.opening, r.plan.middle, r.plan.closing].map((s) => cell(s?.time)),
+                    ].join('\t')}`,
+                  ]
+                : []),
+            ]
           : [],
       ),
     ].join('\n'),

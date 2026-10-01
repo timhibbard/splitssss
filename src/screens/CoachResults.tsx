@@ -186,8 +186,8 @@ function mileColumns(event: Event, rows: Row[]): Column[] {
 /**
  * The race against its plan, stretch by stretch, then the finish. The stretches
  * are the ones the plan is written in, gun to first mark, first to last, last to
- * the line, and both paces in a pair are over the same true distance, so the gap
- * between them is only how the runner ran.
+ * the line. The plan pace is the coach's sheet as written and the ran pace is over
+ * the true distance, so neither is a number anyone worked out to make them match.
  */
 function planColumns(event: Event): Column[] {
   const first = event.markers[0]
@@ -685,9 +685,9 @@ function Footnotes({
         {events.some((e) => e.rows.some((r) => r.plan)) && (
           <li>
             <strong>The plan is what each runner was told before the race.</strong>{' '}
-            Its paces are cut at the same marks and over the same distances as the race,
-            so a plan written for an even 800 at the end reads a few seconds a mile
-            quicker here. Minus in vs plan is quicker than the planned finish.
+            Its paces are the ones on the plan sheet, as written; the ran paces are over
+            each stretch&rsquo;s true distance. Minus in vs plan is quicker than the
+            planned finish.
           </li>
         )}
         <li>

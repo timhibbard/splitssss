@@ -181,6 +181,7 @@ function Race({ row, weather }: { row: Row; weather?: Weather }) {
   const { closing, plan } = row
   const calculated = row.miles.filter((m) => !m.timed)
   const planned = observed.plan
+  const planTimes = plan?.opening?.time != null || plan?.closing?.time != null
   const conditions = readingAt(weather, event.gun)
 
   /*
@@ -277,20 +278,39 @@ function Race({ row, weather }: { row: Row; weather?: Weather }) {
         same number twice under two headings makes a page longer without making it say
         more.
       */}
+      {/*
+        A plan column only when the coach's sheet gave stretch times, and then the
+        times as the sheet has them.
+      */}
       {(opening != null || closing != null) && (
         <section className="marks">
           <h2>The two ends of the race</h2>
           <table>
+            {planTimes && (
+              <thead>
+                <tr>
+                  <td />
+                  <th scope="col">Plan</th>
+                  <th scope="col">Ran</th>
+                </tr>
+              </thead>
+            )}
             <tbody>
               {opening != null && (
                 <tr>
                   <th scope="row">First {mileage(opening.meters)}</th>
+                  {planTimes && (
+                    <td className="plan">{plan?.opening?.time != null ? formatElapsed(plan.opening.time) : ''}</td>
+                  )}
                   <td>{formatElapsed(opening.time)}</td>
                 </tr>
               )}
               {closing != null && (
                 <tr>
                   <th scope="row">Last {mileage(closing.meters)}</th>
+                  {planTimes && (
+                    <td className="plan">{plan?.closing?.time != null ? formatElapsed(plan.closing.time) : ''}</td>
+                  )}
                   <td>{formatElapsed(closing.time)}</td>
                 </tr>
               )}
@@ -316,7 +336,7 @@ function Race({ row, weather }: { row: Row; weather?: Weather }) {
       */}
       {/*
         With a plan, the plan's pace for each stretch sits in a column beside the
-        race's, cut at the same marks and over the same distances. A column and not
+        race's, exactly as the coach's sheet has it. A column and not
         a section, because the plan was set in exactly these stretches and the
         comparison is the point; a second table would be the same rows twice.
       */}
@@ -337,21 +357,21 @@ function Race({ row, weather }: { row: Row; weather?: Weather }) {
               {opening != null && (
                 <tr>
                   <th scope="row">First {mileage(opening.meters)}</th>
-                  {plan && <td className="plan">{plan.opening ? pace(plan.opening.pace) : ''}</td>}
+                  {plan && <td className="plan">{plan.opening?.pace != null ? pace(plan.opening.pace) : ''}</td>}
                   <td>{pace(opening.pace)}</td>
                 </tr>
               )}
               {middle != null && (
                 <tr>
                   <th scope="row">Middle {mileage(middle.meters)}</th>
-                  {plan && <td className="plan">{plan.middle ? pace(plan.middle.pace) : ''}</td>}
+                  {plan && <td className="plan">{plan.middle?.pace != null ? pace(plan.middle.pace) : ''}</td>}
                   <td>{pace(middle.pace)}</td>
                 </tr>
               )}
               {closing != null && (
                 <tr>
                   <th scope="row">Last {mileage(closing.meters)}</th>
-                  {plan && <td className="plan">{plan.closing ? pace(plan.closing.pace) : ''}</td>}
+                  {plan && <td className="plan">{plan.closing?.pace != null ? pace(plan.closing.pace) : ''}</td>}
                   <td>{pace(closing.pace)}</td>
                 </tr>
               )}
