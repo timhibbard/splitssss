@@ -19,7 +19,7 @@
 
 import { useEffect, useState } from 'react'
 import { formatElapsed, formatIsoDate, formatPr, formatSignedElapsed } from '../lib/clock'
-import { athleteFromHash, athleteHash } from '../lib/link'
+import { athleteFromHash, athleteHash, labelFor } from '../lib/link'
 import { type Anchor, anchorLabel, comparesToPr, type Event, meetRows, mileage, repeatsAMile, type Row } from '../lib/meet'
 import { type ResultsPage, seasonName } from '../lib/pages'
 import { firstRace, isHandedOut, racesOf, type SeasonMeet, seasonLabels } from '../lib/season'
@@ -50,7 +50,7 @@ export function AthleteResults({ meets, page, onBack }: Props) {
   const labels = seasonLabels(loaded)
   // A name from a link that no meet has, misspelt or from a label that has since
   // changed, is no name: she gets the picker, as if the link had not named her.
-  const name = labels.includes(picked) ? picked : ''
+  const name = labelFor(picked, labels)
   const races = name ? racesOf(name, loaded) : []
   const race = races.find((r) => r.published.slug === chosen) ?? firstRace(page, races)
   const row = race?.meet

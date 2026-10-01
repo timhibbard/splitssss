@@ -7,6 +7,7 @@ import {
   athleteHash,
   athleteLink,
   helpLink,
+  labelFor,
   isLegacyHelpHash,
   resultsLink,
   rosterFromHash,
@@ -207,8 +208,10 @@ test('a runner link opens the athlete page on her name and that race', () => {
   assert.ok(coach && coach.kind === 'coach')
   const showing = { ...PUBLISHED[0], slug: 'rockingham', name: 'Rockingham' }
   const link = athleteLink('https://example.test', '/splitssss/', coach, showing, 'Mary Eliza D.')
-  assert.equal(link, 'https://example.test/splitssss/meets/2026/girls/#name=Mary%20Eliza%20D.&meet=rockingham')
-  assert.deepEqual(athleteFromHash(new URL(link).hash), { name: 'Mary Eliza D.', meet: 'rockingham' })
+  assert.equal(link, 'https://example.test/splitssss/meets/2026/girls/#name=Mary+Eliza+D&meet=rockingham')
+  const read = athleteFromHash(new URL(link).hash)
+  assert.deepEqual(read, { name: 'Mary Eliza D', meet: 'rockingham' })
+  assert.equal(labelFor(read.name, ['Mary Eliza D.', 'Mary Ward M.']), 'Mary Eliza D.')
 })
 
 test('a runner link is never read as a roster or as the help page', () => {
@@ -221,4 +224,11 @@ test('a missing or mangled runner fragment reads as nothing picked', () => {
   assert.deepEqual(athleteFromHash(''), { name: undefined, meet: undefined })
   assert.deepEqual(athleteFromHash('#name=%E0%A4%A'), { name: undefined, meet: undefined })
   assert.deepEqual(athleteFromHash('#name=Rowan%20H.'), { name: 'Rowan H.', meet: undefined })
+})
+
+test('the first links, with a %20 and a period, still open on her name', () => {
+  const { name } = athleteFromHash('#name=Zoe%20W.&meet=low-country')
+  assert.equal(labelFor(name, ['Zoe W.', 'Zoe X.']), 'Zoe W.')
+  assert.equal(labelFor('Zoe+W'.replace('+', ' '), ['Zoe W.']), 'Zoe W.')
+  assert.equal(labelFor('Nobody X', ['Zoe W.']), '')
 })
