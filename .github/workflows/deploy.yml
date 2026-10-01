@@ -27,6 +27,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+        env:
+          # Where boys races are texted. Kept out of the repository; see sms.ts.
+          BOYS_COACH_PHONE: ${{ secrets.BOYS_COACH_PHONE }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

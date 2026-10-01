@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { csvFilename, stationNames, toCsv, toTextSummary } from '../lib/csv'
-import { COACH_PHONE, smsLink } from '../lib/sms'
+import { coachPhone, smsLink } from '../lib/sms'
 import type { Race, Tap } from '../lib/types'
 
 type Props = {
@@ -17,11 +17,11 @@ export function ExportScreen({ race, taps, onBack, onNewRace }: Props) {
   const unassigned = taps.filter((t) => !t.athleteId).length
 
   /**
-   * The text to the coach: the summary to read and the CSV rows under it, since
-   * a text link cannot attach the file. A link and not a button, so it opens
+   * The text to the coach of the team that raced: the summary to read and the CSV
+   * rows under it, since a text link cannot attach the file. A link and not a button, so it opens
    * Messages the way any link to a number does.
    */
-  const text = smsLink(COACH_PHONE, `${summary}\n\n${csv}`)
+  const text = smsLink(coachPhone(race.team, __BOYS_COACH__), `${summary}\n\n${csv}`)
 
   /**
    * The .csv file itself, through the share sheet, which is where a phone offers
@@ -84,7 +84,7 @@ export function ExportScreen({ race, taps, onBack, onNewRace }: Props) {
       )}
 
       <a className="primary text-coach" href={text}>
-        Tap to text results
+        Tap to text to coach
       </a>
 
       <div className="export-actions">
