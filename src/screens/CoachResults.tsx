@@ -448,9 +448,9 @@ function EventTable({
 }
 
 /**
- * The station's readings around the guns, as it logged them, and which station.
- * Figures and where they came from, and no word about what they did to anyone's
- * race.
+ * The station's readings around the guns, as it logged them, and the guns. Figures
+ * only, and no word about what they did to anyone's race. Not the station or the
+ * dew point, which the coach does not use; the station is still in the file.
  */
 function Conditions({ weather, events }: { weather: Weather; events: Meet['events'] }) {
   const guns = events.filter((e) => e.gun)
@@ -463,7 +463,6 @@ function Conditions({ weather, events }: { weather: Weather; events: Meet['event
             <span className="conditions-time">{clockTime(r.time)}</span>{' '}
             {[
               degrees(r.tempF),
-              r.dewF == null ? undefined : `dew point ${degrees(r.dewF)}`,
               r.humidity == null ? undefined : `${Math.round(r.humidity)}% humidity`,
               feelsLike(r),
               wind(r),
@@ -474,12 +473,13 @@ function Conditions({ weather, events }: { weather: Weather; events: Meet['event
           </li>
         ))}
       </ul>
-      <p className="hint">
-        {weather.name} ({weather.station}).
-        {guns.length === 1 && ` Gun ${clockTime(guns[0].gun!)}.`}
-        {guns.length > 1 &&
-          ` ${guns.map((e) => `${e.squad === 'jv' ? 'JV' : 'Varsity'} gun ${clockTime(e.gun!)}`).join(', ')}.`}
-      </p>
+      {guns.length > 0 && (
+        <p className="hint">
+          {guns.length === 1
+            ? `Gun ${clockTime(guns[0].gun!)}.`
+            : `${guns.map((e) => `${e.squad === 'jv' ? 'JV' : 'Varsity'} gun ${clockTime(e.gun!)}`).join(', ')}.`}
+        </p>
+      )}
     </section>
   )
 }
