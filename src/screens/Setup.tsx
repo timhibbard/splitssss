@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { formatIsoDate } from '../lib/clock'
 import { stationNames } from '../lib/csv'
 import { FIRST_CHOICE, resolveStation, type StationChoice } from '../lib/stations'
-import { defaultLineup, forTeam, lineupOf, sniffTeam, varsitySize } from '../lib/lineup'
+import { defaultLineup, forTeam, lineupOf, SQUAD_LABEL, sniffTeam, squadsOf, varsitySize } from '../lib/lineup'
 import { displayNames, summarize } from '../lib/names'
-import type { Athlete, Race, RaceDraft, Team } from '../lib/types'
+import type { Athlete, Race, RaceDraft, Squad, Team } from '../lib/types'
 import { PAGES, type Page, SEASONS, seasonCoachPath, seasonMeets, seasonName, seasonPath } from '../lib/pages'
 import { refreshApp } from '../lib/update'
 import { Lineup } from './Lineup'
@@ -38,11 +38,11 @@ const TEAMS: Team[] = ['girls', 'boys']
 const TEAM_LABEL: Record<Team, string> = { girls: 'Girls', boys: 'Boys' }
 
 /**
- * The two races each team runs, as a kind rather than a name, so the team chips
- * and the race chips cannot drift into saying "Varsity Girls" for the boys.
+ * A race as a kind rather than a name, so the team chips and the race chips
+ * cannot drift into saying "Varsity Girls" for the boys. Which kinds are offered
+ * is the team list's to say: the races it puts that team's runners in.
  */
-const KINDS = ['Varsity', 'JV'] as const
-type Kind = (typeof KINDS)[number] | 'other'
+type Kind = Squad | 'other'
 
 /**
  * Every race either team runs is a 5K, so there is no picker. It stays in the
@@ -129,7 +129,7 @@ export function Setup({
    * meet all say the same thing and the briefing is the same for all of them. One
    * tap changes it.
    */
-  const [raceKind, setRaceKind] = useState<Kind>('Varsity')
+  const [raceKind, setRaceKind] = useState<Kind>('varsity')
   const [raceOther, setRaceOther] = useState('')
   /**
    * Which team, once somebody has said. Null follows the race name, which is
@@ -174,7 +174,14 @@ export function Setup({
    * Varsity Girls.
    */
   const which: Team = teamPick ?? (raceKind === 'other' ? sniffTeam(raceOther) : undefined) ?? 'girls'
-  const raceName = raceKind === 'other' ? raceOther.trim() : `${raceKind} ${TEAM_LABEL[which]}`
+  /**
+   * The races this team's list puts anybody in. A race picked for the other team
+   * that this one does not run falls back to varsity, so switching from the boys'
+   * 9/10 to the girls does not leave a chip lit that is not there.
+   */
+  const kinds = squadsOf(forTeam(team, which))
+  const kind: Kind = raceKind === 'other' || kinds.includes(raceKind) ? raceKind : 'varsity'
+  const raceName = kind === 'other' ? raceOther.trim() : `${SQUAD_LABEL[kind]} ${TEAM_LABEL[which]}`
   const canStart = raceName.length > 0 && station != null
 
   /**
@@ -330,19 +337,19 @@ export function Setup({
       <fieldset>
         <legend>Which race?</legend>
         <div className="chips">
-          {KINDS.map((kind) => (
+          {kinds.map((k) => (
             <button
-              key={kind}
+              key={k}
               type="button"
-              className={kind === raceKind ? 'chip on' : 'chip'}
-              onClick={() => pickRace(kind)}
+              className={k === kind ? 'chip on' : 'chip'}
+              onClick={() => pickRace(k)}
             >
-              {kind} {TEAM_LABEL[which]}
+              {SQUAD_LABEL[k]} {TEAM_LABEL[which]}
             </button>
           ))}
           <button
             type="button"
-            className={raceKind === 'other' ? 'chip on' : 'chip'}
+            className={kind === 'other' ? 'chip on' : 'chip'}
             onClick={() => pickRace('other')}
           >
             Other

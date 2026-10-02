@@ -349,3 +349,16 @@ test('grouping is the same for the text and the screen', () => {
   )
   assert.deepEqual(byTeam([]), [], 'an empty list is no groups, not one empty one')
 })
+
+test('a 9/10 or 11/12 tag puts a runner in that race and round trips', () => {
+  const list = parseRoster('# Boys\nJax King\t16:03.46\t9/10\nParker Stovall\t11/12\nDavis Fackler 9/10')
+  assert.deepEqual(
+    list.map((a) => [a.name, a.squad, a.pr]),
+    [
+      ['Jax King', 'frso', 963_460],
+      ['Parker Stovall', 'jrsr', undefined],
+      ['Davis Fackler', 'frso', undefined],
+    ],
+  )
+  assert.deepEqual(parseRoster(rosterText(list)).map((a) => [a.name, a.squad, a.pr, a.team]), list.map((a) => [a.name, a.squad, a.pr, a.team]))
+})

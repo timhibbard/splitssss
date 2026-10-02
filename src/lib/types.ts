@@ -47,11 +47,14 @@ export type Station = {
 export type Team = 'boys' | 'girls'
 
 /**
- * Which of the two races a runner is in. Not a standing rank and not derived from
- * anything: the coach sets it per meet, so it arrives on the roster line the same
- * way the best time does. See DESIGN.md for why this is not read off PR order.
+ * Which race a runner is in. Not a standing rank and not derived from anything:
+ * the coach sets it per meet, so it arrives on the roster line the same way the
+ * best time does. See DESIGN.md for why this is not read off PR order.
+ *
+ * Varsity and JV, or for a meet that splits the rest of the team by grade, the
+ * 9/10 race and the 11/12 race.
  */
-export type Squad = 'varsity' | 'jv'
+export type Squad = 'varsity' | 'jv' | 'frso' | 'jrsr'
 
 export type Athlete = {
   id: string

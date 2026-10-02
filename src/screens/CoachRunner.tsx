@@ -12,6 +12,7 @@
  */
 
 import { formatIsoDate, formatPr } from '../lib/clock'
+import { SQUAD_LABEL } from '../lib/lineup'
 import { comparesToPr, isDerived, type Marker, type PlanStretch, type Segment } from '../lib/meet'
 import { markIndex, type SeasonRace, seasonMarks } from '../lib/season'
 import { cellClass, type Column, head, MILE_2_ALLOWED_MS, pace, sign, softMile, time } from './coachColumns'
@@ -22,7 +23,7 @@ type Props = {
   onBack: () => void
 }
 
-const squad = (r: SeasonRace) => (r.row.event.squad === 'jv' ? 'JV' : 'Varsity')
+const squad = (r: SeasonRace) => SQUAD_LABEL[r.row.event.squad]
 
 /**
  * The columns. The finish and what it is measured against first, since that is

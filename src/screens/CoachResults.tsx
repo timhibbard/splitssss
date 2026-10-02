@@ -20,6 +20,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { formatElapsed, formatIsoDate, formatPr, formatSignedElapsed } from '../lib/clock'
 import { METERS_PER_MILE } from '../lib/distance'
 import { athleteFromHash, athleteHash, athleteLink, labelFor } from '../lib/link'
+import { SQUAD_LABEL } from '../lib/lineup'
 import { clockTime, degrees, feelsLike, sky, type Weather, wind } from '../lib/weather'
 import {
   anchorLabel,
@@ -406,7 +407,7 @@ export function CoachResults({ meets, page, onBack }: Props) {
               <RaceCharts
                 key={`${showing.published.slug}-${e.event.squad}`}
                 event={e.event}
-                heading={events.length > 1 ? `${e.event.squad === 'jv' ? 'JV' : 'Varsity'}, drawn` : undefined}
+                heading={events.length > 1 ? `${SQUAD_LABEL[e.event.squad]}, drawn` : undefined}
               />
             ))}
         </>
@@ -443,7 +444,7 @@ function EventTable({
     <section className="coach-event">
       {several && (
         <h2>
-          {event.squad === 'jv' ? 'JV' : 'Varsity'} · {rows.length} runners
+          {SQUAD_LABEL[event.squad]} · {rows.length} runners
         </h2>
       )}
       {/*
@@ -534,7 +535,7 @@ function Conditions({ weather, events }: { weather: Weather; events: Meet['event
         <p className="hint">
           {guns.length === 1
             ? `Gun ${clockTime(guns[0].gun!)}.`
-            : `${guns.map((e) => `${e.squad === 'jv' ? 'JV' : 'Varsity'} gun ${clockTime(e.gun!)}`).join(', ')}.`}
+            : `${guns.map((e) => `${SQUAD_LABEL[e.squad]} gun ${clockTime(e.gun!)}`).join(', ')}.`}
         </p>
       )}
     </section>
@@ -635,7 +636,7 @@ function Footnotes({
       <h2>What is measured, and what is not</h2>
       <ul>
         {events.map(({ event, rows }) => {
-          const who = several ? `${event.squad === 'jv' ? 'JV' : 'Varsity'}: ` : ''
+          const who = several ? `${SQUAD_LABEL[event.squad]}: ` : ''
           const counts = event.markers.map(
             (m, i) => `${m.label} ${rows.filter((r) => r.observed.times[i] != null).length}`,
           )

@@ -65,6 +65,7 @@ import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { basename, dirname, extname, join } from 'node:path'
 import { formatElapsed, formatPr, formatSignedElapsed } from '../src/lib/clock.ts'
 import { anchorLabel, kickAllowances, type Meet, meetRows, meetText, mileage, parseMeet } from '../src/lib/meet.ts'
+import { SQUAD_LABEL } from '../src/lib/lineup.ts'
 import { scrambleMeet, unscrambleMeet } from '../src/lib/meetfile.ts'
 import { meetFilePath, PUBLISHED, seasonCoachPath, seasonPath } from '../src/lib/pages.ts'
 import { shortNames } from '../src/lib/names.ts'
@@ -168,7 +169,7 @@ console.error(`${meet.name}, ${meet.date}, ${meet.team}: ${everyone.length} runn
 let bests = 0
 for (const { event, rows } of meetRows(meet)) {
   console.error('')
-  console.error(`${event.squad === 'jv' ? 'JV' : 'Varsity'}, ${event.distance} m, marks at ${event.markers.map((m) => m.label).join(', ')}`)
+  console.error(`${SQUAD_LABEL[event.squad]}, ${event.distance} m, marks at ${event.markers.map((m) => m.label).join(', ')}`)
   const miles = Math.max(0, ...rows.map((r) => r.miles.length))
   console.error(
     [
