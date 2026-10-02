@@ -1,6 +1,6 @@
 // Explicit extensions: see the note in link.ts.
 import { formatPr, parsePr } from './clock.ts'
-import { sniffSquad, sniffTeam } from './lineup.ts'
+import { SQUAD_LABEL, sniffSquad, sniffTeam } from './lineup.ts'
 import { newId } from './storage.ts'
 import type { Athlete, Squad, Team } from './types'
 
@@ -23,13 +23,10 @@ const PR_AT_END = /[\t ,]+(\d{1,3}:[0-5]\d(?:\.\d{1,2})?)$/
  * drops out: that is the header row of a spreadsheet, and "Varsity" is a button
  * nobody can tap.
  */
-const SQUAD_AT_END = /(?:^|[\t ,]+)(jv|junior\s+varsity|varsity)$/i
+const SQUAD_AT_END = /(?:^|[\t ,]+)(jv|junior\s+varsity|varsity|9\/10|11\/12|fr\/so|jr\/sr)$/i
 
 /** How a team is written as a header, and how it is read back. */
 const HEADING: Record<Team, string> = { girls: 'Girls', boys: 'Boys' }
-
-/** How a race is written at the end of a line, and how it is read back. */
-const SQUAD_LABEL: Record<Squad, string> = { varsity: 'Varsity', jv: 'JV' }
 
 /**
  * Takes the best time and the race off the end of a line, leaving the name.

@@ -9,6 +9,7 @@ import {
   lineupOf,
   restOfList,
   sniffSquad,
+  squadsOf,
   sniffTeam,
   toggle,
   topOfList,
@@ -250,4 +251,31 @@ test('a JV boys race offers the boys there are rather than nobody', () => {
     defaultLineup(boys, 'JV Boys', varsitySize(boys, 'boys')),
     boys.map((a) => a.id),
   )
+})
+
+test('the grade races are read off a race name and a roster tag alike', () => {
+  assert.equal(sniffSquad('9/10 Boys'), 'frso')
+  assert.equal(sniffSquad('11/12 Boys'), 'jrsr')
+  assert.equal(sniffSquad('BOYS INDIV. FR/SO HS'), 'frso')
+  assert.equal(sniffSquad('BOYS INDIV. JR/SR HS'), 'jrsr')
+  assert.equal(sniffSquad('11/12 Varsity Boys'), 'jrsr')
+  assert.equal(sniffSquad('Varsity Boys'), 'varsity')
+  // Not a date or a time that happens to have the digits in it.
+  assert.equal(sniffSquad('Meet 19/10'), undefined)
+  assert.equal(sniffSquad('Meet 9/101'), undefined)
+})
+
+test('setup offers the races the list puts anybody in, and the pair for a list that says nothing', () => {
+  const graded: Athlete[] = [
+    { id: 'v', name: 'V', squad: 'varsity' },
+    { id: 'f', name: 'F', squad: 'frso' },
+    { id: 'j', name: 'J', squad: 'jrsr' },
+    { id: 'n', name: 'N' },
+  ]
+  assert.deepEqual(squadsOf(graded), ['varsity', 'frso', 'jrsr'])
+  assert.deepEqual(squadsOf([{ id: 'n', name: 'N' }]), ['varsity', 'jv'])
+  assert.deepEqual(defaultLineup(graded, '9/10 Boys'), ['f'])
+  assert.deepEqual(defaultLineup(graded, '11/12 Boys'), ['j'])
+  // A grade race on a list with no tags has no order to go by, so everyone.
+  assert.deepEqual(defaultLineup([{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }], '9/10 Boys'), ['a', 'b'])
 })

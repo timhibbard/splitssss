@@ -61,7 +61,7 @@ const WORKFLOW: { title: string; lead?: string; steps: Step[] }[] = [
       },
       {
         act: 'Which race.',
-        note: 'Varsity or JV. Other lets you type a name, for an open race or a time trial.',
+        note: 'Varsity or JV, or Varsity, 9/10 or 11/12 when the team list splits the rest by grade. Other lets you type a name, for an open race or a time trial.',
       },
       {
         act: 'Choose.',

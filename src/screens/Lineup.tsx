@@ -1,10 +1,10 @@
 import { formatPr } from '../lib/clock'
-import { hasSquads, inSquad, restOfList, toggle, topOfList, VARSITY_SIZE } from '../lib/lineup'
+import { hasSquads, inSquad, restOfList, SQUAD_LABEL, SQUADS, toggle, topOfList, VARSITY_SIZE } from '../lib/lineup'
 import { displayNames } from '../lib/names'
-import type { Athlete, Squad } from '../lib/types'
+import type { Athlete } from '../lib/types'
 
 /** How a race reads on a row, and to a screen reader. */
-const SQUAD_WORD: Record<Squad, string> = { varsity: 'Varsity', jv: 'JV' }
+const SQUAD_WORD = SQUAD_LABEL
 
 type Props = {
   /**
@@ -33,8 +33,9 @@ type Props = {
 /**
  * Who is running this race.
  *
- * When the team list says which race each runner is in, the two quick buttons are
- * that: Varsity and JV, as the coach set them for this meet. When it does not,
+ * When the team list says which race each runner is in, the quick buttons are
+ * that: one per race the list names, Varsity and JV or Varsity, 9/10 and 11/12,
+ * as the coach set them for this meet. When it does not,
  * they fall back to the top of the list and the rest of it. Either way the rows
  * do the exceptions, which is what a screen opened at the starting line is for.
  *
@@ -74,6 +75,12 @@ export function Lineup({
   const said = hasSquads(team)
   const first = said ? inSquad(team, 'varsity') : topOfList(team, varsity)
   const rest = said ? inSquad(team, 'jv') : restOfList(team, varsity)
+  /** The grade races, on a list that names them. */
+  const graded = said
+    ? SQUADS.filter((s) => s === 'frso' || s === 'jrsr')
+        .map((s) => ({ s, ids: inSquad(team, s) }))
+        .filter((g) => g.ids.length > 0)
+    : []
   /**
    * Where the rule under the names falls, on a list that only has an order to go
    * by. A list that says which race each runner is in gets no rule and says it on
@@ -123,6 +130,11 @@ export function Lineup({
                 {said ? `JV ${rest.length}` : 'Everyone else'}
               </button>
             )}
+            {graded.map(({ s, ids }) => (
+              <button key={s} type="button" className="chip" onClick={() => set(ids)}>
+                {SQUAD_LABEL[s]} {ids.length}
+              </button>
+            ))}
             <button type="button" className="chip" onClick={() => set(everyone)}>
               Everyone
             </button>
@@ -133,7 +145,7 @@ export function Lineup({
 
           <p className="hint">
             Tap a name to put that runner in this race or take them out.
-            {said && ' Varsity and JV are what the team list came with, so the two buttons above are already this week\'s.'}{' '}
+            {said && ' The race buttons above are what the team list came with, so they are already this week\'s.'}{' '}
             During the race the buttons show a first name and an initial, so tap
             targets stay big enough to hit while watching the course.
           </p>

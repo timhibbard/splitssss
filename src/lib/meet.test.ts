@@ -576,3 +576,26 @@ test('a race not run yet keeps its plan and is told apart from a DNF', () => {
   const [ran] = meetRows(parseMeet(PLANNED))[0].rows
   assert.equal(notRunYet(ran), false)
 })
+
+test('a meet can have its 9/10 and 11/12 races as events of their own', () => {
+  const graded = [
+    '# meet Graded',
+    '# date 2026-10-03',
+    '# team boys',
+    '',
+    '# event Varsity',
+    '# marks 1mi',
+    'Hudson K.\t5:00.00\t15:40.00\t15:31.42',
+    '',
+    '# event 9/10',
+    '# marks 1mi',
+    'Jax K.\t5:20.00\t16:40.00\t16:03.46',
+    '',
+    '# event 11/12',
+    '# marks 1mi',
+    'Parker S.\t5:25.00\t16:50.00\t16:38.12',
+  ].join('\n')
+  const meet = parseMeet(graded)
+  assert.deepEqual(meet.events.map((e) => e.squad), ['varsity', 'frso', 'jrsr'])
+  assert.equal(meetText(meet), graded)
+})

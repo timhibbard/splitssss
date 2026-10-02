@@ -2,10 +2,10 @@ import { useState } from 'react'
 import { formatPr } from '../lib/clock'
 import { rosterLink } from '../lib/link'
 import { byTeam, parseRoster } from '../lib/roster'
-import type { Athlete, Squad, Team } from '../lib/types'
+import { SQUAD_LABEL, SQUADS } from '../lib/lineup'
+import type { Athlete, Team } from '../lib/types'
 
 const TEAM_LABEL: Record<Team, string> = { girls: 'Girls', boys: 'Boys' }
-const SQUAD_LABEL: Record<Squad, string> = { varsity: 'Varsity', jv: 'JV' }
 
 /**
  * Both counts, because a phone holding one team and not the other is the thing
@@ -32,15 +32,13 @@ function tally(athletes: Athlete[]): string {
  * make, and a wrong number is easier to see than a wrong name.
  */
 function split(athletes: Athlete[]): string {
-  const varsity = athletes.filter((a) => a.squad === 'varsity').length
-  const jv = athletes.filter((a) => a.squad === 'jv').length
-  if (varsity === 0 && jv === 0) return `${athletes.length}`
+  const counts = SQUADS.map((s) => [s, athletes.filter((a) => a.squad === s).length] as const)
+  if (counts.every(([, n]) => n === 0)) return `${athletes.length}`
   const parts = [`${athletes.length}`]
-  if (varsity > 0) parts.push(`${varsity} varsity`)
-  if (jv > 0) parts.push(`${jv} JV`)
-  // Anyone the list puts in neither race. Named, because a runner nobody meant to
+  for (const [s, n] of counts) if (n > 0) parts.push(`${n} ${s === 'varsity' ? 'varsity' : SQUAD_LABEL[s]}`)
+  // Anyone the list puts in no race. Named, because a runner nobody meant to
   // leave out should not go missing quietly.
-  const neither = athletes.length - varsity - jv
+  const neither = athletes.filter((a) => a.squad == null).length
   if (neither > 0) parts.push(`${neither} in neither`)
   return parts.join(', ')
 }
@@ -167,8 +165,8 @@ export function Roster({
       <p className="hint">
         These names become the buttons you tap during a race. The list stays on
         this phone for the whole season. A 5K PR after the name is optional: it
-        goes on the button and every split gets compared to it. "Varsity" or "JV"
-        after that puts the runner in that race, so the race opens with the right
+        goes on the button and every split gets compared to it. "Varsity", "JV",
+        "9/10" or "11/12" after that puts the runner in that race, so the race opens with the right
         names already picked. A line reading "# Boys" or "# Girls" puts the runners
         under it on that team, and a race only ever shows one team's names.
       </p>

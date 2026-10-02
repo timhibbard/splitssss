@@ -54,21 +54,43 @@ export function varsitySize(team: Athlete[], which: Team | undefined): number {
   return rule === 'all' ? team.length : rule
 }
 
+/** Every race a runner can be in, in the order they are offered and listed. */
+export const SQUADS: Squad[] = ['varsity', 'jv', 'frso', 'jrsr']
+
+/**
+ * How each race is written: on a roster line, on a chip, in a meet file and on a
+ * results page. One table, so the 9/10 race is "9/10" everywhere.
+ */
+export const SQUAD_LABEL: Record<Squad, string> = { varsity: 'Varsity', jv: 'JV', frso: '9/10', jrsr: '11/12' }
+
 /**
  * Reads a race out of a name: a race name, or the tag at the end of a roster
  * line. The same words in both places, so "JV Girls" the race and a runner
  * marked "JV" cannot disagree about which race they mean.
  *
  * JV is tested first because "Junior Varsity" contains the other word, and a JV
- * runner read as varsity is a runner on the wrong grid.
+ * runner read as varsity is a runner on the wrong grid. The grade races before
+ * varsity too, for a name like "11/12 Varsity Boys".
  *
- * Undefined for anything naming neither, which is what "Eye Opener Open" gets and
+ * Undefined for anything naming none, which is what "Eye Opener Open" gets and
  * what an untagged roster line gets.
  */
 export function sniffSquad(text: string): Squad | undefined {
   if (/\bjv\b|junior\s+varsity/i.test(text)) return 'jv'
+  if (/(?<![\d/])9\s*\/\s*10(?![\d/])|\bfr\s*\/\s*so\b/i.test(text)) return 'frso'
+  if (/(?<![\d/])11\s*\/\s*12(?![\d/])|\bjr\s*\/\s*sr\b/i.test(text)) return 'jrsr'
   if (/varsity/i.test(text)) return 'varsity'
   return undefined
+}
+
+/**
+ * The races a team list puts anybody in, in SQUADS order: what Setup offers for
+ * that team. Varsity and JV for a list that says nothing, which is the pair every
+ * phone had before lists carried a race.
+ */
+export function squadsOf(team: Athlete[]): Squad[] {
+  const said = SQUADS.filter((s) => team.some((a) => a.squad === s))
+  return said.length > 0 ? said : ['varsity', 'jv']
 }
 
 /**
@@ -159,6 +181,8 @@ export function defaultLineup(team: Athlete[], raceName: string, size = VARSITY_
     const named = inSquad(team, squad)
     return named.length > 0 ? named : everyone
   }
+  // A grade race on a list that says nothing about grades has no order to go by.
+  if (squad === 'frso' || squad === 'jrsr') return everyone
   if (squad === 'jv') {
     const rest = restOfList(team, size)
     return rest.length > 0 ? rest : everyone

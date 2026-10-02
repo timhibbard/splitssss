@@ -49,7 +49,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 import { formatPr } from '../src/lib/clock.ts'
-import { varsitySize } from '../src/lib/lineup.ts'
+import { SQUAD_LABEL, SQUADS, varsitySize } from '../src/lib/lineup.ts'
 import { shortNames } from '../src/lib/names.ts'
 import { byTeam, parseRoster, rosterText } from '../src/lib/roster.ts'
 import { scrambleTeam, TEAM_FILE, unscrambleTeam } from '../src/lib/teamfile.ts'
@@ -58,7 +58,7 @@ import type { Squad } from '../src/lib/types.ts'
 const OUT = `public/${TEAM_FILE}`
 
 /** How a race reads in the printout. */
-const SAYS: Record<Squad, string> = { varsity: 'Varsity', jv: 'JV' }
+const SAYS = SQUAD_LABEL
 
 const file = process.argv[2]
 if (!file) {
@@ -135,11 +135,11 @@ for (const group of byTeam(shipped)) {
   )
   if (said) {
     const count = (squad: Squad) => group.athletes.filter((a) => a.squad === squad).length
-    const neither = group.athletes.length - count('varsity') - count('jv')
+    const neither = group.athletes.filter((a) => a.squad == null).length
     console.error(
-      `       ${count('varsity')} varsity, ${count('jv')} JV${
-        neither > 0 ? `, ${neither} in neither race` : ''
-      }`,
+      `       ${SQUADS.filter((s) => count(s) > 0)
+        .map((s) => `${count(s)} ${s === 'varsity' ? 'varsity' : SAYS[s]}`)
+        .join(', ')}${neither > 0 ? `, ${neither} in neither race` : ''}`,
     )
   }
 }

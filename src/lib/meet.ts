@@ -1,6 +1,7 @@
 // Explicit extensions: see the note in link.ts.
 import { parsePr } from './clock.ts'
 import { METERS_PER_MILE, PR_METERS } from './distance.ts'
+import { SQUAD_LABEL, SQUADS } from './lineup.ts'
 import type { Squad, Team } from './types'
 import { minutesOf, parseReading, readingCells, type Weather } from './weather.ts'
 
@@ -595,8 +596,9 @@ export function anchorLabel(event: Event, anchor: Anchor): string {
  * in a public build, and the argument is written out in teamfile.ts.
  */
 
-const SQUAD_WORD: Record<string, Squad> = { varsity: 'varsity', jv: 'jv' }
-const SQUAD_LABEL: Record<Squad, string> = { varsity: 'Varsity', jv: 'JV' }
+const SQUAD_WORD: Record<string, Squad> = Object.fromEntries(
+  SQUADS.map((s) => [SQUAD_LABEL[s].toLowerCase(), s]),
+)
 const TEAM_WORD: Record<string, Team> = { girls: 'girls', boys: 'boys' }
 
 /**
@@ -682,7 +684,7 @@ export function parseMeet(text: string): Meet {
         case 'event': {
           close()
           const squad = SQUAD_WORD[value.toLowerCase()]
-          if (!squad) throw new Error(`line ${n}: "${value}" is not an event. Varsity or JV.`)
+          if (!squad) throw new Error(`line ${n}: "${value}" is not an event. ${SQUADS.map((s) => SQUAD_LABEL[s]).join(', ')}.`)
           if (events.some((e) => e.squad === squad))
             throw new Error(`line ${n}: a second ${SQUAD_LABEL[squad]} event in one file.`)
           open = { squad, distance: PR_METERS, markers: [], runners: [], at: n }
