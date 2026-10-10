@@ -3,6 +3,7 @@ import './App.css'
 import { SESSION_ID, stamp, todayIsoDate } from './lib/clock'
 import { isLegacyHelpHash, rosterFromHash } from './lib/link'
 import { forTeam } from './lib/lineup'
+import { type Best, bestsFilePath, fetchBests } from './lib/bestsfile'
 import type { Meet } from './lib/meet'
 import { fetchMeet } from './lib/meetfile'
 import { HELP_PATH, meetFilePath, type Page, pageAt, type ResultsPage, seasonMeets } from './lib/pages'
@@ -149,6 +150,8 @@ export default function App() {
   const [meetFiles, setMeetFiles] = useState<Record<string, Meet | null>>({})
   /** The results files already asked for, so the same one is not fetched twice. */
   const askedForMeet = useRef(new Set<string>())
+  /** Each season's PRs and season bests, by file, for the coach page. Same rules as the meets. */
+  const [bestsFiles, setBestsFiles] = useState<Record<string, Best[] | null>>({})
   /** Where Back goes from the roster, so it returns you where you came from. */
   const [rosterReturn, setRosterReturn] = useState<Screen>(restored.race ? 'capture' : 'setup')
   /**
@@ -253,6 +256,11 @@ export default function App() {
       askedForMeet.current.add(file)
       void fetchMeet(file).then((meet) => setMeetFiles((prev) => ({ ...prev, [file]: meet })))
     }
+    if (addressed.kind !== 'coach') return
+    const bests = `${BASE}${bestsFilePath(addressed.season)}`
+    if (askedForMeet.current.has(bests)) return
+    askedForMeet.current.add(bests)
+    void fetchBests(bests).then((list) => setBestsFiles((prev) => ({ ...prev, [bests]: list })))
   }, [addressed])
 
   const seasonOf = (page: ResultsPage): SeasonMeet[] =>
@@ -702,7 +710,14 @@ export default function App() {
   }
 
   if (screen === 'coach' && addressed?.kind === 'coach') {
-    return <CoachResults meets={seasonOf(addressed)} page={addressed} onBack={closePage} />
+    return (
+      <CoachResults
+        meets={seasonOf(addressed)}
+        bests={bestsFiles[`${BASE}${bestsFilePath(addressed.season)}`]}
+        page={addressed}
+        onBack={closePage}
+      />
+    )
   }
 
   if (showSetup) {

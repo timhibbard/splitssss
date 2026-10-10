@@ -4,6 +4,7 @@
 # no full name in the clear. See DESIGN.md.
 roster*.csv
 roster*.txt
+bests*.txt
 roster*.json
 /rosters/
 *-splits.csv

@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import type { Best } from '../lib/bestsfile'
 import { formatElapsed, formatIsoDate, formatPr, formatSignedElapsed } from '../lib/clock'
 import { METERS_PER_MILE } from '../lib/distance'
 import { athleteFromHash, athleteHash, athleteLink, labelFor } from '../lib/link'
@@ -46,6 +47,8 @@ import { RaceCharts } from './RaceCharts'
 type Props = {
   /** The season's meets, newest first, each with its file as far as it has loaded. */
   meets: SeasonMeet[]
+  /** The coach's PRs and season bests for this season, `null` for a season with none. */
+  bests?: Best[] | null
   /** Which address this is and the meet it opens on, so the page has a name before the file lands. */
   page: ResultsPage
   onBack: () => void
@@ -241,7 +244,7 @@ const VIEWS: { view: View; says: string }[] = [
   { view: 'plan', says: 'Against plan' },
 ]
 
-export function CoachResults({ meets, page, onBack }: Props) {
+export function CoachResults({ meets, bests, page, onBack }: Props) {
   const [view, setView] = useState<View>('course')
   /** The meet on screen, by slug: the one the address opens on until another is picked. */
   const [chosen, setChosen] = useState(isHandedOut(page) ? (page.meet?.slug ?? '') : '')
@@ -412,7 +415,72 @@ export function CoachResults({ meets, page, onBack }: Props) {
             ))}
         </>
       )}
+
+      {bests && bests.length > 0 && <SeasonBests bests={bests} onRunner={openRunner} labels={seasonLabels(loaded)} />}
     </div>
+  )
+}
+
+/**
+ * Every runner's PR and season best, as the coach keeps them, fastest season
+ * first. The whole team and not one meet's field, so it is the same whichever race
+ * is picked above it. Numbers only.
+ */
+function SeasonBests({
+  bests,
+  labels,
+  onRunner,
+}: {
+  bests: Best[]
+  labels: string[]
+  onRunner: (label: string) => void
+}) {
+  const order = [...bests].sort(
+    (a, b) => (a.sb ?? Infinity) - (b.sb ?? Infinity) || (a.pr ?? Infinity) - (b.pr ?? Infinity),
+  )
+  return (
+    <section className="coach-event season-bests">
+      <h2>PRs and season bests</h2>
+      <div className="table-scroll">
+        <table className="grid">
+          <thead>
+            <tr>
+              <th scope="col" className="who">
+                Runner
+              </th>
+              <th scope="col">PR</th>
+              <th scope="col">Season best</th>
+            </tr>
+          </thead>
+          <tbody>
+            {order.map((b) => (
+              <tr key={b.label}>
+                <th scope="row" className="who">
+                  {/* Her season, when she has raced a published meet; otherwise just the name. */}
+                  {labels.includes(b.label) ? (
+                    <a
+                      className="runner-link"
+                      href={`#${athleteHash(b.label)}`}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        onRunner(b.label)
+                      }}
+                    >
+                      {b.label}
+                    </a>
+                  ) : (
+                    b.label
+                  )}
+                </th>
+                <td>{b.pr == null ? '' : formatPr(b.pr)}</td>
+                <td>{b.sb == null ? '' : formatPr(b.sb)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="hint">The coach&rsquo;s list, as given. Fastest season best first.</p>
+    </section>
   )
 }
 

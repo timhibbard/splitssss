@@ -12,6 +12,7 @@
     "roster-link": "node tools/roster-link.ts",
     "team-file": "node tools/team-file.ts",
     "meet-file": "node tools/meet-file.ts",
+    "bests-file": "node tools/bests-file.ts",
     "weather": "node tools/weather.ts"
   },
   "dependencies": {
