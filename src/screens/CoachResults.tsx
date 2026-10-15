@@ -195,7 +195,7 @@ function mileColumns(event: Event, rows: Row[]): Column[] {
  * the line. The plan pace is the coach's sheet as written and the ran pace is over
  * the true distance, so neither is a number anyone worked out to make them match.
  */
-function planColumns(event: Event, upcoming = false): Column[] {
+function planColumns(event: Event, upcoming = false, bests?: Best[] | null): Column[] {
   const first = event.markers[0]
   const last = event.markers.at(-1)
   if (!first || !last) return []
@@ -213,6 +213,9 @@ function planColumns(event: Event, upcoming = false): Column[] {
     { head: 'Finish', sub: 'plan', cell: (r) => (r.plan?.finish == null ? '' : formatPr(r.plan.finish)) },
     ...(upcoming
       ? [
+          // The coach's own list, beside the plan it was written against. Before the
+          // race only: after it, the finish is what sits next to the plan.
+          ...bestColumns(bests),
           // The one plan number worked out here: the planned finish over the race's
           // distance, asked for so the coach has it before the race.
           {
@@ -225,6 +228,20 @@ function planColumns(event: Event, upcoming = false): Column[] {
           { head: '', sub: 'ran', cell: (r: Row) => (r.observed.finish == null ? '' : formatPr(r.observed.finish)) },
           { head: 'vs plan', cell: (r: Row) => sign(r.plan?.vsPlan), signed: true },
         ]),
+  ]
+}
+
+/**
+ * PR and season best from the coach's list, by label. None when there is no list,
+ * rather than two columns of blanks.
+ */
+function bestColumns(bests?: Best[] | null): Column[] {
+  if (!bests || bests.length === 0) return []
+  const by = new Map(bests.map((b) => [b.label, b]))
+  const cell = (ms?: number) => (ms == null ? '' : formatPr(ms))
+  return [
+    { head: 'PR', cell: (r) => cell(by.get(r.observed.label)?.pr) },
+    { head: 'Season best', cell: (r) => cell(by.get(r.observed.label)?.sb) },
   ]
 }
 
@@ -397,6 +414,7 @@ export function CoachResults({ meets, bests, page, onBack }: Props) {
               {...e}
               view={showingView}
               several={events.length > 1}
+              bests={bests}
               linkFor={linkFor}
               onRunner={openRunner}
             />
@@ -496,7 +514,9 @@ function EventTable({
   several,
   linkFor,
   onRunner,
+  bests,
 }: EventRows & {
+  bests?: Best[] | null
   view: View
   several: boolean
   linkFor: (label: string) => string
@@ -507,7 +527,7 @@ function EventTable({
       ? courseColumns(event, rows)
       : view === 'miles'
         ? mileColumns(event, rows)
-        : planColumns(event, rows.every(notRunYet))
+        : planColumns(event, rows.every(notRunYet), bests)
   return (
     <section className="coach-event">
       {several && (
