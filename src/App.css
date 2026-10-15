@@ -414,6 +414,17 @@
   color: var(--navy);
 }
 
+/* Only shown when the screen could not be kept on. */
+.wake-warning {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 15px;
+  line-height: 1.35;
+  background: #fff4d6;
+  color: var(--navy);
+}
+
 .free-row {
   display: flex;
   gap: 8px;
