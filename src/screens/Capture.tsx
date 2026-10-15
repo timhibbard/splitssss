@@ -26,6 +26,7 @@ import type { Athlete, Race, Stamp, Station, Tap } from '../lib/types'
 import { Lineup } from './Lineup'
 import { movePresets, resolveStation, type StationChoice } from '../lib/stations'
 import { StationPicker } from './StationPicker'
+import { useWakeLock } from '../lib/wakelock'
 
 /**
  * How long the name grid waits before moving a recorded runner to the back.
@@ -152,6 +153,7 @@ export function Capture({
   const pressRecorded = useRef(false)
 
   const stopped = race.stoppedAt != null
+  const wake = useWakeLock(!stopped)
 
   // Tenths display. The interval only triggers a fresh clock read. Elapsed is
   // always recomputed from the gun stamp, never accumulated from ticks, so a
@@ -473,6 +475,16 @@ export function Capture({
           <span>{race.race}</span>
         </button>
       </header>
+
+      {/*
+        Only when the phone could not be kept awake, since that is the one case
+        the volunteer has to do something about.
+      */}
+      {(wake === 'refused' || wake === 'unsupported') && (
+        <p className="wake-warning" role="status">
+          This phone may lock its screen. Keep it awake: a locked phone can lose time.
+        </p>
+      )}
 
       {/*
         The clock on a row of its own, as wide as the screen allows. It is the
