@@ -108,6 +108,7 @@ export const PUBLISHED: Published[] = [
   // Published before it is run, with the lineup only. Republished in place with the
   // results once it has been.
   { slug: 'jim-crawford', year: 2026, team: 'girls', date: '2026-10-08', name: 'Jim Crawford' },
+  { slug: 'starlight', year: 2026, team: 'girls', date: '2026-10-17', name: 'Starlight' },
 ]
 
 /** One team's year of meets, which is the unit both results pages are addressed by. */
