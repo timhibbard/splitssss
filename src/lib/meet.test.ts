@@ -599,3 +599,32 @@ test('a meet can have its 9/10 and 11/12 races as events of their own', () => {
   assert.deepEqual(meet.events.map((e) => e.squad), ['varsity', 'frso', 'jrsr'])
   assert.equal(meetText(meet), graded)
 })
+
+test('no volunteer at the first marker: the middle starts at the first one she was timed at', () => {
+  // JV at Starlight had nobody at 0.5 mi, so the middle is 1 mi to 2.6 mi.
+  const she: Observed = {
+    label: 'Marlowe H.',
+    times: [null, 480_100, 961_700, 1_248_100],
+    finish: 1_447_800,
+    best: 1_605_370,
+    derived: [],
+  }
+  const [row] = rowsOf(meet(event(VARSITY, [she])))
+  assert.equal(row.opening, undefined, 'gun to 1 mi is mile 1, not a first half mile')
+  close(row.middle?.meters, 1.6 * M, 'the 1.6 miles from 1 mi to 2.6 mi')
+  close(row.middle?.time, 1_248_100 - 480_100, '2.6 mi less 1 mi')
+  close(row.middle?.from, M, 'and it says where it starts')
+  close(row.middle?.pace, ((1_248_100 - 480_100) * M) / (1.6 * M), 'paced over its true length')
+})
+
+test('a runner timed at only the last marker gets no middle', () => {
+  const she: Observed = {
+    label: 'Marlowe H.',
+    times: [null, null, null, 1_248_100],
+    finish: 1_447_800,
+    best: 1_605_370,
+    derived: [],
+  }
+  const [row] = rowsOf(meet(event(VARSITY, [she])))
+  assert.equal(row.middle, undefined)
+})

@@ -196,7 +196,7 @@ function Race({ row, weather }: { row: Row; weather?: Weather }) {
   const { observed, event } = row
   const first = event.markers[0]?.meters ?? 0
   const opening = row.opening && repeatsAMile(0, row.opening.meters) ? undefined : row.opening
-  const middle = row.middle && repeatsAMile(first, row.middle.meters) ? undefined : row.middle
+  const middle = row.middle && repeatsAMile(row.middle.from ?? first, row.middle.meters) ? undefined : row.middle
   const { closing, plan } = row
   const calculated = row.miles.filter((m) => !m.timed)
   const planned = observed.plan
@@ -407,7 +407,7 @@ function Race({ row, weather }: { row: Row; weather?: Weather }) {
           <p className="hint">
             Minutes per mile.
             {middle != null &&
-              ` The middle is from your ${event.markers[0].label} mark to your ${event.markers.at(-1)!.label} mark.`}
+              ` The middle is from your ${(event.markers.find((m) => m.meters === middle.from) ?? event.markers[0]).label} mark to your ${event.markers.at(-1)!.label} mark.`}
           </p>
         </section>
       )}
