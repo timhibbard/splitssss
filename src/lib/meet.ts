@@ -323,8 +323,12 @@ export type WholeMile = {
   allowance: number
 }
 
-/** A stretch of the race between two known times, with its true length. */
-export type Segment = { meters: number; time: number; pace: number }
+/**
+ * A stretch of the race between two known times, with its true length. `from` is
+ * where it starts, in meters from the gun, which a middle needs because it starts
+ * at the first marker that runner was timed at, and that is not always the first.
+ */
+export type Segment = { meters: number; time: number; pace: number; from?: number }
 
 export type Row = {
   event: Event
@@ -485,6 +489,12 @@ function row(event: Event, observed: Observed, allowances: Allowance[]): Row {
 /**
  * Gun to the first marker, first marker to the last, and last marker to the line,
  * each over its true distance.
+ *
+ * A runner nobody caught at the first marker still gets a middle, from the first
+ * marker she was caught at. JV with no 0.5 mi volunteer gets 1 mi to 2.6 mi, 1.6
+ * miles and not 2.1, which the coach decided is close enough to sit beside a 2.1
+ * mile plan. Her opening stays empty: gun to 1 mi is mile 1, which is already a
+ * column, and calling it the first 0.5 would be wrong.
  */
 function stretches(
   event: Event,
@@ -494,12 +504,16 @@ function stretches(
   const { markers } = event
   const first = times[0]
   const last = times.at(-1)
+  const start = times.findIndex((t) => t != null)
   const segment = (meters: number, time: number): Segment => ({ meters, time, pace: perMile(time, meters) })
   return {
     opening: markers.length > 0 && first != null ? segment(markers[0].meters, first) : undefined,
     middle:
-      markers.length > 1 && first != null && last != null
-        ? segment(markers.at(-1)!.meters - markers[0].meters, last - first)
+      start >= 0 && start < markers.length - 1 && last != null
+        ? {
+            ...segment(markers.at(-1)!.meters - markers[start].meters, last - times[start]!),
+            from: markers[start].meters,
+          }
         : undefined,
     closing:
       markers.length > 0 && last != null && finish != null
