@@ -1860,3 +1860,29 @@ button.bar-where:disabled {
 .season .is-up {
   color: var(--warn);
 }
+
+/* The meet's MileSplit page and its course map, under the race picker. */
+.meet-links {
+  display: grid;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.meet-links a {
+  color: var(--navy);
+  font-weight: 600;
+}
+
+.meet-links summary {
+  color: var(--navy);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.meet-links img {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+}

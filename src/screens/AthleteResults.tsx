@@ -46,6 +46,7 @@ import {
   seasonMarks,
   seasonRows,
 } from '../lib/season'
+import { MeetLinks } from './MeetLinks'
 
 type Props = {
   /** The season's meets, newest first, each with its file as far as it has loaded. */
@@ -162,6 +163,8 @@ export function AthleteResults({ meets, page, onBack }: Props) {
               </select>
             </label>
           )}
+
+          {race && <MeetLinks published={race.published} />}
 
           {row == null ? (
             <p className="hint">

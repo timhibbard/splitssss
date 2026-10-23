@@ -46,6 +46,14 @@ export type Published = {
    * note about one day's volunteers printed under every meet would be false.
    */
   reconciled?: { title: string; body: string }
+  /** The meet's page on MileSplit: the entries, the schedule, the official results. */
+  milesplit?: string
+  /**
+   * The host's course map, a file under public/, so a volunteer can find the
+   * marks. Shipped with the build rather than linked, because the course is
+   * where the signal is worst.
+   */
+  course?: string
 }
 
 /**
@@ -109,7 +117,15 @@ export const PUBLISHED: Published[] = [
   // results once it has been.
   { slug: 'jim-crawford', year: 2026, team: 'girls', date: '2026-10-08', name: 'Jim Crawford' },
   { slug: 'starlight', year: 2026, team: 'girls', date: '2026-10-17', name: 'Starlight' },
-  { slug: 'regions', year: 2026, team: 'girls', date: '2026-10-24', name: 'Regions' },
+  {
+    slug: 'regions',
+    year: 2026,
+    team: 'girls',
+    date: '2026-10-24',
+    name: 'Regions',
+    milesplit: 'https://sc.milesplit.com/meets/789814-region-1-5a-championship-2026',
+    course: 'courses/2026/regions.jpg',
+  },
 ]
 
 /** One team's year of meets, which is the unit both results pages are addressed by. */

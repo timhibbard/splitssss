@@ -142,8 +142,9 @@ export default defineConfig({
         // `dat` is the team list and the meet results that ship with the build,
         // precached like everything else, so a phone loads its names with no signal
         // at the two mile mark and a runner opening a texted results link on the bus
-        // home does not need a bar of service either.
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest,dat}'],
+        // home does not need a bar of service either. `jpg` is the course maps, for
+        // the same reason.
+        globPatterns: ['**/*.{js,css,html,svg,png,jpg,ico,webmanifest,dat}'],
         // A request for meets/2026/yellow-jacket/ is served by the index.html
         // realPages wrote inside it. This is workbox's default, set out loud because
         // every addressed page depends on it: without it a phone with no signal would

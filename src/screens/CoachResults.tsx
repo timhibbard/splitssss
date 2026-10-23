@@ -42,6 +42,7 @@ import { type Published, type ResultsPage, seasonName } from '../lib/pages'
 import { firstRace, isHandedOut, type SeasonMeet, seasonLabels, seasonRows } from '../lib/season'
 import { cellClass, type Column, head, MILE_2_ALLOWED_MS, pace, sign, softMile, time } from './coachColumns'
 import { CoachRunner } from './CoachRunner'
+import { MeetLinks } from './MeetLinks'
 import { RaceCharts } from './RaceCharts'
 
 type Props = {
@@ -377,6 +378,8 @@ export function CoachResults({ meets, bests, page, onBack }: Props) {
           </select>
         </label>
       )}
+
+      {showing && <MeetLinks published={showing.published} />}
 
       {!showing ? (
         <p className="instructions">No results for this season yet.</p>
