@@ -61,6 +61,13 @@ function crossings(n: number): string {
   return n === 0 ? 'nothing yet' : `${n} crossing${n === 1 ? '' : 's'}`
 }
 
+/** The gap to the plan in words, the same way as the one to the PR. */
+function planSpoken(ms: number): string {
+  if (Math.round(ms / 1000) === 0) return 'on plan'
+  const gap = formatDelta(ms).replace(/^[+-]/, '')
+  return `${gap} ${ms < 0 ? 'ahead of' : 'behind'} plan`
+}
+
 /** The same gap in words, since a screen reader gets "+0:12" as "zero twelve". */
 function prSpoken(ms: number): string {
   if (Math.round(ms / 1000) === 0) return 'Level with the PR'
@@ -250,9 +257,20 @@ export function Capture({
       live = false
     }
   }, [planFile])
-  const planned =
-    planMeet?.meet && planMeet.file === planFile ? plannedHere(planMeet.meet, race) : new Map<string, number>()
-  const planAt = (a: Athlete) => planned.get(a.name)
+  const planMeetHere = planMeet?.meet && planMeet.file === planFile ? planMeet.meet : undefined
+  // Per spot, because a phone that moved has rows from more than one.
+  const plansAt = new Map<string, Map<string, number>>()
+  const plannedAt = (station: Station, a: Athlete) => {
+    if (!planMeetHere) return undefined
+    const key = `${station.meters}`
+    let plans = plansAt.get(key)
+    if (!plans) {
+      plans = plannedHere(planMeetHere, { ...race, station })
+      plansAt.set(key, plans)
+    }
+    return plans.get(a.name)
+  }
+  const planAt = (a: Athlete) => plannedAt(race.station, a)
   const spoken = (a: Athlete) => {
     const plan = planAt(a)
     return (
@@ -683,6 +701,8 @@ export function Capture({
           ) : (
             listed.map((row, i) => {
                 const name = row.athlete ? labelOf(row.athlete) : undefined
+                const plan = row.athlete && plannedAt(row.station, row.athlete)
+                const vsPlan = plan != null && row.elapsed != null ? row.elapsed - plan : undefined
                 const at = row.elapsed == null ? formatWallClock(row.tap.wallMs) : formatElapsed(row.elapsed)
                 // A header over each spot's crossings, once the phone has stood at
                 // more than one. The places under it count from 1 at that spot.
@@ -710,6 +730,7 @@ export function Capture({
                       `${row.athlete ? row.athlete.name : 'not named yet'}. ` +
                       `${row.projected != null ? `On pace for ${formatMinSec(row.projected)}. ` : ''}` +
                       `${row.vsPr != null ? `${prSpoken(row.vsPr)}. ` : ''}` +
+                      `${plan != null ? `Plan ${formatElapsed(plan)}${vsPlan != null ? `, ${planSpoken(vsPlan)}` : ''}. ` : ''}` +
                       `${name ? 'Tap to change the name.' : 'Tap to name it.'}`
                     }
                   >
@@ -729,6 +750,19 @@ export function Capture({
                     <span className={vsPrClass(row.vsPr)}>
                       {row.vsPr == null ? '' : formatDelta(row.vsPr)}
                     </span>
+                    {/*
+                      Today's plan for this spot, as the sheet gave it, on a line
+                      of its own: seven columns do not fit a phone. The gap sits
+                      under the one against the PR and reads the same way.
+                    */}
+                    {plan != null && (
+                      <>
+                        <span className="split-plan">Plan {formatElapsed(plan)}</span>
+                        <span className={`${vsPrClass(vsPlan)} split-vs-plan`}>
+                          {vsPlan == null ? '' : formatDelta(vsPlan)}
+                        </span>
+                      </>
+                    )}
                   </button>,
                 ]
               })
