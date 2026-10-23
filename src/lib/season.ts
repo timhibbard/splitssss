@@ -58,13 +58,12 @@ export function hasResults(meet: Meet | null | undefined): boolean {
 
 /**
  * Which meet to open on: the one a handed-out address was about, if it is in the
- * list, and otherwise the most recent with results. With `ahead`, which is the
- * athlete page, the next meet published ahead of its race with only plans comes
- * first, because the week before a meet that plan is what a runner opens the
- * page for. The coach page keeps the last results. The most recent of any kind
- * when none has results. `null` for an empty list.
+ * list, and otherwise the next meet published ahead of its race with only plans,
+ * because the week before a meet that plan is what both pages are opened for.
+ * The most recent with results when nothing is ahead, and the most recent of any
+ * kind when none has results. `null` for an empty list.
  */
-export function firstRace(page: ResultsPage, races: SeasonMeet[], ahead = false): SeasonMeet | null {
+export function firstRace(page: ResultsPage, races: SeasonMeet[]): SeasonMeet | null {
   if (isHandedOut(page) && page.meet) {
     const named = races.find((r) => sameMeet(r.published, page.meet as Published))
     if (named) return named
@@ -72,7 +71,7 @@ export function firstRace(page: ResultsPage, races: SeasonMeet[], ahead = false)
   const last = races.findIndex((r) => hasResults(r.meet))
   if (last < 0) return races[0] ?? null
   // Newest first, so the next one is the oldest of those ahead of the last results.
-  return (ahead ? races[last - 1] : undefined) ?? races[last]
+  return races[last - 1] ?? races[last]
 }
 
 /**
