@@ -75,7 +75,7 @@ export function AthleteResults({ meets, page, onBack }: Props) {
   // changed, is no name: she gets the picker, as if the link had not named her.
   const name = labelFor(picked, labels)
   const races = name ? racesOf(name, loaded) : []
-  const race = races.find((r) => r.published.slug === chosen) ?? firstRace(page, races)
+  const race = races.find((r) => r.published.slug === chosen) ?? firstRace(page, races, true)
   const row = race?.meet
     ? meetRows(race.meet)
         .flatMap((e) => e.rows)

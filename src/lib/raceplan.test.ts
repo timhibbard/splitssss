@@ -50,8 +50,14 @@ test('a plan is for its own team and its own day', () => {
     { slug: 'starlight', year: 2026, team: 'girls', date: '2026-10-17', name: 'Starlight' },
     { slug: 'regions', year: 2026, team: 'girls', date: '2026-10-24', name: 'Regions' },
   ]
-  assert.equal(publishedFor({ date: '2026-10-24', team: 'girls' }, list)?.slug, 'regions')
-  assert.equal(publishedFor({ date: '2026-10-24', team: 'boys' }, list), undefined)
-  assert.equal(publishedFor({ date: '2026-10-25', team: 'girls' }, list), undefined)
-  assert.equal(publishedFor({ date: '2026-10-24' }, list), undefined)
+  const on = (date: string, meet: string, team?: 'girls' | 'boys') => publishedFor({ date, meet, team }, list)?.slug
+  assert.equal(on('2026-10-24', 'Region 1-5A', 'girls'), 'regions')
+  assert.equal(on('2026-10-24', 'Regions', 'boys'), undefined)
+  assert.equal(on('2026-10-24', 'Regions'), undefined)
+  // The week before, by name, which is how the phones get tried out.
+  assert.equal(on('2026-10-22', ' regions ', 'girls'), 'regions')
+  assert.equal(on('2026-10-22', 'Practice', 'girls'), undefined)
+  // Never a meet already run, whatever the phone calls it.
+  assert.equal(on('2026-10-25', 'Regions', 'girls'), undefined)
+  assert.equal(on('2026-10-22', 'Starlight', 'girls'), undefined)
 })
