@@ -1,6 +1,14 @@
 // Explicit extensions: see the note in link.ts.
 import { type Marker, type Meet, meetRows, notRunYet, type Row } from './meet.ts'
-import { HANDED_OUT, type Published, type ResultsPage, type Season, seasonMeets, seasonPath } from './pages.ts'
+import {
+  HANDED_OUT,
+  type Published,
+  type ResultsPage,
+  type Season,
+  seasonCoachPath,
+  seasonMeets,
+  seasonPath,
+} from './pages.ts'
 
 /**
  * One published meet of a season and its file, which is `undefined` while it is
@@ -51,20 +59,28 @@ export function isHandedOut(page: ResultsPage): boolean {
   return HANDED_OUT.some((alias) => alias.path === page.athlete)
 }
 
+/**
+ * Whether this address is about one meet, and so opens on it: a handed-out
+ * address, or a meet's own coach page. A season's own two pages are not.
+ */
+export function namesMeet(page: ResultsPage): boolean {
+  return page.path !== seasonPath(page.season) && page.path !== seasonCoachPath(page.season)
+}
+
 /** Whether anything in this meet has been timed, as opposed to one published ahead with its plans. */
 export function hasResults(meet: Meet | null | undefined): boolean {
   return meet != null && meetRows(meet).some((e) => e.rows.some((r) => !notRunYet(r)))
 }
 
 /**
- * Which meet to open on: the one a handed-out address was about, if it is in the
+ * Which meet to open on: the one the address is about, if it is in the
  * list, and otherwise the next meet published ahead of its race with only plans,
  * because the week before a meet that plan is what both pages are opened for.
  * The most recent with results when nothing is ahead, and the most recent of any
  * kind when none has results. `null` for an empty list.
  */
 export function firstRace(page: ResultsPage, races: SeasonMeet[]): SeasonMeet | null {
-  if (isHandedOut(page) && page.meet) {
+  if (namesMeet(page) && page.meet) {
     const named = races.find((r) => sameMeet(r.published, page.meet as Published))
     if (named) return named
   }

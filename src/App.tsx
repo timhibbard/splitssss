@@ -6,7 +6,17 @@ import { forTeam } from './lib/lineup'
 import { type Best, bestsFilePath, fetchBests } from './lib/bestsfile'
 import type { Meet } from './lib/meet'
 import { fetchMeet } from './lib/meetfile'
-import { HELP_PATH, meetFilePath, type Page, pageAt, type ResultsPage, seasonMeets } from './lib/pages'
+import {
+  HELP_PATH,
+  meetCoachPath,
+  meetFilePath,
+  PAGES,
+  type Page,
+  pageAt,
+  type Published,
+  type ResultsPage,
+  seasonMeets,
+} from './lib/pages'
 import { type SeasonMeet, seasonFiles } from './lib/season'
 import { mergeLineup } from './lib/roster'
 import { assignAthlete, clearName, currentLeg, legOf, tapsAt } from './lib/splits'
@@ -210,6 +220,19 @@ export default function App() {
     window.history.replaceState(null, '', `${BASE}${window.location.search}`)
     setAddressed(null)
     setScreen('setup')
+  }, [])
+
+  /**
+   * A race picked on the coach page moves the address to that meet's own coach
+   * page, so what is in the address bar is a link to what is on screen. A replace,
+   * not a push: picking races is not somewhere Back should step through, and Back
+   * still leaves the page the way it would have.
+   */
+  const pickCoachMeet = useCallback((published: Published) => {
+    const page = PAGES.find((p) => p.kind === 'coach' && p.path === meetCoachPath(published))
+    if (!page) return
+    window.history.replaceState(null, '', `${BASE}${page.path}${window.location.search}`)
+    setAddressed(page)
   }, [])
 
   /**
@@ -716,6 +739,7 @@ export default function App() {
         bests={bestsFiles[`${BASE}${bestsFilePath(addressed.season)}`]}
         page={addressed}
         onBack={closePage}
+        onPick={pickCoachMeet}
       />
     )
   }

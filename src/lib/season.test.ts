@@ -8,6 +8,7 @@ import {
   isHandedOut,
   latestFinishes,
   markIndex,
+  namesMeet,
   racesOf,
   type SeasonMeet,
   seasonLabels,
@@ -185,4 +186,15 @@ test("the latest meet run is the newest with results, every runner's finish ther
   // Varsity and JV alike.
   assert.deepEqual([...latestFinishes(TIMED.slice(1))!.finishes.keys()], ['Rowan H.', 'Marlowe H.', 'Jordan B.'])
   assert.equal(latestFinishes([ahead]), null)
+})
+
+test("a meet's own coach page opens on it; the season's pages open on what is next", () => {
+  const coachOn = PAGES.find((p) => p.path === 'meets/2026/girls/coach/yellow-jacket/') as ResultsPage
+  const seasonCoach = PAGES.find((p) => p.path === 'meets/2026/girls/coach/') as ResultsPage
+  assert.equal(namesMeet(coachOn), true)
+  assert.equal(namesMeet(handedOut), true)
+  assert.equal(namesMeet(seasonPage), false)
+  assert.equal(namesMeet(seasonCoach), false)
+  const races: SeasonMeet[] = [{ published: coachOn.meet!, meet: SEASON[1].meet }, ...SEASON]
+  assert.equal(firstRace(coachOn, races)?.published.slug, 'yellow-jacket')
 })
