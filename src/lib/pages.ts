@@ -109,6 +109,7 @@ export const PUBLISHED: Published[] = [
   // results once it has been.
   { slug: 'jim-crawford', year: 2026, team: 'girls', date: '2026-10-08', name: 'Jim Crawford' },
   { slug: 'starlight', year: 2026, team: 'girls', date: '2026-10-17', name: 'Starlight' },
+  { slug: 'regions', year: 2026, team: 'girls', date: '2026-10-24', name: 'Regions' },
 ]
 
 /** One team's year of meets, which is the unit both results pages are addressed by. */
