@@ -710,6 +710,21 @@
   color: var(--ink-soft);
 }
 
+/* The second line of a row with a plan: the plan under the runner, spanning the
+   projection's column, and the gap to it under the gap to the PR. */
+.split-plan {
+  grid-column: 3 / 5;
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.split-vs-plan {
+  grid-column: 5;
+  font-size: 13px;
+}
+
 /* Where the next name tap will land. Marked on the row itself, so the answer to
    "who am I naming" is in the list rather than only in the line above it. */
 .split-row.target {
