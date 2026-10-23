@@ -512,6 +512,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Today's plan at this marker, under the PR and lighter, so the two numbers read
+   as two different things. */
+.chip-plan {
+  margin-top: 0;
+  font-weight: 600;
+}
+
 .name-chip:active {
   background: var(--navy);
   color: #fff;

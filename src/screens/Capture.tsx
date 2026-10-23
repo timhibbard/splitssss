@@ -27,6 +27,10 @@ import { Lineup } from './Lineup'
 import { movePresets, resolveStation, type StationChoice } from '../lib/stations'
 import { StationPicker } from './StationPicker'
 import { useWakeLock } from '../lib/wakelock'
+import type { Meet } from '../lib/meet'
+import { fetchMeet } from '../lib/meetfile'
+import { meetFilePath } from '../lib/pages'
+import { plannedHere, publishedFor } from '../lib/raceplan'
 
 /**
  * How long the name grid waits before moving a recorded runner to the back.
@@ -225,6 +229,55 @@ export function Capture({
    * belongs in the list, where the split already is.
    */
   const prOf = (a: Athlete) => (a.pr == null ? '' : formatPrShort(a.pr))
+
+  /**
+   * Today's plan for this marker, under the PR, so the volunteer can call out how
+   * a runner stands against it. Read from the meet the site published for this
+   * team and day, which the phone already has offline, and shown as the coach's
+   * sheet gave it. No plan published, no line: a button never shows a plan from
+   * another day or another marker.
+   */
+  const published = publishedFor(race)
+  const planFile = published && `${import.meta.env.BASE_URL}${meetFilePath(published)}`
+  const [planMeet, setPlanMeet] = useState<{ file: string; meet: Meet | null }>()
+  useEffect(() => {
+    if (!planFile) return
+    let live = true
+    void fetchMeet(planFile).then((meet) => {
+      if (live) setPlanMeet({ file: planFile, meet })
+    })
+    return () => {
+      live = false
+    }
+  }, [planFile])
+  const planned =
+    planMeet?.meet && planMeet.file === planFile ? plannedHere(planMeet.meet, race) : new Map<string, number>()
+  const planAt = (a: Athlete) => planned.get(a.name)
+  const spoken = (a: Athlete) => {
+    const plan = planAt(a)
+    return (
+      a.name +
+      (a.pr == null ? '' : `, PR ${formatPr(a.pr)}`) +
+      (plan == null ? '' : `, plan ${formatElapsed(plan)}`)
+    )
+  }
+  const chipNumbers = (a: Athlete) => {
+    const plan = planAt(a)
+    return (
+      <>
+        {a.pr != null && (
+          <span className="chip-pr" aria-hidden="true">
+            {prOf(a)}
+          </span>
+        )}
+        {plan != null && (
+          <span className="chip-pr chip-plan" aria-hidden="true">
+            Plan {formatElapsed(plan)}
+          </span>
+        )}
+      </>
+    )
+  }
 
   /**
    * The wait before the grid rearranges, restarted by any crossing at all rather
@@ -588,17 +641,10 @@ export function Capture({
                 // Struck through once this runner has a crossing here, and not
                 // tappable, because a runner passes one point once.
                 disabled={done || stopped}
-                aria-label={
-                  `${a.name}${a.pr == null ? '' : `, PR ${formatPr(a.pr)}`}` +
-                  `${done ? ', already recorded' : ''}`
-                }
+                aria-label={spoken(a) + (done ? ', already recorded' : '')}
               >
                 <span className="chip-name">{labelOf(a)}</span>
-                {a.pr != null && (
-                  <span className="chip-pr" aria-hidden="true">
-                    {prOf(a)}
-                  </span>
-                )}
+                {chipNumbers(a)}
               </button>
             )
           })}
@@ -767,14 +813,10 @@ export function Capture({
                     type="button"
                     className="name-chip"
                     onClick={() => pick(a.id)}
-                    aria-label={a.name + (a.pr == null ? '' : `, PR ${formatPr(a.pr)}`)}
+                    aria-label={spoken(a)}
                   >
                     <span className="chip-name">{labelOf(a)}</span>
-                    {a.pr != null && (
-                      <span className="chip-pr" aria-hidden="true">
-                        {prOf(a)}
-                      </span>
-                    )}
+                    {chipNumbers(a)}
                   </button>
                 ))}
               </div>
