@@ -75,6 +75,21 @@ export function firstRace(page: ResultsPage, races: SeasonMeet[]): SeasonMeet | 
 }
 
 /**
+ * The season's newest meet with results, and each runner's finish there by label,
+ * whichever race she ran in it. `null` before anything has been run.
+ */
+export function latestFinishes(meets: SeasonMeet[]): { published: Published; finishes: Map<string, number> } | null {
+  // Newest first, so the first with results is the latest.
+  const latest = meets.find((m) => hasResults(m.meet))
+  if (!latest) return null
+  const finishes = new Map<string, number>()
+  for (const e of meetRows(latest.meet!)) {
+    for (const r of e.rows) if (r.observed.finish != null) finishes.set(r.observed.label, r.observed.finish)
+  }
+  return { published: latest.published, finishes }
+}
+
+/**
  * The address the coach page texts, for the meet it is showing. The handed-out
  * address when that is the meet it was about, so a link sent from there keeps
  * meaning that race; the season otherwise, which opens each runner on her most

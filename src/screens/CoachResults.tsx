@@ -39,7 +39,7 @@ import {
   type Row,
 } from '../lib/meet'
 import { type Published, type ResultsPage, seasonName } from '../lib/pages'
-import { firstRace, isHandedOut, type SeasonMeet, seasonLabels, seasonRows } from '../lib/season'
+import { firstRace, isHandedOut, latestFinishes, type SeasonMeet, seasonLabels, seasonRows } from '../lib/season'
 import { cellClass, type Column, head, MILE_2_ALLOWED_MS, pace, sign, softMile, time } from './coachColumns'
 import { CoachRunner } from './CoachRunner'
 import { MeetLinks } from './MeetLinks'
@@ -437,23 +437,35 @@ export function CoachResults({ meets, bests, page, onBack }: Props) {
         </>
       )}
 
-      {bests && bests.length > 0 && <SeasonBests bests={bests} onRunner={openRunner} labels={seasonLabels(loaded)} />}
+      {bests && bests.length > 0 && (
+        <SeasonBests
+          bests={bests}
+          onRunner={openRunner}
+          labels={seasonLabels(loaded)}
+          latest={latestFinishes(loaded)}
+        />
+      )}
     </div>
   )
 }
 
+const formatFinish = (ms?: number) => (ms == null ? '' : formatPr(ms))
+
 /**
  * Every runner's PR and season best, as the coach keeps them, fastest season
  * first. The whole team and not one meet's field, so it is the same whichever race
- * is picked above it. Numbers only.
+ * is picked above it. Numbers only. Then each runner's finish at the latest meet
+ * run, as published, under that meet's name.
  */
 function SeasonBests({
   bests,
   labels,
+  latest,
   onRunner,
 }: {
   bests: Best[]
   labels: string[]
+  latest: ReturnType<typeof latestFinishes>
   onRunner: (label: string) => void
 }) {
   const order = [...bests].sort(
@@ -471,6 +483,7 @@ function SeasonBests({
               </th>
               <th scope="col">PR</th>
               <th scope="col">Season best</th>
+              {latest && <th scope="col">{latest.published.name}</th>}
             </tr>
           </thead>
           <tbody>
@@ -495,12 +508,16 @@ function SeasonBests({
                 </th>
                 <td>{b.pr == null ? '' : formatPr(b.pr)}</td>
                 <td>{b.sb == null ? '' : formatPr(b.sb)}</td>
+                {latest && <td>{formatFinish(latest.finishes.get(b.label))}</td>}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <p className="hint">The coach&rsquo;s list, as given. Fastest season best first.</p>
+      <p className="hint">
+        PR and season best are the coach&rsquo;s list, as given.
+        {latest && ` ${latest.published.name} is each finish there, as published.`} Fastest season best first.
+      </p>
     </section>
   )
 }
