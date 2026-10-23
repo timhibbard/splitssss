@@ -148,7 +148,7 @@ test('a runner who raced nowhere has no season', () => {
   assert.deepEqual(seasonRows('Nobody Z.', TIMED), [])
 })
 
-test('a meet published ahead with only plans opens the athlete page, not the coach page', () => {
+test('a meet published ahead with only plans is what opens', () => {
   const ahead: Meet = {
     ...meet('Upcoming', ['Rowan H.']),
     events: [
@@ -164,12 +164,11 @@ test('a meet published ahead with only plans opens the athlete page, not the coa
   assert.equal(hasResults(ahead), false)
   assert.equal(hasResults(SEASON[0].meet), true)
   assert.deepEqual(racesOf('Rowan H.', withAhead).map((r) => r.published.slug), ['upcoming', 'rockingham', 'yellow-jacket'])
-  assert.equal(firstRace(seasonPage, racesOf('Rowan H.', withAhead))?.published.slug, 'rockingham')
-  // The athlete page opens on it, and on the last results for anyone not in it.
-  assert.equal(firstRace(seasonPage, racesOf('Rowan H.', withAhead), true)?.published.slug, 'upcoming')
-  assert.equal(firstRace(seasonPage, racesOf('Marlowe H.', withAhead), true)?.published.slug, 'yellow-jacket')
+  // It opens, and the last results do for anyone not in it.
+  assert.equal(firstRace(seasonPage, racesOf('Rowan H.', withAhead))?.published.slug, 'upcoming')
+  assert.equal(firstRace(seasonPage, racesOf('Marlowe H.', withAhead))?.published.slug, 'yellow-jacket')
   const twoAhead = [{ ...withAhead[0], published: published('later', '2026-10-10') }, ...withAhead]
-  assert.equal(firstRace(seasonPage, racesOf('Rowan H.', twoAhead), true)?.published.slug, 'upcoming')
+  assert.equal(firstRace(seasonPage, racesOf('Rowan H.', twoAhead))?.published.slug, 'upcoming')
   // Nothing with results at all, and the newest is still what opens.
   assert.equal(firstRace(seasonPage, withAhead.slice(0, 1))?.published.slug, 'upcoming')
   // And it is not a race in the season's comparisons.
