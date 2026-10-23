@@ -39,7 +39,7 @@ import {
   type Row,
 } from '../lib/meet'
 import { type Published, type ResultsPage, seasonName } from '../lib/pages'
-import { firstRace, isHandedOut, latestFinishes, type SeasonMeet, seasonLabels, seasonRows } from '../lib/season'
+import { firstRace, latestFinishes, namesMeet, type SeasonMeet, seasonLabels, seasonRows } from '../lib/season'
 import { cellClass, type Column, head, MILE_2_ALLOWED_MS, pace, sign, softMile, time } from './coachColumns'
 import { CoachRunner } from './CoachRunner'
 import { MeetLinks } from './MeetLinks'
@@ -53,6 +53,8 @@ type Props = {
   /** Which address this is and the meet it opens on, so the page has a name before the file lands. */
   page: ResultsPage
   onBack: () => void
+  /** A meet picked from the race menu, so the address can follow it. */
+  onPick: (published: Published) => void
 }
 
 /** How many whole miles an event's rows have, which is how many mile columns it gets. */
@@ -262,10 +264,10 @@ const VIEWS: { view: View; says: string }[] = [
   { view: 'plan', says: 'Against plan' },
 ]
 
-export function CoachResults({ meets, bests, page, onBack }: Props) {
+export function CoachResults({ meets, bests, page, onBack, onPick }: Props) {
   const [view, setView] = useState<View>('course')
   /** The meet on screen, by slug: the one the address opens on until another is picked. */
-  const [chosen, setChosen] = useState(isHandedOut(page) ? (page.meet?.slug ?? '') : '')
+  const [chosen, setChosen] = useState(namesMeet(page) ? (page.meet?.slug ?? '') : '')
   const showing = meets.find((m) => m.published.slug === chosen) ?? firstRace(page, meets) ?? undefined
   const meet = showing?.meet
 
@@ -368,7 +370,11 @@ export function CoachResults({ meets, bests, page, onBack }: Props) {
           <span>Race</span>
           <select
             value={showing.published.slug}
-            onChange={(e) => setChosen(e.target.value)}
+            onChange={(e) => {
+              setChosen(e.target.value)
+              const picked = meets.find((m) => m.published.slug === e.target.value)
+              if (picked) onPick(picked.published)
+            }}
           >
             {meets.map(({ published }) => (
               <option key={published.slug} value={published.slug}>

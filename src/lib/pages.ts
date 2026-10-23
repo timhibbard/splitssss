@@ -169,6 +169,16 @@ export function seasonCoachPath(season: Season): string {
 }
 
 /**
+ * One meet's coach table, under the season's: `meets/2026/girls/coach/starlight/`.
+ * Every published meet has one, so a link can name the race it is about, and the
+ * race picker keeps the address in step with what is on screen. Permanent like
+ * every other address here.
+ */
+export function meetCoachPath(meet: Published): string {
+  return `${seasonCoachPath({ year: meet.year, team: meet.team })}${meet.slug}/`
+}
+
+/**
  * Where a meet's scrambled results sit, relative to the base. Under the team,
  * because the girls' and boys' files from one invitational share a slug.
  *
@@ -241,6 +251,9 @@ export const PAGES: Page[] = [
     return [
       { kind: 'results', path: athlete, season, meet, athlete },
       { kind: 'coach', path: seasonCoachPath(season), season, meet, athlete },
+      ...seasonMeets(season).map(
+        (m): Page => ({ kind: 'coach', path: meetCoachPath(m), season, meet: m, athlete }),
+      ),
     ]
   }),
   ...handedOutPages(),

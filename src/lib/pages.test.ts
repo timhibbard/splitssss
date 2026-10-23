@@ -3,6 +3,7 @@ import { test } from 'node:test'
 import {
   HANDED_OUT,
   HELP_PATH,
+  meetCoachPath,
   meetFilePath,
   PAGES,
   pageAt,
@@ -179,7 +180,20 @@ test('both teams have a season page in every year with a meet, and no other year
       `${meet.slug} is in a season`,
     )
   }
-  assert.equal(PAGES.length, 1 + SEASONS.length * 2 + HANDED_OUT.length * 2)
+  assert.equal(PAGES.length, 1 + SEASONS.length * 2 + PUBLISHED.length + HANDED_OUT.length * 2)
+})
+
+test('every published meet has a coach page of its own, under its season, that opens on it', () => {
+  for (const meet of PUBLISHED) {
+    const path = meetCoachPath(meet)
+    assert.equal(path, `meets/${meet.year}/${meet.team}/coach/${meet.slug}/`)
+    for (const asked of [`${BASE}${path}`, `${BASE}${path.slice(0, -1)}`]) {
+      const page = pageAt(asked, BASE)
+      assert.equal(page?.kind, 'coach', asked)
+      assert.equal(page?.kind === 'coach' && page.meet?.slug, meet.slug, asked)
+      assert.equal(page?.kind === 'coach' && page.athlete, `meets/${meet.year}/${meet.team}/`, asked)
+    }
+  }
 })
 
 test('every page path is unique', () => {
