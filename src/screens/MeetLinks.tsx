@@ -16,7 +16,7 @@ export function MeetLinks({ published }: { published: Published }) {
         </a>
       )}
       {map && (
-        <details>
+        <details open>
           <summary>Course map</summary>
           {/* Tap for the full size, to pinch in on the marks. */}
           <a href={map} target="_blank" rel="noopener">
