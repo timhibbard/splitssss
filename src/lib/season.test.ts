@@ -6,6 +6,7 @@ import {
   firstRace,
   hasResults,
   isHandedOut,
+  latestFinishes,
   markIndex,
   racesOf,
   type SeasonMeet,
@@ -173,4 +174,15 @@ test('a meet published ahead with only plans is what opens', () => {
   assert.equal(firstRace(seasonPage, withAhead.slice(0, 1))?.published.slug, 'upcoming')
   // And it is not a race in the season's comparisons.
   assert.deepEqual(seasonRows('Rowan H.', withAhead).map((r) => r.published.slug), ['rockingham', 'yellow-jacket'])
+})
+
+test("the latest meet run is the newest with results, every runner's finish there", () => {
+  const ahead: SeasonMeet = { published: published('upcoming', '2026-10-03'), meet: meet('Upcoming', ['Rowan H.']) }
+  ahead.meet!.events[0].runners[0].finish = undefined
+  const latest = latestFinishes([ahead, ...TIMED])
+  assert.equal(latest?.published.slug, 'rockingham')
+  assert.deepEqual([...latest!.finishes], [['Rowan H.', 1_200_000]])
+  // Varsity and JV alike.
+  assert.deepEqual([...latestFinishes(TIMED.slice(1))!.finishes.keys()], ['Rowan H.', 'Marlowe H.', 'Jordan B.'])
+  assert.equal(latestFinishes([ahead]), null)
 })
