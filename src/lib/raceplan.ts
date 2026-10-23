@@ -12,14 +12,24 @@ import type { Race } from './types.ts'
 const SAME_PLACE_METERS = 10
 
 /**
- * The published meet a race on this phone is part of: the same team on the same
- * day. Nothing for a race with no team, which is a race from before the phone
- * knew, and nothing on a day with no plan published, so last Saturday's plan can
- * never turn up on this Saturday's buttons.
+ * The published meet a race on this phone is part of, for the same team: the
+ * one run that day, or else the one with the name the phone was set up with, so
+ * long as it has not been run yet. The name is what lets a coach try the phones
+ * out the week before. Nothing for a race with no team, which is a race from
+ * before the phone knew, and nothing for a meet already run, so last Saturday's
+ * plan can never turn up on this Saturday's buttons.
  */
-export function publishedFor(race: Pick<Race, 'date' | 'team'>, list: Published[] = PUBLISHED): Published | undefined {
+export function publishedFor(
+  race: Pick<Race, 'date' | 'team' | 'meet'>,
+  list: Published[] = PUBLISHED,
+): Published | undefined {
   if (!race.team) return undefined
-  return list.find((m) => m.date === race.date && m.team === race.team)
+  const ours = list.filter((m) => m.team === race.team)
+  const name = race.meet.trim().toLowerCase()
+  return (
+    ours.find((m) => m.date === race.date) ??
+    ours.find((m) => m.date > race.date && m.name.toLowerCase() === name)
+  )
 }
 
 /**
