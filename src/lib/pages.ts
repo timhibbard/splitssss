@@ -126,6 +126,14 @@ export const PUBLISHED: Published[] = [
     milesplit: 'https://sc.milesplit.com/meets/789814-region-1-5a-championship-2026',
     course: 'courses/2026/regions.jpg',
   },
+  {
+    slug: 'county',
+    year: 2026,
+    team: 'girls',
+    date: '2026-10-31',
+    name: 'County',
+    milesplit: 'https://sc.milesplit.com/meets/770129-ed-boehmke-greenville-county-cross-country-championships-2026',
+  },
 ]
 
 /** One team's year of meets, which is the unit both results pages are addressed by. */
