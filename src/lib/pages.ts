@@ -133,6 +133,7 @@ export const PUBLISHED: Published[] = [
     date: '2026-10-31',
     name: 'County',
     milesplit: 'https://sc.milesplit.com/meets/770129-ed-boehmke-greenville-county-cross-country-championships-2026',
+    course: 'courses/2026/county.jpg',
   },
 ]
 
