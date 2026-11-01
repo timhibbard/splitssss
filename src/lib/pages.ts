@@ -132,6 +132,15 @@ export const PUBLISHED: Published[] = [
     team: 'girls',
     date: '2026-10-31',
     name: 'County',
+    reconciled: {
+      title: 'Five phones were put on the start line’s gun, and two marks were rebuilt.',
+      body:
+        'Every split is on the 1 mi phone’s gun, taken at the start line; the others were within ' +
+        '1.0 s and were rebased from their clock times. 1 mi and 2 mi are the mean of two phones. ' +
+        'The varsity 0.5 mi order is from video. At varsity 2.6 mi the phone recorded each tap one ' +
+        'row of buttons below the one pressed; the four times there were decoded from the button ' +
+        'grid, and five runners have none. The JV 0.5 mi names were matched to the 1 mi order.',
+    },
     milesplit: 'https://sc.milesplit.com/meets/770129-ed-boehmke-greenville-county-cross-country-championships-2026',
     course: 'courses/2026/county.jpg',
   },
