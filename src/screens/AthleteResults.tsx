@@ -33,6 +33,7 @@ import {
   type Row,
 } from '../lib/meet'
 import { type ResultsPage, seasonName } from '../lib/pages'
+import type { Best } from '../lib/bestsfile'
 import { degrees, feelsLike, readingAt, type Weather } from '../lib/weather'
 import {
   firstRace,
@@ -47,6 +48,7 @@ import {
   seasonRows,
 } from '../lib/season'
 import { MeetLinks } from './MeetLinks'
+import { PlanCard } from './PlanCard'
 
 type Props = {
   /** The season's meets, newest first, each with its file as far as it has loaded. */
@@ -57,17 +59,21 @@ type Props = {
    * where she is rather than the word "Results" while the fetch is in flight.
    */
   page: ResultsPage
+  /** The coach's PRs and season bests, for her race plan card. Absent until loaded. */
+  bests?: Best[] | null
   onBack: () => void
 }
 
 const COUNT = ['no', 'one', 'two', 'three', 'four', 'five', 'six']
 
-export function AthleteResults({ meets, page, onBack }: Props) {
+export function AthleteResults({ meets, page, bests, onBack }: Props) {
   // Her own link names her and the race, so she lands on it without picking.
   const [opened] = useState(() => athleteFromHash(window.location.hash))
   const [picked, setPicked] = useState(opened.name ?? '')
   /** The race on screen, by slug, once she has picked one other than her first. */
   const [chosen, setChosen] = useState(opened.meet ?? '')
+  /** Her race plan card instead of the page, from a card link or the link under her plan. */
+  const [card, setCard] = useState(opened.card === true)
 
   const loading = meets.some((m) => m.meet === undefined)
   const loaded = meets.filter((m) => m.meet)
@@ -93,15 +99,27 @@ export function AthleteResults({ meets, page, onBack }: Props) {
   const run = loaded.filter((m) => hasResults(m.meet))
   useEffect(() => {
     if (loading) return
-    const hash = name ? `#${athleteHash(name, slug)}` : ''
+    const hash = name ? `#${athleteHash(name, slug, card && upcoming)}` : ''
     if (window.location.hash === hash) return
     window.history.replaceState(null, '', window.location.pathname + window.location.search + hash)
-  }, [loading, name, slug])
+  }, [loading, name, slug, card, upcoming])
 
   // Before a name is picked, a texted meet address is about its meet and a season
   // is about the season.
   const title =
     race?.published.name ?? (isHandedOut(page) && page.meet ? page.meet.name : seasonName(page))
+
+  // A card is a plan, so only before the race; after it the link opens her race.
+  if (card && upcoming && row && race) {
+    return (
+      <PlanCard
+        row={row}
+        published={race.published}
+        best={bests?.find((b) => b.label === name)}
+        onClose={() => setCard(false)}
+      />
+    )
+  }
 
   return (
     <div className="screen results">
@@ -175,7 +193,7 @@ export function AthleteResults({ meets, page, onBack }: Props) {
           ) : (
             <>
               {upcoming ? (
-                <Plan row={row} date={race!.published.date} />
+                <Plan row={row} date={race!.published.date} onCard={() => setCard(true)} />
               ) : (
                 <Race row={row} weather={race?.meet?.weather} />
               )}
@@ -468,7 +486,7 @@ function Race({ row, weather }: { row: Row; weather?: Weather }) {
  * mark and at the finish. The planned finish only here, before the race: once
  * there is a finish of her own, it is the only plan number she would read.
  */
-function Plan({ row, date }: { row: Row; date: string }) {
+function Plan({ row, date, onCard }: { row: Row; date: string; onCard: () => void }) {
   const { event, plan, observed } = row
   const first = event.markers[0]
   const last = event.markers.at(-1)
@@ -536,7 +554,13 @@ function Plan({ row, date }: { row: Row; date: string }) {
           <p className="hint">Every one of these is time since the gun.</p>
         </section>
       )}
-      {stretches.length === 0 && marks.length === 0 && plan?.finish == null && <p className="hint">No plan for this race yet.</p>}
+      {stretches.length === 0 && marks.length === 0 && plan?.finish == null ? (
+        <p className="hint">No plan for this race yet.</p>
+      ) : (
+        <button type="button" className="link plan-card-link" onClick={onCard}>
+          Race plan card
+        </button>
+      )}
     </>
   )
 }

@@ -279,7 +279,7 @@ export default function App() {
       askedForMeet.current.add(file)
       void fetchMeet(file).then((meet) => setMeetFiles((prev) => ({ ...prev, [file]: meet })))
     }
-    if (addressed.kind !== 'coach') return
+    // Both pages: the coach's table, and the athlete's race plan card.
     const bests = `${BASE}${bestsFilePath(addressed.season)}`
     if (askedForMeet.current.has(bests)) return
     askedForMeet.current.add(bests)
@@ -729,7 +729,14 @@ export default function App() {
    * offer somebody standing at Mile 2 with a phone.
    */
   if (screen === 'results' && addressed?.kind === 'results') {
-    return <AthleteResults meets={seasonOf(addressed)} page={addressed} onBack={closePage} />
+    return (
+      <AthleteResults
+        meets={seasonOf(addressed)}
+        page={addressed}
+        bests={bestsFiles[`${BASE}${bestsFilePath(addressed.season)}`]}
+        onBack={closePage}
+      />
+    )
   }
 
   if (screen === 'coach' && addressed?.kind === 'coach') {

@@ -99,14 +99,17 @@ export function resultsLink(
  */
 const NAME = 'name='
 const MEET = 'meet='
+/** Her race plan card for that meet, the printable one, rather than the page. */
+const CARD = 'card'
 
-export function athleteHash(label: string, slug?: string): string {
+export function athleteHash(label: string, slug?: string, card = false): string {
   const parts = [`${NAME}${encodeURIComponent(label.replaceAll('.', '')).replaceAll('%20', '+')}`]
   if (slug) parts.push(`${MEET}${encodeURIComponent(slug)}`)
+  if (slug && card) parts.push(CARD)
   return parts.join('&')
 }
 
-export function athleteFromHash(hash: string): { name?: string; meet?: string } {
+export function athleteFromHash(hash: string): { name?: string; meet?: string; card?: true } {
   const raw = hash.startsWith('#') ? hash.slice(1) : hash
   const read = (key: string) => {
     const part = raw.split('&').find((p) => p.startsWith(key))
@@ -117,7 +120,8 @@ export function athleteFromHash(hash: string): { name?: string; meet?: string } 
       return undefined
     }
   }
-  return { name: read(NAME), meet: read(MEET) }
+  const meet = read(MEET)
+  return { name: read(NAME), meet, ...(meet && raw.split('&').includes(CARD) ? { card: true as const } : {}) }
 }
 
 /**

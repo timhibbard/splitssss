@@ -144,6 +144,14 @@ export const PUBLISHED: Published[] = [
     milesplit: 'https://sc.milesplit.com/meets/770129-ed-boehmke-greenville-county-cross-country-championships-2026',
     course: 'courses/2026/county.jpg',
   },
+  {
+    slug: 'state-quals',
+    year: 2026,
+    team: 'girls',
+    date: '2026-11-06',
+    name: 'State Quals',
+    milesplit: 'https://sc.milesplit.com/meets/773625-schsl-5a-state-qualifier-2026',
+  },
 ]
 
 /** One team's year of meets, which is the unit both results pages are addressed by. */
