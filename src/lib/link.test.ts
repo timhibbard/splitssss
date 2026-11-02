@@ -232,3 +232,11 @@ test('the first links, with a %20 and a period, still open on her name', () => {
   assert.equal(labelFor('Zoe+W'.replace('+', ' '), ['Zoe W.']), 'Zoe W.')
   assert.equal(labelFor('Nobody X', ['Zoe W.']), '')
 })
+
+test('a card link opens her race plan card, and only for a named meet', () => {
+  const hash = `#${athleteHash('Rowan H.', 'state-quals', true)}`
+  assert.equal(hash, '#name=Rowan+H&meet=state-quals&card')
+  assert.deepEqual(athleteFromHash(hash), { name: 'Rowan H', meet: 'state-quals', card: true })
+  assert.equal(athleteHash('Rowan H.', undefined, true), 'name=Rowan+H')
+  assert.deepEqual(athleteFromHash('#name=Rowan+H&card'), { name: 'Rowan H', meet: undefined })
+})

@@ -97,7 +97,7 @@ export function Setup({
    * volunteer at every marker. It is the first field on the screen and it stays
    * editable, which is what the next meet needs.
    */
-  const [meet, setMeet] = useState('County')
+  const [meet, setMeet] = useState('State Quals')
   /**
    * Earlier meets, folded away. Reaching last Saturday's race is a real need and
    * a rare one, and by November the list is long enough to bury the race being
@@ -123,14 +123,13 @@ export function Setup({
 
   /**
    * The race this week's meet is run for, which with the girls default below is
-   * the pair every phone opens on. County is four races, varsity and JV for both
-   * teams, and JV is kept from Starlight so the phones open where they did.
+   * the pair every phone opens on. State Quals is varsity only, for both teams.
    *
    * A fixed default and not the last thing timed, so twelve phones handed out at a
    * meet all say the same thing and the briefing is the same for all of them. One
    * tap changes it.
    */
-  const [raceKind, setRaceKind] = useState<Kind>('jv')
+  const [raceKind, setRaceKind] = useState<Kind>('varsity')
   const [raceOther, setRaceOther] = useState('')
   /**
    * Which team, once somebody has said. Null follows the race name, which is

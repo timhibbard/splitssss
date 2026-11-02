@@ -1886,3 +1886,164 @@ button.bar-where:disabled {
   border-radius: 12px;
   border: 1px solid var(--line);
 }
+
+/* ---------- race plan card ---------- */
+
+/* Her plan the way the coach prints it, four to a letter sheet: a card of its own
+   on the screen, and on paper the card and nothing else. */
+.plan-card-screen {
+  overflow-y: auto;
+}
+
+.plan-card {
+  width: 100%;
+  max-width: 4.25in;
+  margin: 0 auto;
+  padding: 18px 20px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.plan-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 10px;
+  border-bottom: 3px solid var(--navy);
+  padding-bottom: 4px;
+}
+
+.plan-card h2 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.05;
+  color: var(--navy);
+}
+
+.plan-card-goal {
+  text-align: right;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.plan-card-goal span,
+.plan-card h3,
+.plan-card-stretch thead th {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+
+.plan-card-goal span {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.plan-card-meet,
+.plan-card-bests {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.plan-card-bests b {
+  color: var(--ink);
+}
+
+.plan-card h3 {
+  margin: 16px 0 4px;
+}
+
+.plan-card table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.plan-card th[scope='row'] {
+  text-align: left;
+  font-weight: 600;
+}
+
+.plan-card tbody td,
+.plan-card tbody th {
+  padding: 3px 0;
+  border-top: 1px solid var(--line);
+}
+
+.plan-card-marks th[scope='row'] {
+  font-weight: 400;
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+
+.plan-card-marks td {
+  text-align: right;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.plan-card-finish td {
+  color: var(--navy);
+}
+
+.plan-card-stretch {
+  font-size: 15px;
+}
+
+.plan-card-stretch td,
+.plan-card-stretch thead th {
+  text-align: right;
+}
+
+.plan-card-print {
+  align-self: center;
+  min-width: 12em;
+}
+
+.plan-card-link {
+  align-self: flex-start;
+  padding-left: 0;
+}
+
+@media print {
+  @page {
+    size: letter;
+    margin: 0.35in;
+  }
+
+  html,
+  body {
+    position: static;
+    height: auto;
+    overflow: visible;
+    background: #fff;
+  }
+
+  .plan-card-screen {
+    display: block;
+    padding: 0;
+    height: auto;
+  }
+
+  .plan-card-screen > .bar,
+  .plan-card-print {
+    display: none;
+  }
+
+  /* A quarter of the sheet, top left, with a dashed edge to cut along. */
+  .plan-card {
+    margin: 0;
+    width: 3.9in;
+    max-width: none;
+    height: 5.1in;
+    border: 1px dashed #999;
+    border-radius: 0;
+    padding: 0.22in 0.28in;
+  }
+}
