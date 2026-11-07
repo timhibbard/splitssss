@@ -150,6 +150,14 @@ export const PUBLISHED: Published[] = [
     team: 'girls',
     date: '2026-11-06',
     name: 'State Quals',
+    reconciled: {
+      title: 'Three phones were put on the 1 mi phone’s gun.',
+      body:
+        'The 0.5 mi and 2.6 mi phone started 0.4 s after the 1 mi phone and the second 1 mi and ' +
+        '2 mi phone 0.1 s before it; both were rebased from their clock times. 1 mi and 2 mi are ' +
+        'the mean of the two phones where both had the runner, after each phone’s own note on two ' +
+        'names swapped at 2 mi.',
+    },
     milesplit: 'https://sc.milesplit.com/meets/773625-schsl-5a-state-qualifier-2026',
   },
 ]
