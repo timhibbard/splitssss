@@ -97,7 +97,7 @@ export function Setup({
    * volunteer at every marker. It is the first field on the screen and it stays
    * editable, which is what the next meet needs.
    */
-  const [meet, setMeet] = useState('State Quals')
+  const [meet, setMeet] = useState('State')
   /**
    * Earlier meets, folded away. Reaching last Saturday's race is a real need and
    * a rare one, and by November the list is long enough to bury the race being
@@ -123,7 +123,7 @@ export function Setup({
 
   /**
    * The race this week's meet is run for, which with the girls default below is
-   * the pair every phone opens on. State Quals is varsity only, for both teams.
+   * the pair every phone opens on. State is varsity only, for both teams.
    *
    * A fixed default and not the last thing timed, so twelve phones handed out at a
    * meet all say the same thing and the briefing is the same for all of them. One
