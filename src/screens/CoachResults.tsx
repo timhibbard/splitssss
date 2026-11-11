@@ -213,6 +213,20 @@ function planColumns(event: Event, upcoming = false, bests?: Best[] | null): Col
       ? pair('Middle', last.meters - first.meters, (r) => ({ plan: r.plan?.middle?.pace, ran: r.middle?.pace }))
       : []),
     ...pair('Last', event.distance - last.meters, (r) => ({ plan: r.plan?.closing?.pace, ran: r.closing?.pace })),
+    // Before the race, where each runner is to be at each mark, time since the gun,
+    // as the sheet gives it: what the split takers will be calling against.
+    ...(upcoming
+      ? event.markers.map(
+          (marker, i): Column => ({
+            head: marker.label,
+            sub: 'plan',
+            cell: (r) => {
+              const at = r.observed.plan?.times[i]
+              return at == null ? '' : formatElapsed(at)
+            },
+          }),
+        )
+      : []),
     { head: 'Finish', sub: 'plan', cell: (r) => (r.plan?.finish == null ? '' : formatPr(r.plan.finish)) },
     ...(upcoming
       ? [
@@ -735,7 +749,8 @@ function Footnotes({
           </li>
           <li>
             <strong>The plan is what each runner was told before the race.</strong> Its paces
-            are the ones on the plan sheet, as written.
+            are the ones on the plan sheet, as written, and so is each mark&rsquo;s time, which
+            is time since the gun.
           </li>
           <li>
             <strong>Race pace is worked out.</strong> The planned finish over the race&rsquo;s
