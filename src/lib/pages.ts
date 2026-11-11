@@ -160,6 +160,15 @@ export const PUBLISHED: Published[] = [
     },
     milesplit: 'https://sc.milesplit.com/meets/773625-schsl-5a-state-qualifier-2026',
   },
+  {
+    slug: 'state',
+    year: 2026,
+    team: 'girls',
+    date: '2026-11-14',
+    name: 'State',
+    milesplit: 'https://sc.milesplit.com/meets/782178-schsl-class-5a3a-state-championships-2026',
+    course: 'courses/2026/state.jpg',
+  },
 ]
 
 /** One team's year of meets, which is the unit both results pages are addressed by. */
