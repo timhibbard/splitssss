@@ -40,6 +40,18 @@ export function formatElapsed(ms: number): string {
 }
 
 /**
+ * A planned time as the plan sheet gives it: m:ss when it is a whole second, as the
+ * coach rounds them, and m:ss.t when the sheet was written to the tenth. A plan is a
+ * target, and a tenth on a target nobody set to the tenth is precision with no value.
+ */
+export function formatPlanned(ms: number): string {
+  if (!Number.isFinite(ms)) return '--:--'
+  if (Math.round(ms) % 1000 !== 0) return formatElapsed(ms)
+  const total = Math.round(Math.abs(ms) / 1000)
+  return `${ms < 0 ? '-' : ''}${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
+}
+
+/**
  * Format elapsed ms as m:ss, no tenths. For derived numbers like a projected
  * finish, where tenths would imply the projection is that good.
  */

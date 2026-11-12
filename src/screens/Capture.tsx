@@ -11,6 +11,7 @@ import {
   formatDelta,
   formatElapsed,
   formatMinSec,
+  formatPlanned,
   formatPr,
   formatPrShort,
   formatWallClock,
@@ -276,7 +277,7 @@ export function Capture({
     return (
       a.name +
       (a.pr == null ? '' : `, PR ${formatPr(a.pr)}`) +
-      (plan == null ? '' : `, plan ${formatElapsed(plan)}`)
+      (plan == null ? '' : `, plan ${formatPlanned(plan)}`)
     )
   }
   const chipNumbers = (a: Athlete) => {
@@ -290,7 +291,7 @@ export function Capture({
         )}
         {plan != null && (
           <span className="chip-pr chip-plan" aria-hidden="true">
-            Plan {formatElapsed(plan)}
+            Plan {formatPlanned(plan)}
           </span>
         )}
       </>
@@ -730,7 +731,7 @@ export function Capture({
                       `${row.athlete ? row.athlete.name : 'not named yet'}. ` +
                       `${row.projected != null ? `On pace for ${formatMinSec(row.projected)}. ` : ''}` +
                       `${row.vsPr != null ? `${prSpoken(row.vsPr)}. ` : ''}` +
-                      `${plan != null ? `Plan ${formatElapsed(plan)}${vsPlan != null ? `, ${planSpoken(vsPlan)}` : ''}. ` : ''}` +
+                      `${plan != null ? `Plan ${formatPlanned(plan)}${vsPlan != null ? `, ${planSpoken(vsPlan)}` : ''}. ` : ''}` +
                       `${name ? 'Tap to change the name.' : 'Tap to name it.'}`
                     }
                   >
@@ -757,7 +758,7 @@ export function Capture({
                     */}
                     {plan != null && (
                       <>
-                        <span className="split-plan">Plan {formatElapsed(plan)}</span>
+                        <span className="split-plan">Plan {formatPlanned(plan)}</span>
                         <span className={`${vsPrClass(vsPlan)} split-vs-plan`}>
                           {vsPlan == null ? '' : formatDelta(vsPlan)}
                         </span>

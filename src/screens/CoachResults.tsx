@@ -18,7 +18,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Best } from '../lib/bestsfile'
-import { formatElapsed, formatIsoDate, formatPr, formatSignedElapsed } from '../lib/clock'
+import { formatElapsed, formatIsoDate, formatPlanned, formatPr, formatSignedElapsed } from '../lib/clock'
 import { METERS_PER_MILE } from '../lib/distance'
 import { athleteFromHash, athleteHash, athleteLink, labelFor } from '../lib/link'
 import { SQUAD_LABEL } from '../lib/lineup'
@@ -222,12 +222,12 @@ function planColumns(event: Event, upcoming = false, bests?: Best[] | null): Col
             sub: 'plan',
             cell: (r) => {
               const at = r.observed.plan?.times[i]
-              return at == null ? '' : formatElapsed(at)
+              return at == null ? '' : formatPlanned(at)
             },
           }),
         )
       : []),
-    { head: 'Finish', sub: 'plan', cell: (r) => (r.plan?.finish == null ? '' : formatPr(r.plan.finish)) },
+    { head: 'Finish', sub: 'plan', cell: (r) => (r.plan?.finish == null ? '' : formatPlanned(r.plan.finish)) },
     ...(upcoming
       ? [
           // The coach's own list, beside the plan it was written against. Before the

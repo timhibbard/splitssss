@@ -18,7 +18,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import { formatElapsed, formatIsoDate, formatPr, formatSignedElapsed } from '../lib/clock'
+import { formatElapsed, formatIsoDate, formatPlanned, formatPr, formatSignedElapsed } from '../lib/clock'
 import { METERS_PER_MILE } from '../lib/distance'
 import { athleteFromHash, athleteHash, labelFor } from '../lib/link'
 import {
@@ -458,7 +458,7 @@ function Race({ row, weather }: { row: Row; weather?: Weather }) {
             {where.map((w) => (
               <tr key={w.meters}>
                 <th scope="row">{w.says}</th>
-                {planned && <td className="plan">{w.plan != null ? formatElapsed(w.plan) : ''}</td>}
+                {planned && <td className="plan">{w.plan != null ? formatPlanned(w.plan) : ''}</td>}
                 <td>{formatElapsed(w.at)}</td>
               </tr>
             ))}
@@ -516,7 +516,6 @@ function Plan({ row, date, onCard }: { row: Row; date: string; onCard: () => voi
               <tr>
                 <td />
                 <th scope="col">Pace</th>
-                <th scope="col">Time</th>
               </tr>
             </thead>
             <tbody>
@@ -524,12 +523,11 @@ function Plan({ row, date, onCard }: { row: Row; date: string; onCard: () => voi
                 <tr key={says}>
                   <th scope="row">{says}</th>
                   <td className="plan">{s!.pace != null ? pace(s!.pace) : ''}</td>
-                  <td className="plan">{s!.time != null ? formatElapsed(s!.time) : ''}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <p className="hint">Paces are minutes per mile. Each time is that stretch on its own.</p>
+          <p className="hint">Paces are minutes per mile.</p>
         </section>
       )}
       {(marks.length > 0 || plan?.finish != null) && (
@@ -540,13 +538,13 @@ function Plan({ row, date, onCard }: { row: Row; date: string; onCard: () => voi
               {marks.map((m) => (
                 <tr key={m.says}>
                   <th scope="row">{m.says}</th>
-                  <td className="plan">{formatElapsed(m.at)}</td>
+                  <td className="plan">{formatPlanned(m.at)}</td>
                 </tr>
               ))}
               {plan?.finish != null && (
                 <tr>
                   <th scope="row">Finish</th>
-                  <td className="plan">{formatElapsed(plan.finish)}</td>
+                  <td className="plan">{formatPlanned(plan.finish)}</td>
                 </tr>
               )}
             </tbody>
