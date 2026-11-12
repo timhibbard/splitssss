@@ -1,5 +1,5 @@
 import type { Best } from '../lib/bestsfile'
-import { formatElapsed, formatIsoDate, formatPr } from '../lib/clock'
+import { formatIsoDate, formatPlanned, formatPr } from '../lib/clock'
 import { mileage, type Row } from '../lib/meet'
 import type { Published } from '../lib/pages'
 
@@ -27,7 +27,7 @@ export function PlanCard({ row, published, best, onClose }: Props) {
           { says: `First ${mileage(first.meters)}`, s: plan?.opening },
           ...(event.markers.length > 1 ? [{ says: `Middle ${mileage(last.meters - first.meters)}`, s: plan?.middle }] : []),
           { says: `Last ${mileage(event.distance - last.meters)}`, s: plan?.closing },
-        ].filter((x) => x.s)
+        ].filter((x) => x.s?.pace != null)
       : []
   const marks = event.markers.flatMap((marker, i) => {
     const at = observed.plan?.times[i]
@@ -53,7 +53,7 @@ export function PlanCard({ row, published, best, onClose }: Props) {
           {plan?.finish != null && (
             <div className="plan-card-goal">
               <span>Plan</span>
-              {formatElapsed(plan.finish)}
+              {formatPlanned(plan.finish)}
             </div>
           )}
         </header>
@@ -83,13 +83,13 @@ export function PlanCard({ row, published, best, onClose }: Props) {
                 {marks.map((m) => (
                   <tr key={m.says}>
                     <th scope="row">{m.says}</th>
-                    <td>{formatElapsed(m.at)}</td>
+                    <td>{formatPlanned(m.at)}</td>
                   </tr>
                 ))}
                 {plan?.finish != null && (
                   <tr className="plan-card-finish">
                     <th scope="row">Finish</th>
-                    <td>{formatElapsed(plan.finish)}</td>
+                    <td>{formatPlanned(plan.finish)}</td>
                   </tr>
                 )}
               </tbody>
@@ -104,7 +104,6 @@ export function PlanCard({ row, published, best, onClose }: Props) {
                 <tr>
                   <td />
                   <th scope="col">Pace</th>
-                  <th scope="col">Time</th>
                 </tr>
               </thead>
               <tbody>
@@ -112,7 +111,6 @@ export function PlanCard({ row, published, best, onClose }: Props) {
                   <tr key={says}>
                     <th scope="row">{says}</th>
                     <td>{s!.pace != null ? `${perMile(s!.pace)}/mi` : ''}</td>
-                    <td>{s!.time != null ? formatElapsed(s!.time) : ''}</td>
                   </tr>
                 ))}
               </tbody>

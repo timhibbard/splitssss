@@ -4,6 +4,7 @@ import {
   elapsedMs,
   formatDelta,
   formatElapsed,
+  formatPlanned,
   formatIsoDate,
   formatMinSec,
   formatPr,
@@ -117,4 +118,10 @@ test('a date label never throws on something that is not a date', () => {
 test("today's date round trips through the label", () => {
   assert.match(todayIsoDate(), /^\d{4}-\d{2}-\d{2}$/)
   assert.notEqual(formatIsoDate(todayIsoDate()), todayIsoDate(), 'formatted, not passed through')
+})
+
+test('a planned time reads to the second when the coach set it to the second', () => {
+  assert.equal(formatPlanned(182_000), '3:02')
+  assert.equal(formatPlanned(1_179_000), '19:39')
+  assert.equal(formatPlanned(181_500), '3:01.5')
 })
