@@ -43,6 +43,7 @@ import { firstRace, latestFinishes, namesMeet, type SeasonMeet, seasonLabels, se
 import { cellClass, type Column, head, MILE_2_ALLOWED_MS, pace, sign, softMile, time } from './coachColumns'
 import { CoachRunner } from './CoachRunner'
 import { MeetLinks } from './MeetLinks'
+import { PlanCardSheet } from './PlanCard'
 import { RaceCharts } from './RaceCharts'
 
 type Props = {
@@ -280,6 +281,8 @@ const VIEWS: { view: View; says: string }[] = [
 
 export function CoachResults({ meets, bests, page, onBack, onPick }: Props) {
   const [view, setView] = useState<View>('course')
+  /** Every runner's race plan card for the meet on screen, in place of the table. */
+  const [cards, setCards] = useState(false)
   /** The meet on screen, by slug: the one the address opens on until another is picked. */
   const [chosen, setChosen] = useState(namesMeet(page) ? (page.meet?.slug ?? '') : '')
   const showing = meets.find((m) => m.published.slug === chosen) ?? firstRace(page, meets) ?? undefined
@@ -367,6 +370,17 @@ export function CoachResults({ meets, bests, page, onBack, onPick }: Props) {
     )
   }
 
+  if (cards && showing && planned) {
+    return (
+      <PlanCardSheet
+        rows={events.flatMap((e) => e.rows.filter((r) => r.plan))}
+        published={showing.published}
+        bests={bests}
+        onClose={() => setCards(false)}
+      />
+    )
+  }
+
   return (
     <div key="table" ref={screen} className="screen results coach">
       <header className="bar">
@@ -400,6 +414,12 @@ export function CoachResults({ meets, bests, page, onBack, onPick }: Props) {
       )}
 
       {showing && <MeetLinks published={showing.published} />}
+
+      {showing && planned && (
+        <button type="button" className="link plan-card-link" onClick={() => setCards(true)}>
+          Race plan cards
+        </button>
+      )}
 
       {!showing ? (
         <p className="instructions">No results for this season yet.</p>
