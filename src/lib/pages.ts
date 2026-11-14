@@ -166,6 +166,13 @@ export const PUBLISHED: Published[] = [
     team: 'girls',
     date: '2026-11-14',
     name: 'State',
+    reconciled: {
+      title: 'Two clocks: the official timing and the coach’s phone.',
+      body:
+        'The finish, 1 mi and 2 mi are the meet’s own timing, to the hundredth, on the official ' +
+        'gun. 0.5 mi and 2.6 mi are the coach’s phone on its own gun, and were not moved onto the ' +
+        'official one: there was no shared crossing to measure the difference from.',
+    },
     milesplit: 'https://sc.milesplit.com/meets/782178-schsl-class-5a3a-state-championships-2026',
     course: 'courses/2026/state.jpg',
   },
