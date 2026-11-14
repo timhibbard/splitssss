@@ -2047,3 +2047,32 @@ button.bar-where:disabled {
     padding: 0.22in 0.28in;
   }
 }
+
+/* Every card for a meet, for the coach: one under another on the screen. */
+.plan-card-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@media print {
+  /* Four to a letter sheet: two across, two down, cut along the dashes. */
+  .plan-card-sheet {
+    display: grid;
+    grid-template-columns: repeat(2, 3.9in);
+    grid-auto-rows: 5.1in;
+    gap: 0;
+  }
+
+  .plan-card-sheet .plan-card {
+    break-inside: avoid;
+  }
+
+  .plan-card-sheet .plan-card:nth-child(4n + 1) {
+    break-before: page;
+  }
+
+  .plan-card-sheet .plan-card:first-child {
+    break-before: auto;
+  }
+}
